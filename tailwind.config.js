@@ -6,6 +6,10 @@ module.exports = {
       fontSize: {
         xxs: "10px",
       },
+      colors: {
+        newNavy: "#1d2d53",
+        newBlue: "#3b68d8",
+      }
     },
   },
   plugins: [],
