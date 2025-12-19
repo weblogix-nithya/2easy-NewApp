@@ -1,0 +1,128 @@
+@font-face {
+  font-family: "DM Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-Italic.ttf) format("truetype");
+}
+
+/* @font-face {
+  font-family: 'DM Sans';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-Italic.ttf) format('truetype');
+} */
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-BoldItalic.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-Regular.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-Medium.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/dm-sans/DMSans-Bold.ttf) format("truetype");
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  /* Google font CDN */
+  font-family: "Montserrat", sans-serif !important;
+}
+
+h1 {
+  color: #000;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+}
+
+h2 {
+  color: var(--chakra-colors-black-400);
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  font-family: "Manrope", sans-serif !important;
+}
+
+h3 {
+  color: var(--chakra-colors-black-400);
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  font-family: "Manrope", sans-serif !important;
+}
+
+h4 {
+  color: var(--chakra-colors-black-400);
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  font-family: "Manrope", sans-serif !important;
+}
+
+p,
+strong,
+table,
+th,
+td,
+label,
+input,
+select,
+option {
+  /* Google font CDN */
+  font-family: "Manrope", sans-serif !important;
+}
+
+p,
+label {
+  font-weight: 500 !important;
+}
+
+label {
+  font-weight: 500;
+}
+
+input {
+  border-radius: 8px !important;
+}
+
+/* <table> */
+th {
+  letter-spacing: 1px !important;
+  color: var(--chakra-colors-black-500) !important;
+  border-bottom-color: var(--chakra-colors-gray-200) !important;
+}
+
+td {
+  font-size: 16px;
+  font-weight: 500;
+  border-bottom-color: var(--chakra-colors-gray-200) !important;
+}
+
+/*
+font-family: 'Manrope', sans-serif;
+font-family: 'Montserrat', sans-serif;
+*/

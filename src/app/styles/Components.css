@@ -1,0 +1,113 @@
+/* ************************** */
+/* Delivery status indicator  */
+.rsb-job-instruction-circle {
+  position: relative;
+}
+
+.rsb-job-instruction-circle .job-instruction-circle-rod {
+  position: absolute;
+  top: 20px;
+  left: 8px;
+  height: calc(100% - 20px);
+  width: 2px;
+  background-color: #e3e3e3;
+}
+
+.job-indicator-circle {
+  position: relative;
+  height: 18px;
+  width: 18px;
+  min-height: 18px;
+  min-width: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.job-indicator-circle::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 6px;
+  padding-bottom: 10px;
+  width: 2px;
+  height: calc(100% + 18px);
+  background-color: #e3e3e3;
+}
+
+.job-destination-card-wrap
+  .job-destination-card:last-child
+  .job-indicator-circle::after {
+  display: none;
+}
+
+.job-destination-card:last-child
+  .rsb-job-instruction-circle
+  .job-instruction-circle-rod {
+  display: none;
+}
+
+.rsb-route-point-wrap > div:first-child .rsb-dot:before,
+.rsb-route-point-wrap > div:last-child .rsb-dot:after {
+  display: none;
+}
+
+/* ********************* */
+/* Draggables indicators */
+/* RsbDraggableIndicatorCircle */
+.rsb-dot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  border-width: 2px;
+}
+
+.rsb-dot:before,
+.rsb-dot:after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  height: 48%;
+  width: 2px;
+  background-color: var(--chakra-colors-gray-200);
+}
+
+.rsb-dot:before {
+  top: -8px;
+}
+
+.rsb-dot:after {
+  bottom: -8px;
+}
+
+/* ******************************** */
+/* colorSelect see: ColorSelect.tsx */
+.color-select {
+  max-width: 175px;
+  border: none;
+  border-radius: 8px;
+}
+
+.color-select:hover {
+  cursor: pointer;
+}
+
+.color-select .two-color-select__control,
+.color-select .two-color-select__indicator-separator {
+  border: none;
+}
+
+.color-select .two-color-select__single-value,
+.color-select .two-color-select__placeholder {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.color-select .two-color-select__indicator {
+  color: #ffffff;
+  background-color: transparent;
+}

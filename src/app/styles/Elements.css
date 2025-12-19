@@ -1,0 +1,65 @@
+button {
+  font-family: "Manrope", sans-serif !important;
+  font-weight: 700 !important;
+}
+
+.btn-primary {
+  display: inline-block !important;
+  width: unset !important;
+  padding: 10px 16px !important;
+  color: #fff;
+  background-color: var(--chakra-colors-primary-400) !important;
+  border-radius: 8px;
+}
+
+/* For chakra-react-select */
+.chakra-react-select__control {
+  min-height: 47px !important;
+}
+
+.chakra-react-select__control:hover {
+  cursor: pointer !important;
+}
+
+.chakra-react-select__indicator {
+  background-color: #fff !important;
+  color: #888888 !important;
+}
+
+.chakra-react-select__single-value {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.chakra-react-select__indicator-separator {
+  display: none !important;
+}
+
+.two-react-select > div input,
+.two-easy-select__placeholder {
+  font-family: "Manrope", sans-serif !important;
+  color: var(--chakra-colors-black-400) !important;
+}
+
+.select .two-easy-select__control {
+  border: 1px solid var(--chakra-colors-gray-200) !important;
+}
+
+.select .two-easy-select__placeholder,
+.two-easy-select__input-container,
+.two-easy-select__single-value,
+.two-easy-select__menu .two-easy-select__option {
+  font-size: 14px !important;
+}
+
+.two-easy-select__menu .two-easy-select__option--is-selected {
+  background-color: var(--chakra-colors-primary-500) !important;
+}
+
+.select .two-easy-select__indicator {
+  background-color: #fff;
+}
+
+.select .two-easy-select__indicator-separator {
+  display: none;
+}
