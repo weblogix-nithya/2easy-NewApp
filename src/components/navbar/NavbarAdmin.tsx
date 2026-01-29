@@ -65,7 +65,7 @@ export default function AdminNavbar(props: {
   return (
     // Top navigation bar
     <Box
-      className="mk-navbarAdmin bg-white min-h-[98px] mx-auto py-2 w-full"
+      className="mk-navbarAdmin bg-white min-h-[68px] mx-auto py-2 w-full"
       borderBottom="1px"
       borderBottomColor="gray.200"
       position={navbarPosition}

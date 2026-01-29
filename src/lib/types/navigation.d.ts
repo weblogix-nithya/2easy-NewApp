@@ -13,3 +13,27 @@ export interface IRoute {
   sidebar?: boolean;
   isPrivate?: boolean;
 }
+
+
+export interface IRouteNew {
+  name: string;
+  key: string;
+  isAdmin?: boolean;
+  isCompany?: boolean;
+  // isPrivate?: boolean;
+  children?: INavItem[];
+}
+
+export interface INavItem {
+  name: string;
+  key?: string;
+  path?: string; 
+  layout?: string;
+  href?: string;   
+  isAdmin?: boolean;
+  isCompany?: boolean;
+  isPrivate?: boolean;
+  children?: INavItem[];
+}
+
+
