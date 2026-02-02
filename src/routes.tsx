@@ -227,7 +227,7 @@ const routes: IRoute[] = [
 ];
 
 
-export const NAV_CONFIG:IRouteNew[] = [
+export const NAV_CONFIG: IRouteNew[] = [
   {
     name: "Overview",
     key: "overview",
@@ -390,11 +390,11 @@ export const NAV_CONFIG:IRouteNew[] = [
         isCompany: true,
         isPrivate: true,
         children: [
-          { name: "Draft Invoices", href: "/admin/invoices#draft" },
-          { name: "Outstanding Invoices", href: "/admin/invoices#outstanding" },
-          { name: "Paid Invoices", href: "/invoices/jobs#customer_paid" },
-          { name: "Approved Invoices", href: "/admin/invoices#approved" },
-          { name: "Create Invoice - No booking ", href: "/admin/invoices/create" }
+          { name: "Draft Invoices", href: "/admin/invoices#draft", key:"draft" },
+          { name: "Outstanding Invoices", href: "/admin/invoices#outstanding", key:"out" },
+          { name: "Paid Invoices", href: "/invoices/jobs#customer_paid", key:"paid" },
+          { name: "Approved Invoices", href: "/admin/invoices#approved", key:"approved" },
+          { name: "Create Invoice - No booking ", href: "/admin/invoices/create" , key:"create"}
         ],
       },
     ]
@@ -414,16 +414,28 @@ export const NAV_CONFIG:IRouteNew[] = [
         isCompany: true,
         isPrivate: false,
         children: [
-          { name: "QLD Import LCL", href: "/admin/create-job?id=qld_import_lcl" },
-          { name: "QLD Export LCL", href: "/admin/create-job?id=qld_export_lcl" },
-          { name: "QLD Airfreight Import", href: "/admin/create-job?id=qld_airfreight_import" },
-          { name: "QLD Airfreight Export", href: "/admin/create-job?id=qld_airfreight_export" },
-          { name: "QLD B2B", href: "/admin/create-job?id=qld_b2b" },
-          { name: "VIC Import LCL", href: "/admin/create-job?id=vic_import_lcl" },
-          { name: "VIC Export LCL", href: "/admin/create-job?id=vic_export_lcl" },
-          { name: "VIC Airfreight Import", href: "/admin/create-job?id=vic_airfreight_import" },
-          { name: "VIC Airfreight Export", href: "/admin/create-job?id=vic_airfreight_export" },
-          { name: "VIC B2B", href: "/admin/create-job?id=vic_b2b" },
+          {
+            name: "QLD",
+            key: "qld",
+            children: [
+              { name: "QLD Import LCL", href: "/admin/create-job?id=qld_import_lcl" },
+              { name: "QLD Export LCL", href: "/admin/create-job?id=qld_export_lcl" },
+              { name: "QLD Airfreight Import", href: "/admin/create-job?id=qld_airfreight_import" },
+              { name: "QLD Airfreight Export", href: "/admin/create-job?id=qld_airfreight_export" },
+              { name: "QLD B2B", href: "/admin/create-job?id=qld_b2b" },
+            ]
+          },
+          {
+            name: "VIC",
+            key: "vic",
+            children: [
+              { name: "VIC Import LCL", href: "/admin/create-job?id=vic_import_lcl" },
+              { name: "VIC Export LCL", href: "/admin/create-job?id=vic_export_lcl" },
+              { name: "VIC Airfreight Import", href: "/admin/create-job?id=vic_airfreight_import" },
+              { name: "VIC Airfreight Export", href: "/admin/create-job?id=vic_airfreight_export" },
+              { name: "VIC B2B", href: "/admin/create-job?id=vic_b2b" },
+            ]
+          },
           { name: "Road Freight", href: "/admin/create-job?id=roadfreight" },
           { name: "FCL", href: "/admin/create-job?id=fcl" },
           { name: "Warehouse", href: "/admin/create-job?id=warehouse" },

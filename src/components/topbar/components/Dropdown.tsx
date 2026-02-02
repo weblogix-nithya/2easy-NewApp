@@ -15,11 +15,13 @@ export function DropdownItem({ item, level = 1 }: { item: INavItem; level?: numb
     const closeTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
-    // const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
+    const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
     const isCompany = useSelector((state: RootState) => state.user.isCompany);
 
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isSecondLevelActive(item, pathname)
+
+    const canRenderRoute = (route: INavItem) =>  (isAdmin || (isCustomer && !["draft", "create"].includes(route.key)));
 
 
     // Smooth Hover
@@ -77,7 +79,7 @@ export function DropdownItem({ item, level = 1 }: { item: INavItem; level?: numb
                 px={3}
                 py={2}
                 fontSize="md"
-                fontWeight="semibold"
+                fontWeight={level == 1 && "semibold"}
                 lineHeight="1.2"
                 cursor="pointer"
             >
@@ -101,7 +103,9 @@ export function DropdownItem({ item, level = 1 }: { item: INavItem; level?: numb
                 transform={open ? "translateY(0)" : "translateY(-2px)"}
                 transition="opacity 0.12s ease, transform 0.12s ease"
             >
-                {item.children!.map((child) => (
+                {item.children!
+                    .filter((child) => canRenderRoute(child))
+                    .map((child) => (
                     <DropdownItem key={child.name} item={child} level={level + 1} />
                 ))}
             </MenuList>

@@ -299,7 +299,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 left="0"
                 right="0"
                 // h={`68px`}
-                // zIndex="999"
+                zIndex="999"
                 bg="white"
                 // borderBottom="1px solid"
                 // borderColor="gray.200"
