@@ -68,6 +68,7 @@ export default function AdminNavbar(props: {
       className="mk-navbarAdmin bg-white min-h-[68px] mx-auto py-2 w-full"
       borderBottom="1px"
       borderBottomColor="gray.200"
+      zIndex="1000"
       position={navbarPosition}
       boxShadow={navbarShadow}
       filter={navbarFilter}

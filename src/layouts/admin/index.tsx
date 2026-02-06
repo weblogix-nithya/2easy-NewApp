@@ -62,7 +62,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   const [fixed] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [toggleSidebar, setToggleSidebar] = useState(false);
-  const [toggleFullSidebar, setToggleFullSidebar] = useState(true);
+  // const [toggleFullSidebar, setToggleFullSidebar] = useState(true);
   // functions for changing the states from components
   const [isClient, setIsClient] = useState(false);
 
@@ -83,7 +83,8 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   const cookies = parseCookies();
 
   const handleMenuToggle = () => {
-    setToggleFullSidebar(!toggleFullSidebar);
+    // setToggleFullSidebar(!toggleFullSidebar);
+    router.push("/admin/dashboard");
   };
 
   useEffect(() => {
@@ -299,7 +300,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 left="0"
                 right="0"
                 // h={`68px`}
-                zIndex="999"
+                zIndex="1"
                 bg="white"
                 // borderBottom="1px solid"
                 // borderColor="gray.200"
