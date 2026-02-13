@@ -78,7 +78,8 @@ export default function HeaderLinks(props: { secondary: boolean }) {
       "is_company_admin",
       "user_id",
       "state",
-      "reset_approve"
+      "reset_approve",
+      "is_sub_admin"
     ];
 
     // const paths = ["/", "/admin", "/admin/jobs", "*"];
@@ -100,8 +101,8 @@ export default function HeaderLinks(props: { secondary: boolean }) {
     } catch (error) {
       console.error("Error clearing Apollo cache:", error);
     }
-    dispatch(logoutUser());
     router.push("/auth/login");
+    dispatch(logoutUser());
   }
 
   return (

@@ -17,13 +17,14 @@ export function DropdownItem({ item, level = 1 }: { item: INavItem; level?: numb
     const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
     const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
     const isCompany = useSelector((state: RootState) => state.user.isCompany);
+    const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
 
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isSecondLevelActive(item, pathname)
 
-    const canRenderRoute = (route: INavItem) =>  (isAdmin || (isCustomer && !["draft", "create"].includes(route.key)));
+    const canRenderRoute = (route: INavItem) =>  (isAdmin || (isSubAdmin && route.key !== "pendingrcti") || (isCustomer && !["draft", "create"].includes(route.key)));
 
-
+    console.log("Role",isAdmin,isSubAdmin,isCustomer)
     // Smooth Hover
     const handleMouseEnter = () => {
         if (closeTimeout.current) {

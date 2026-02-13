@@ -22,10 +22,11 @@ export default function TobNavbar(props: TopbarProps) {
     const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
     const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
     // const isCompany = useSelector((state: RootState) => state.user.isCompany);
+    const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
 
     const isHeaderActive = (route:IRouteNew) => route.children?.some((child) => isSecondLevelActive(child, pathname));
-    const canRenderRoute = (route:INavItem) => (route.layout === "/admin" || route.layout === "/auth") && (isAdmin || (isCustomer && route.isCompany === true));
-    const canRenderHeaderRoute = (route:IRouteNew) => (isAdmin || (isCustomer && route.isCompany === true));
+    const canRenderRoute = (route:INavItem) => (route.layout === "/admin" || route.layout === "/auth") && (isAdmin || (isSubAdmin && route.isSubAdmin) ||(isCustomer && route.isCompany === true));
+    const canRenderHeaderRoute = (route:IRouteNew) => (isAdmin || (isSubAdmin && route.isSubAdmin) ||(isCustomer && route.isCompany === true));
 
     // Smooth Hover
     const handleMouseEnter = (key: string) => {

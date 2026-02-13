@@ -25,6 +25,7 @@ import {
   setDriverId,
   setIsAdmin,
   setIsCompanyAdmin,
+  setIsSubAdmin,
   setState,
   setUserId,
   setUserName,
@@ -118,6 +119,31 @@ export default function AdminLayout(props: DashboardLayoutProps) {
         cookies.is_admin !== ""
       ) {
         dispatch(setIsAdmin(cookies.is_admin === "true" ? true : false));
+      }
+      if (
+        cookies.is_sub_admin !== undefined &&
+        cookies.is_sub_admin !== "undefined" &&
+        cookies.is_sub_admin !== ""
+      ) {
+        dispatch(setIsSubAdmin(cookies.is_sub_admin === "true" ? true : false));
+        if (
+          cookies.is_admin !== "true" && 
+          cookies.is_sub_admin === "true" &&
+          typeof window !== "undefined" &&
+          !window.location.hash 
+        ) {
+          const activeRoute = flatRoutes.find((r) =>
+            pathname.includes(r.path),
+          );
+          if (
+            activeRoute &&
+            !activeRoute.isSubAdmin &&
+            pathname !== "/admin/dashboard"
+          ) {
+            console.warn("🔁 Redirecting restricted route →", pathname);
+            router.push("/admin/dashboard");
+          }
+        }
       }
       if (
         cookies.is_company_admin !== undefined &&
@@ -236,7 +262,6 @@ export default function AdminLayout(props: DashboardLayoutProps) {
             }}
           >
             {/* <Sidebar routes={routes} display="none" {...rest} /> */}
-            {/* <TopBar routes={NAV_CONFIG}/> */}
 
             {/* TODO: change the width based on if the user has toggled width */}
            

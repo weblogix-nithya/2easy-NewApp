@@ -21,6 +21,7 @@ export const MUTATION_LOGIN = gql`
         }
         is_admin
         is_company_admin
+        is_sub_admin
         reset_approve
       }
     }

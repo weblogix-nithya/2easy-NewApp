@@ -20,6 +20,7 @@ export interface IRouteNew {
   key: string;
   isAdmin?: boolean;
   isCompany?: boolean;
+  isSubAdmin?: boolean;
   // isPrivate?: boolean;
   children?: INavItem[];
 }
@@ -32,6 +33,7 @@ export interface INavItem {
   href?: string;   
   isAdmin?: boolean;
   isCompany?: boolean;
+  isSubAdmin?: boolean;
   isPrivate?: boolean;
   children?: INavItem[];
 }

@@ -233,6 +233,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "overview",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: true,
     children: [
       {
         name: "Contacts",
@@ -241,6 +242,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/contacts",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
       },
       {
@@ -250,6 +252,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/dashboard",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
       },
       {
@@ -259,6 +262,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/trackabooking",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
       },
     ],
@@ -268,6 +272,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "operations",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: true,
     children: [
       {
         name: "Bulk Allocation",
@@ -276,6 +281,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/jobs",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "VIC", href: "/admin/jobs?id=vic" },
@@ -294,6 +300,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/pre-allocation",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "VIC", href: "/admin/pre-allocation?id=vic" },
@@ -312,6 +319,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/job-allocations",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "VIC", href: "/admin/job-allocations?id=vic" },
@@ -326,6 +334,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/chep-exchange",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: true,
         isPrivate: false,
       },
     ],
@@ -335,6 +344,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "admin",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: false,
     children: [
       {
         name: "Bulk Email",
@@ -343,6 +353,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/bulk-email",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: false,
         isPrivate: true,
       },
       {
@@ -352,6 +363,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/companies",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: false,
         isPrivate: true,
       },
       {
@@ -361,6 +373,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/customers",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: false,
         isPrivate: true,
       },
       {
@@ -370,6 +383,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/users",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: false,
         isPrivate: false,
       },
 
@@ -380,6 +394,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "accounts",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: false,
     children: [
       {
         name: "Invoices",
@@ -388,6 +403,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/invoices",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: false,
         isPrivate: true,
         children: [
           { name: "Draft Invoices", href: "/admin/invoices#draft", key:"draft" },
@@ -404,6 +420,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "booking",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: true,
     children: [
       {
         name: "Create a booking",
@@ -412,6 +429,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/create-job",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           {
@@ -448,6 +466,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "quotes",
     isAdmin: true,
     isCompany: true,
+    isSubAdmin: true,
     children: [
       {
         name: "Existing quote",
@@ -456,6 +475,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/quotes",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "QLD", href: "/admin/quotes?id=qld" },
@@ -471,6 +491,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/create-quote",
         isAdmin: true,
         isCompany: true,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "QLD", href: "/admin/create-quote?id=qld" },
@@ -486,6 +507,7 @@ export const NAV_CONFIG: IRouteNew[] = [
     key: "drivers",
     isAdmin: true,
     isCompany: false,
+    isSubAdmin: true,
     children: [
       {
         name: "Driver accounts",
@@ -494,6 +516,7 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/drivers",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: true,
         isPrivate: false,
         children: [
           { name: "Pending drivers", href: "/admin/drivers#pending" },
@@ -508,10 +531,11 @@ export const NAV_CONFIG: IRouteNew[] = [
         path: "/rctis",
         isAdmin: true,
         isCompany: false,
+        isSubAdmin: true,
         isPrivate: true,
         children: [
-          { name: "Pending RCTI", href: "/admin/rctis#pending" },
-          { name: "Approved RCTI", href: "/admin/rctis#processed" },
+          { name: "Pending RCTI", href: "/admin/rctis#pending", key:"pendingrcti" },
+          { name: "Approved RCTI", href: "/admin/rctis#processed", key:"processedrcti" },
         ]
       },
     ]
