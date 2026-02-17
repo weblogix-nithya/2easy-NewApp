@@ -8,7 +8,6 @@ module.exports = {
       },
       colors: {
         newNavy: "#1d2d53",
-        newBlue: "#3b68d8",
       }
     },
   },

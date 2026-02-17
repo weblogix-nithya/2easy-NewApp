@@ -1,4 +1,4 @@
-import { IRoute } from "@/lib/types/navigation";
+import { INavItem, IRoute, IRouteNew } from "@/lib/types/navigation";
 
 // NextJS Requirement
 export const isWindowAvailable = () => typeof window !== "undefined";
@@ -37,3 +37,15 @@ export const getActiveNavbar = (routes: IRoute[]): boolean => {
 export const getActiveNavbarText = (routes: IRoute[]): string | boolean => {
   return getActiveRoute(routes) || false;
 };
+
+
+// New App functionality for top Bar
+export const getSecondLevelRoutes = (config: IRouteNew[]):INavItem[] => {
+  return config.flatMap(section => section.children ?? []);
+};
+
+export const isSecondLevelActive = (route: INavItem, pathname: string) => {
+  if (!route.layout || !route.path) return false;
+  return pathname.startsWith(`${route.layout}${route.path}`);
+};
+

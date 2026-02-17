@@ -156,6 +156,7 @@ const clearAllCookies = () => {
     "company_id",
     "is_admin",
     "is_company_admin",
+    "is_sub_admin",
     "user_id",
     "state",
   ];

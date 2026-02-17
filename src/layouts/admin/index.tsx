@@ -1,19 +1,16 @@
 // Chakra imports
 "use client";
 import { Box, Flex, Image, Portal, useDisclosure } from "@chakra-ui/react";
-import { faBars } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Status, Wrapper } from "@googlemaps/react-wrapper";
 import { defaultSelectedFilter } from "@/components/jobs/Filters";
 // Layout components
 import Navbar from "@/components/navbar/NavbarAdmin";
-import Sidebar from "@/components/sidebar/Sidebar";
 import { SidebarContext } from "@/lib/contexts/SidebarContext";
 import { usePathname, useRouter } from "next/navigation";
 import { parseCookies } from "nookies";
 import { PropsWithChildren, ReactElement, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import routes from "@/routes";
+import routes, { NAV_CONFIG } from "@/routes";
 import {
   setDisplayName,
   setIsFilterTicked,
@@ -28,6 +25,7 @@ import {
   setDriverId,
   setIsAdmin,
   setIsCompanyAdmin,
+  setIsSubAdmin,
   setState,
   setUserId,
   setUserName,
@@ -37,8 +35,10 @@ import {
   getActiveNavbarText,
   getActivePath,
   getActiveRoute,
+  getSecondLevelRoutes,
 } from "@/utils/navigation";
 import { enforceCompanyAccess } from "@/utils/routeGuard";
+import TobNavbar from "@/components/topbar/Topbarhover";
 
 const render = (status: Status): ReactElement => {
   if (status === Status.LOADING) {
@@ -63,9 +63,11 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   const [fixed] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [toggleSidebar, setToggleSidebar] = useState(false);
-  const [toggleFullSidebar, setToggleFullSidebar] = useState(true);
+  // const [toggleFullSidebar, setToggleFullSidebar] = useState(true);
   // functions for changing the states from components
   const [isClient, setIsClient] = useState(false);
+
+  const flatRoutes = getSecondLevelRoutes(NAV_CONFIG)
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -73,7 +75,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   //   (state: RootState) => state.rightSideBar.isShow,
   // );
   useEffect(() => {
-    if (isAuth) enforceCompanyAccess(router, routes, cookies);
+    if (isAuth) enforceCompanyAccess(router, flatRoutes, cookies, pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -82,7 +84,8 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   const cookies = parseCookies();
 
   const handleMenuToggle = () => {
-    setToggleFullSidebar(!toggleFullSidebar);
+    // setToggleFullSidebar(!toggleFullSidebar);
+    router.push("/admin/dashboard");
   };
 
   useEffect(() => {
@@ -97,9 +100,9 @@ export default function AdminLayout(props: DashboardLayoutProps) {
       setIsAuth(true);
       dispatch(
         setRoutes(
-          routes.map(
-            ({ title, name, layout, path, isAdmin, isCompany, isPrivate }) => ({
-              title,
+          flatRoutes.map(
+            ({name, layout, path, isAdmin, isCompany, isPrivate }) => ({
+              title: name,
               name,
               layout,
               path,
@@ -116,6 +119,31 @@ export default function AdminLayout(props: DashboardLayoutProps) {
         cookies.is_admin !== ""
       ) {
         dispatch(setIsAdmin(cookies.is_admin === "true" ? true : false));
+      }
+      if (
+        cookies.is_sub_admin !== undefined &&
+        cookies.is_sub_admin !== "undefined" &&
+        cookies.is_sub_admin !== ""
+      ) {
+        dispatch(setIsSubAdmin(cookies.is_sub_admin === "true" ? true : false));
+        if (
+          cookies.is_admin !== "true" && 
+          cookies.is_sub_admin === "true" &&
+          typeof window !== "undefined" &&
+          !window.location.hash 
+        ) {
+          const activeRoute = flatRoutes.find((r) =>
+            pathname.includes(r.path),
+          );
+          if (
+            activeRoute &&
+            !activeRoute.isSubAdmin &&
+            pathname !== "/admin/dashboard"
+          ) {
+            console.warn("🔁 Redirecting restricted route →", pathname);
+            router.push("/admin/dashboard");
+          }
+        }
       }
       if (
         cookies.is_company_admin !== undefined &&
@@ -138,7 +166,9 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           typeof window !== "undefined" &&
           !window.location.hash
         ) {
-          const activeRoute = routes.find((r) => pathname.includes(r.path));
+          const activeRoute = flatRoutes.find((r) =>
+            pathname.includes(r.path),
+          );
           if (
             activeRoute &&
             !activeRoute.isCompany &&
@@ -231,32 +261,15 @@ export default function AdminLayout(props: DashboardLayoutProps) {
               setToggleSidebar,
             }}
           >
-            <Sidebar routes={routes} display="none" {...rest} />
+            {/* <Sidebar routes={routes} display="none" {...rest} /> */}
 
             {/* TODO: change the width based on if the user has toggled width */}
-            <Flex
-              onClick={handleMenuToggle}
-              className="z-10 fixed top-0 pl-[15px] pb-[1px] w-[190px] cursor-pointer border-b bg-white"
-            >
-              <FontAwesomeIcon
-                icon={faBars}
-                className="my-auto w-5 h-5 me-2.5 !text-[var(--chakra-colors-black-400)]"
-                size="lg"
-              />
-              <Image
-                src={"/img/branding/logo-2easy.svg"}
-                alt=""
-                h="26px"
-                w="130px"
-                my="35px"
-                mx="auto"
-              />
-            </Flex>
+           
 
             <Box
               className={
-                "mk-admin-index relative h-full max-h-full overflow-auto bg-white " +
-                (toggleFullSidebar ? "w-[calc(100%_-_190px)]" : "w-full")
+                "mk-admin-index relative h-full max-h-full overflow-auto bg-white " +"w-full"
+                // (toggleFullSidebar ? "w-[calc(100%_-_190px)]" : "w-full")
               }
               // w={{ base: "100%", xl: "calc( 100% - 190px )" }}
               // maxWidth={{ base: "100%", xl: "calc( 100% - 190px )" }}
@@ -268,7 +281,27 @@ export default function AdminLayout(props: DashboardLayoutProps) {
               transitionProperty="top, bottom, width"
               transitionTimingFunction="linear, linear, ease"
             >
+
               <Portal>
+                <Flex
+                  onClick={handleMenuToggle}
+                  className="z-10 fixed top-0 pl-[15px] pb-[1px] w-[190px] cursor-pointer border-b bg-white h-[68px] items-center"
+                >
+                  {/* <FontAwesomeIcon
+                    icon={faBars}
+                    className="my-auto w-5 h-5 me-2.5 !text-[var(--chakra-colors-black-400)]"
+                    size="lg"
+                  /> */}
+                  <Image
+                    src={"/img/branding/logo-2easy.svg"}
+                    alt=""
+                    h="26px"
+                    w="130px"
+                    my="35px"
+                    mx="auto"
+                  />
+                </Flex>
+
                 <Box bgColor="white">
                   <Navbar
                     onOpen={onOpen}
@@ -285,10 +318,36 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 </Box>
               </Portal>
 
+              {/* NEW TOP BAR – BELOW NAVBAR */}
+              <Box
+                position="fixed"
+                top={`68px`}
+                left="0"
+                right="0"
+                // h={`68px`}
+                zIndex="1"
+                bg="white"
+                // borderBottom="1px solid"
+                // borderColor="gray.200"
+                // className="mt-[68px]"
+              >
+                <TobNavbar routes={NAV_CONFIG} />
+              </Box>
+
+              {/* <Box className="mt-[68px]">
+                 <TopBar routes={NAV_CONFIG} /> 
+                <TobNavbar routes={NAV_CONFIG} />
+              </Box> */}
+
               <Box
                 className="mk-adminLayout"
                 mx="auto"
-                p={0}
+                pt={`108px`}
+                sx={{
+                  '& > .css-y352q4': {
+                    paddingTop: '0px',
+                  }}}
+                // p={0}
                 minH="100vh"
                 bg="white"
                 pt={`108px`}

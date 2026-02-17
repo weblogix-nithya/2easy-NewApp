@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
 import { faExclamationCircle, faIdCard, faSignOut, faTruck, faUser, faUserPlus } from "@fortawesome/free-solid-svg-icons";
+import { parseCookies } from "nookies";
 
 interface PaginatorInfo {
   total: string;
@@ -36,8 +37,13 @@ export default function Dashboard() {
   // const boxBg = useColorModeValue("secondaryGray.300", "whiteAlpha.100");
 
   const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
+  const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
   // const isCompany = useSelector((state: RootState) => state.user.isCompany);
   // const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
+  const isAdminUser = isAdmin || isSubAdmin;
+
+  const cookies = parseCookies();
+  
   const [date, _setDate] = useState(
     moment(today).utc().format("YYYY-MM-DD HH:mm:ss"),
   );
@@ -247,7 +253,7 @@ export default function Dashboard() {
           spacing={{ base: "20px", xl: "20px" }}
         >
           {/* Admin info dashboard */}
-          {isAdmin && (
+          {isAdminUser && (
             <Flex flexDirection="column">
               <h1 className="mb-4">Dashboard</h1>
 
@@ -481,10 +487,10 @@ export default function Dashboard() {
           )}
 
           {/* Customer Dashboard */}
-          {!isAdmin && (
+          {!isAdminUser && (
             <Flex flexDirection="column">
               {/* TODO: Add username */}
-              <h1 className="mb-6">Welcome, (...)</h1>
+              <h1 className="mb-6">Welcome, {cookies.user_name ? cookies.user_name : "(...)"}</h1>
 
               <Flex flexWrap="wrap">
                 {/* TODO: Add actual link paths */}

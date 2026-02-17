@@ -6,6 +6,7 @@ export const userSlice = createSlice({
   name: "user",
   initialState: {
     isAdmin: false,
+    isSubAdmin: false,
     isCustomer: false,
     isDriver: false,
     isCompany: false,
@@ -22,6 +23,9 @@ export const userSlice = createSlice({
   reducers: {
     setIsAdmin: (state, action: PayloadAction<boolean>) => {
       state.isAdmin = action.payload;
+    },
+    setIsSubAdmin: (state, action: PayloadAction<boolean>) => {
+      state.isSubAdmin = action.payload;
     },
     setCustomerId: (state, action: PayloadAction<any>) => {
       state.customerId = action.payload;
@@ -56,6 +60,7 @@ export const userSlice = createSlice({
     },
     logoutUser: (state) => {
       state.isAdmin = false;
+      state.isSubAdmin = false;
       state.isCustomer = false;
       state.isDriver = false;
       state.isCompany = false;
@@ -72,6 +77,7 @@ export const userSlice = createSlice({
 
 export const {
   setIsAdmin,
+  setIsSubAdmin,
   setCustomerId,
   setCompanyId,
   setIsCompanyAdmin,
