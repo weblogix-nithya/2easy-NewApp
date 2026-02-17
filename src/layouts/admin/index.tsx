@@ -1,5 +1,5 @@
 // Chakra imports
-"use client"
+"use client";
 import { Box, Flex, Image, Portal, useDisclosure } from "@chakra-ui/react";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -106,11 +106,11 @@ export default function AdminLayout(props: DashboardLayoutProps) {
               isAdmin,
               isCompany,
               isPrivate,
-            }),
-          ),
-        ),
+            })
+          )
+        )
       );
-      if (  
+      if (
         cookies.is_admin !== undefined &&
         cookies.is_admin !== "undefined" &&
         cookies.is_admin !== ""
@@ -123,7 +123,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
         cookies.is_company_admin !== ""
       ) {
         dispatch(
-          setIsCompanyAdmin(cookies.is_company_admin === "true" ? true : false),
+          setIsCompanyAdmin(cookies.is_company_admin === "true" ? true : false)
         );
       }
       if (
@@ -138,9 +138,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           typeof window !== "undefined" &&
           !window.location.hash
         ) {
-          const activeRoute = routes.find((r) =>
-            pathname.includes(r.path),
-          );
+          const activeRoute = routes.find((r) => pathname.includes(r.path));
           if (
             activeRoute &&
             !activeRoute.isCompany &&
@@ -208,7 +206,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           setJobFilters({
             key: key,
             value: JSON.parse(cookies[cookies_key]),
-          }),
+          })
         );
       }
     }
@@ -223,7 +221,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
     <Wrapper
       apiKey={process.env.NEXT_PUBLIC_MAPS_KEY}
       render={render}
-  libraries={["places", "marker"]}
+      libraries={["places", "marker"]}
     >
       {isAuth && (
         <Box className="mk-admin-index">
@@ -293,6 +291,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 p={0}
                 minH="100vh"
                 bg="white"
+                pt={`108px`}
               >
                 {children}
               </Box>
