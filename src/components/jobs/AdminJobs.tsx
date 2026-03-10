@@ -1,3 +1,4 @@
+"use client";
 import { useQuery } from "@apollo/client/react";
 import {
   Box,
@@ -11,7 +12,7 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
-// import ActionBar from "../../components/jobs/ActionBar";
+// import ActionBar from "@/components/jobs/ActionBar";
 import ActionBar from "./ActionBar";
 import {
   defaultJobFilter,
@@ -24,7 +25,7 @@ import {
   getColumns,
   tableColumn,
 } from "./JobTableColumns";
-// import { getCompanyColumns } from "../../components/jobs/JobTableColumnsCustomer";
+// import { getCompanyColumns } from "@/components/jobs/JobTableColumnsCustomer";
 // import { SearchBar } from "components/navbar/searchBar/SearchBar";
 import JobPaginationTable from "../table/JobPaginationTable";
 // import PaginationTableCustomer from "components/table/PaginationTableCustomer";
@@ -37,57 +38,60 @@ import {
 import {
   GET_JOBS_QUERY,
   GROUPED_PAGINATED_JOBS_QUERY,
-} from "../../graphql/job";
-import { GET_JOB_CATEGORIES_QUERY } from "../../graphql/jobCategories";
-import { GET_JOB_STATUSES_QUERY } from "../../graphql/jobStatus";
-import { JoinOnClause } from "../../graphql/types/types";
+  GroupedPaginatedJobsData,
+  GroupedPaginatedJobsVars,
+} from "@/graphql/job";
+import { GET_JOB_CATEGORIES_QUERY } from "@/graphql/jobCategories";
+import { GET_JOB_STATUSES_QUERY } from "@/graphql/jobStatus";
+import { JoinOnClause } from "@/graphql/types/types";
 import {
   outputDynamicTableBody,
   outputDynamicTableHeader,
-} from "../../lib/helpers/helper";
+} from "@/lib/helpers/helper";
 // import AdminLayout from "layouts/admin";
 import debounce from "lodash.debounce";
 import dynamic from "next/dynamic";
 import { destroyCookie, parseCookies, setCookie } from "nookies";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-// import { downloadExcel } from "react-export-table-to-excel";
+import { downloadExcel } from "react-export-table-to-excel";
 // import { FaFileExcel } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setIsFilterTicked,
   setJobFilters,
   setJobMainFilters,
-} from "../../lib/store/jobFilterSlice";
-import { RootState } from "../../lib/store/store";
+} from "@/lib/store/jobFilterSlice";
+import { RootState } from "@/lib/store/store";
 
-import JobHeader from "../../components/jobs/JobHeader";
+import JobHeader from "@/components/jobs/JobHeader";
+import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 // "./job-components/JobHeader";
 
 const JobStatusDateFilter = dynamic(
-  () => import("../../components/jobs/JobStatusDateFilter"),
+  () => import("@/components/jobs/JobStatusDateFilter"),
   {
     ssr: false,
-  }
+  },
 );
 const FilterJobsModal = React.lazy(
-  () => import("../../components/jobs/FilterJobsModal")
+  () => import("@/components/jobs/FilterJobsModal"),
 );
-const JobBulkAssignModal = React.lazy(
-  () => import("../../components/jobs/JobBulkAssignModal")
-);
-const JobBulkSortModal = React.lazy(
-  () => import("../../components/jobs/JobBulkSortModal")
-);
+// const JobBulkAssignModal = React.lazy(
+//   () => import("@/components/jobs/JobBulkAssignModal"),
+// );
+// const JobBulkSortModal = React.lazy(
+//   () => import("@/components/jobs/JobBulkSortModal"),
+// );
 // const JobTableSettingsModal = React.lazy(
-//   () => import("../../components/jobs/JobTableSettingsModal"),
+//   () => import("@/components/jobs/JobTableSettingsModal"),
 // );
 // Inside Job Index
 const JobTableSettingsModal = dynamic(
-  () => import("../../components/jobs/JobTableSettingsModal"),
+  () => import("@/components/jobs/JobTableSettingsModal"),
   {
     loading: () => <Text>Loading settings...</Text>,
     ssr: false,
-  }
+  },
 );
 
 const adminStatusOptions = [
@@ -150,7 +154,7 @@ function formatDate(date: Date, isStart: boolean): string {
 }
 
 interface GetDynamicTableUsersData {
-  dynamicTableUsers: {
+  dynamicTableUsers?: {
     data: DynamicTableUser[];
   };
 }
@@ -223,44 +227,51 @@ export default function JobIndex({}: // initialLoadOnly = false,
   const [mainJobFilter, setMainJobFilter] = useState(null);
   const [mainFilters, setMainFilters] = useState<any>(defaultSelectedFilter);
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilter>(
-    defaultSelectedFilter
+    defaultSelectedFilter,
   );
   const [mainFilterDisplayNames, setMainFilterDisplayNames] =
     useState<typeof filterDisplayNames>(filterDisplayNames);
-  const [companyColumns, setCompanyColumns] = useState([]); // State for company columns
+  // const [companyColumns, setCompanyColumns] = useState([]); // State for company columns
 
-  const handleToggleWithMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsMediaBusy(true);
-    setWithMedia(e.target.checked);
-  };
+  const handleToggleWithMedia = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const checked = e.target.checked;
+      setIsMediaBusy(true);
+      setWithMedia(checked);
+    },
+    [],
+  );
 
-  const { refetch: getDynamicTableUsers, data: dynamicTableData } = useQuery
-  <
-    GetDynamicTableUsersData,
-    GetDynamicTableUsersVars
-  >
-  (GET_DYNAMIC_TABLE_USERS_QUERY, {
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "sort_id",
-      orderByOrder: "ASC",
-      user_id: userId,
-    },
-    skip: !userId,
-    notifyOnNetworkStatusChange: true,
-    onCompleted: (data) => {
-      // console.log("dynamicTableData =>", data.dynamicTableUsers.data);
-      setDynamicTableUsers(
-        data.dynamicTableUsers.data.filter(
-          (item: DynamicTableUser) => item.is_active == true
-        )
-      );
-    },
-  });
-  const baseGroupedVars = React.useCallback(
-    () => ({
+  const { refetch: getDynamicTableUsers, data: dynamicTableData } =
+    useApolloQueryWithEffect<
+      GetDynamicTableUsersData,
+      GetDynamicTableUsersVars
+    >(
+      GET_DYNAMIC_TABLE_USERS_QUERY,
+      {
+        variables: {
+          query: "",
+          page: 1,
+          first: 100,
+          orderByColumn: "sort_id",
+          orderByOrder: "ASC",
+          user_id: userId,
+        },
+        skip: !userId,
+        notifyOnNetworkStatusChange: true,
+      },
+      (data) => {
+        console.log("data-dynamic", data);
+        setDynamicTableUsers(
+          data.dynamicTableUsers.data.filter(
+            (item: DynamicTableUser) => item.is_active === true,
+          ),
+        );
+      },
+    );
+
+  const groupedVars = useMemo(() => {
+    const base = {
       page: queryPageIndex + 1,
       per_page: queryPageSize,
       query: searchQuery || "",
@@ -276,54 +287,93 @@ export default function JobIndex({}: // initialLoadOnly = false,
             to_at: formatDate(rangeDate[1], false),
           }
         : undefined,
-    }), // eslint-disable-line react-hooks/exhaustive-deps
-    [
-      queryPageIndex,
-      queryPageSize,
-      searchQuery,
-      isCompany,
-      companyId,
-      isCustomer,
-      isCompanyAdmin,
-      customerId,
-      rangeDate,
-      mainJobFilter?.job_status_ids,
-    ]
-  );
+    };
 
-  const groupedVars = React.useMemo(
-    () =>
-      is_filter_ticked === "1"
-        ? { ...baseGroupedVars(), ...(mainJobFilter ?? {}) }
-        : baseGroupedVars(),
-    [is_filter_ticked, mainJobFilter, baseGroupedVars]
-  );
+    return is_filter_ticked === "1"
+      ? { ...base, ...(mainJobFilter ?? {}) }
+      : base;
+  }, [
+    queryPageIndex,
+    queryPageSize,
+    searchQuery,
+    mainJobFilter,
+    isCompany,
+    companyId,
+    isCustomer,
+    isCompanyAdmin,
+    customerId,
+    rangeDate,
+    is_filter_ticked,
+  ]);
+  // const baseGroupedVars = React.useCallback(
+  //   () => ({
+  //     page: queryPageIndex + 1,
+  //     per_page: queryPageSize,
+  //     query: searchQuery || "",
+  //     job_status_ids: mainJobFilter?.job_status_ids || [
+  //       1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  //     ],
+  //     company_id: isCompany ? parseInt(companyId) : undefined,
+  //     customer_id:
+  //       isCustomer && !isCompanyAdmin ? parseInt(customerId) : undefined,
+  //     between_at: rangeDate?.[0]
+  //       ? {
+  //           from_at: formatDate(rangeDate[0], true),
+  //           to_at: formatDate(rangeDate[1], false),
+  //         }
+  //       : undefined,
+  //   }), // eslint-disable-line react-hooks/exhaustive-deps
+  //   [
+  //     queryPageIndex,
+  //     queryPageSize,
+  //     searchQuery,
+  //     isCompany,
+  //     companyId,
+  //     isCustomer,
+  //     isCompanyAdmin,
+  //     customerId,
+  //     rangeDate,
+  //     mainJobFilter?.job_status_ids,
+  //   ],
+  // );
+
+  // const groupedVars = React.useMemo(
+  //   () =>
+  //     is_filter_ticked === "1"
+  //       ? { ...baseGroupedVars(), ...(mainJobFilter ?? {}) }
+  //       : baseGroupedVars(),
+  //   [is_filter_ticked, mainJobFilter, baseGroupedVars],
+  // );
   const {
     data: groupedJobs,
     loading: loadingGroupedJobs,
     refetch: refetchGroupedJobs,
-  } = useQuery(GROUPED_PAGINATED_JOBS_QUERY, {
-    variables: groupedVars,
-    skip: !userId || isCompanyAdmin || isCustomer || isCompany,
-    fetchPolicy: "network-only",
-    onCompleted: (_data) => {
-      // console.log("groupedJobs =>", data.groupedPaginatedJobs.data);
-    },
-  });
+  } = useApolloQueryWithEffect<
+    GroupedPaginatedJobsData,
+    GroupedPaginatedJobsVars
+  >(
+    GROUPED_PAGINATED_JOBS_QUERY,
+    {
+      variables: groupedVars,
 
-  const _jobs = groupedJobs?.groupedPaginatedJobs;
-  const loading = loadingGroupedJobs;
-  const refetchJobs = refetchGroupedJobs;
+      skip: !userId || isCompanyAdmin || isCustomer || isCompany,
+      fetchPolicy: "network-only",
+    },
+    (data) => {
+      console.log("groupedjob", data);
+      
+    },
+  );
 
   const adminColumns = useMemo(() => {
     return getColumns(
       isAdmin,
       isCustomer,
       withMedia,
-      refetchJobs,
-      dynamicTableData?.dynamicTableUsers?.data || []
+      refetchGroupedJobs,
+      (dynamicTableData?.dynamicTableUsers?.data || []) as DynamicTableUser[],
     );
-  }, [dynamicTableData, isAdmin, isCustomer, withMedia, refetchJobs]);
+  }, [dynamicTableData, isAdmin, isCustomer, withMedia]);
 
   useEffect(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -336,15 +386,15 @@ export default function JobIndex({}: // initialLoadOnly = false,
     };
   }, [adminColumns]);
 
-  useEffect(() => {
-    const columns = getCompanyColumns(isAdmin, isCustomer, withMedia);
-    setCompanyColumns(columns);
-  }, [withMedia, isAdmin, isCustomer]);
+  // useEffect(() => {
+  //   const columns = getCompanyColumns(isAdmin, isCustomer, withMedia);
+  //   setCompanyColumns(columns);
+  // }, [withMedia, isAdmin, isCustomer]);
 
   const bulkAssignColumns = getBulkAssignColumns(
     isAdmin,
     isCustomer,
-    dynamicTableUsers
+    dynamicTableUsers,
   );
 
   const orderByRelationship = useMemo(() => {
@@ -375,51 +425,51 @@ export default function JobIndex({}: // initialLoadOnly = false,
     ];
   }, [sorting]);
 
-  const {
-    loading: companyJobsLoading,
-    error: _companyJobsError,
-    data: companyJobs,
-    refetch: getCompanyJobs,
-  } = useQuery(GET_JOBS_QUERY, {
-    variables: {
-      query: searchQuery,
-      page: queryPageIndex + 1,
-      first: queryPageSize,
-      orderByRelationship: orderByRelationship,
-      company_id: isCompany || isCompanyAdmin ? parseInt(companyId) : undefined,
+  // const {
+  //   loading: companyJobsLoading,
+  //   error: _companyJobsError,
+  //   data: companyJobs,
+  //   refetch: getCompanyJobs,
+  // } = useQuery(GET_JOBS_QUERY, {
+  //   variables: {
+  //     query: searchQuery,
+  //     page: queryPageIndex + 1,
+  //     first: queryPageSize,
+  //     orderByRelationship: orderByRelationship,
+  //     company_id: isCompany || isCompanyAdmin ? parseInt(companyId) : undefined,
 
-      customer_id:
-        isCustomer && !isCompanyAdmin ? parseInt(customerId) : undefined,
-      job_status_ids: mainJobFilter?.job_status_ids || [
-        1, 2, 3, 4, 5, 6, 7, 10,
-      ],
-      between_at: rangeDate?.[0]
-        ? {
-            from_at: formatDate(rangeDate[0], true),
-            to_at: formatDate(rangeDate[1], false),
-          }
-        : undefined,
-      ...mainJobFilter,
-    },
-    skip: isAdmin && !isCompanyAdmin,
-  });
+  //     customer_id:
+  //       isCustomer && !isCompanyAdmin ? parseInt(customerId) : undefined,
+  //     job_status_ids: mainJobFilter?.job_status_ids || [
+  //       1, 2, 3, 4, 5, 6, 7, 10,
+  //     ],
+  //     between_at: rangeDate?.[0]
+  //       ? {
+  //           from_at: formatDate(rangeDate[0], true),
+  //           to_at: formatDate(rangeDate[1], false),
+  //         }
+  //       : undefined,
+  //     ...mainJobFilter,
+  //   },
+  //   skip: isAdmin && !isCompanyAdmin,
+  // });
 
-  useEffect(() => {
-    const hasGroupedJobs = groupedJobs?.groupedPaginatedJobs?.data?.length > 0;
-    const hasCompanyJobs = companyJobs?.jobs?.data?.length > 0;
+  // useEffect(() => {
+  //   const hasGroupedJobs = groupedJobs?.groupedPaginatedJobs?.data?.length > 0;
+  //   const hasCompanyJobs = companyJobs?.jobs?.data?.length > 0;
 
-    if ((isAdmin && hasGroupedJobs) || (!isAdmin && hasCompanyJobs)) {
-      getJobStatuses();
-      getJobCategories();
-      getAvailableDrivers();
-      getDynamicTableUsers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isAdmin,
-    groupedJobs?.groupedPaginatedJobs?.data?.length,
-    companyJobs?.jobs?.data?.length,
-  ]);
+  //   if ((isAdmin && hasGroupedJobs) || (!isAdmin && hasCompanyJobs)) {
+  //     getJobStatuses();
+  //     getJobCategories();
+  //     getAvailableDrivers();
+  //     getDynamicTableUsers();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [
+  //   isAdmin,
+  //   groupedJobs?.groupedPaginatedJobs?.data?.length,
+  //   companyJobs?.jobs?.data?.length,
+  // ]);
 
   useEffect(() => {
     if (is_filter_ticked == "1") {
@@ -464,13 +514,13 @@ export default function JobIndex({}: // initialLoadOnly = false,
         {
           maxAge: 30 * 24 * 60 * 60,
           path: "*",
-        }
+        },
       );
       dispatch(
         setJobFilters({
           key: key,
           value: updatedValues[key as keyof SelectedFilter],
-        })
+        }),
       );
     }
     setCookie(null, `jobMainFilters`, JSON.stringify(updatedJobFilter), {
@@ -540,19 +590,20 @@ export default function JobIndex({}: // initialLoadOnly = false,
   //   isCustomer,
   // ]);
 
-  useEffect(() => {
-    if (isAdmin) {
-      refetchGroupedJobs(groupedVars); // <— pass latest vars
-    } else if (isCompany || isCustomer) {
-      getCompanyJobs(); // (you can do the same pattern with a companyVars memo if needed)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    groupedVars, // <— single source captures page, size, search, dates, AND is_filter_ticked/mainJobFilter
-    isAdmin,
-    isCompany,
-    isCustomer,
-  ]);
+  // useEffect(() => {
+  //   if (isAdmin) {
+  //     refetchGroupedJobs(groupedVars); // <— pass latest vars
+  //   }
+  //   // else if (isCompany || isCustomer) {
+  //   //   getCompanyJobs(); // (you can do the same pattern with a companyVars memo if needed)
+  //   // }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [
+  //   groupedVars, // <— single source captures page, size, search, dates, AND is_filter_ticked/mainJobFilter
+  //   isAdmin,
+  //   // isCompany,
+  //   // isCustomer,
+  // ]);
 
   const debouncedSearch = useMemo(
     () =>
@@ -560,59 +611,82 @@ export default function JobIndex({}: // initialLoadOnly = false,
         setSearchQuery(query);
         setQueryPageIndex(0);
       }, 300),
-    []
+    [],
   );
 
   useEffect(
     () => debouncedSearch.cancel(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
-  const { refetch: getJobStatuses } = useQuery(GET_JOB_STATUSES_QUERY, {
-    skip: true,
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
+  const { refetch: getJobStatuses } = useApolloQueryWithEffect(
+    GET_JOB_STATUSES_QUERY,
+    {
+      skip: true,
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+      },
     },
-    onCompleted: (data) => {
-      setJobStatuses([]);
+    (data: any) => {
       setJobStatuses(
         data.jobStatuses.data.map((jobStatus: any) => ({
           value: parseInt(jobStatus.id),
           label: jobStatus.name,
-        }))
+        })),
       );
     },
-  });
+  );
 
-  const { refetch: getJobCategories } = useQuery(GET_JOB_CATEGORIES_QUERY, {
-    skip: true,
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
+  // const { refetch: getJobCategories } = useQuery(GET_JOB_CATEGORIES_QUERY, {
+  //   skip: true,
+  //   variables: {
+  //     query: "",
+  //     page: 1,
+  //     first: 100,
+  //     orderByColumn: "id",
+  //     orderByOrder: "ASC",
+  //   },
+  //   onCompleted: (data) => {
+  //     setJobCategories([]);
+  //     data.jobCategorys.data.map((category: any) => {
+  //       setJobCategories((jobCategories) => [
+  //         ...jobCategories,
+  //         {
+  //           value: parseInt(category.id),
+  //           label: category.name,
+  //         },
+  //       ]);
+  //     });
+  //   },
+  // });
+  const { refetch: getJobCategories } = useApolloQueryWithEffect(
+    GET_JOB_CATEGORIES_QUERY,
+    {
+      skip: true,
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+      },
     },
-    onCompleted: (data) => {
-      setJobCategories([]);
-      data.jobCategorys.data.map((category: any) => {
-        setJobCategories((jobCategories) => [
-          ...jobCategories,
-          {
-            value: parseInt(category.id),
-            label: category.name,
-          },
-        ]);
-      });
+    (data: any) => {
+      setJobCategories(
+        data.jobCategorys.data.map((category) => ({
+          value: parseInt(category.id),
+          label: category.name,
+        })),
+      );
     },
-  });
+  );
 
-  const { refetch: getAvailableDrivers } = useQuery(
+  const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
     GET_AVAILABLE_DRIVERS_QUERY,
     {
       skip: true,
@@ -623,25 +697,22 @@ export default function JobIndex({}: // initialLoadOnly = false,
         orderByColumn: "id",
         orderByOrder: "ASC",
         available: true,
-        // need to add in available drivers
       },
       notifyOnNetworkStatusChange: true,
-      onCompleted: (data) => {
-        setDriverOptions([]);
-        setDrivers([]);
-        data.drivers.data.map((driver: any) => {
-          setDriverOptions((driverOptions) => [
-            ...driverOptions,
-            {
-              value: parseInt(driver.id),
-              label: driver.full_name,
-              data: driver,
-            },
-          ]);
-          setDrivers(data.drivers.data);
-        });
-      },
-    }
+    },
+    (data: any) => {
+      const drivers = data.drivers.data;
+
+      setDrivers(drivers);
+
+      setDriverOptions(
+        drivers.map((driver) => ({
+          value: parseInt(driver.id),
+          label: driver.full_name,
+          data: driver,
+        })),
+      );
+    },
   );
 
   const handleExport = () => {
@@ -649,7 +720,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
     const body = outputDynamicTableBody(
       dynamicTableUsers,
       tableColumn,
-      selectedJobs
+      selectedJobs,
     );
     downloadExcel({
       fileName: "react-export-table-to-excel.xls",
@@ -687,7 +758,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
     let statusIds: number[] = [];
     if (selectedOption.value !== "all") {
       const option = statusOptions.find(
-        (opt) => opt.value === selectedOption.value
+        (opt) => opt.value === selectedOption.value,
       );
       statusIds = option?.statusIds || [];
     }
@@ -701,97 +772,97 @@ export default function JobIndex({}: // initialLoadOnly = false,
     setMainJobFilter(updatedJobFilter);
   };
 
-  useEffect(() => {
-    setIsTableLoading(loading);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
+  // useEffect(() => {
+  //   setIsTableLoading(loading);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [loading]);
 
-  useEffect(() => {
-    if (isAdmin && !isCompanyAdmin) {
-      refetchGroupedJobs(groupedVars);
-    } else if (isCompany || isCustomer || (isAdmin && isCompanyAdmin)) {
-      getCompanyJobs();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupedVars, isAdmin, isCompany, isCustomer, isCompanyAdmin]);
+  // useEffect(() => {
+  //   if (isAdmin && !isCompanyAdmin) {
+  //     refetchGroupedJobs(groupedVars);
+  //   }
+  //   // else if (isCompany || isCustomer || (isAdmin && isCompanyAdmin)) {
+  //   //   getCompanyJobs();
+  //   // }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [groupedVars, isAdmin, isCompany, isCustomer, isCompanyAdmin]);
 
   return (
-    <AdminLayout>
-      <Box pt={{ base: "130px", md: "97px", xl: "97px" }}>
-        <SimpleGrid
-          mb="70px"
-          pt="32px"
-          px="24px"
-          columns={{ sm: 1 }}
-          spacing={{ base: "20px", xl: "20px" }}
-        >
-          <JobHeader
-            isAdmin={isAdmin}
-            isCompany={isCompany}
-            onOpenSetting={onOpenSetting}
-            onOpenFilter={onOpenFilter}
-            isFilterTicked={is_filter_ticked}
-            handleExport={handleExport}
-            debouncedSearch={debouncedSearch}
-            onToggleFilterCheckbox={(checked) => {
-              if (!checked) {
-                destroyCookie(null, "jobMainFilters", { path: "*" });
-                destroyCookie(null, "displayName", { path: "*" });
-                handleResetAll();
-              }
-              setCookie(null, "is_filter_ticked", checked ? "1" : "0", {
-                maxAge: 30 * 24 * 60 * 60,
-                path: "*",
-              });
-              dispatch(setIsFilterTicked(checked ? "1" : "0"));
-            }}
-          />
+    // <AdminLayout>
+    <Box pt={{ base: "130px", md: "97px", xl: "97px" }}>
+      <SimpleGrid
+        mb="70px"
+        pt="32px"
+        px="24px"
+        columns={{ sm: 1 }}
+        spacing={{ base: "20px", xl: "20px" }}
+      >
+        <JobHeader
+          isAdmin={isAdmin}
+          isCompany={isCompany}
+          onOpenSetting={onOpenSetting}
+          onOpenFilter={onOpenFilter}
+          isFilterTicked={is_filter_ticked}
+          handleExport={handleExport}
+          debouncedSearch={debouncedSearch}
+          onToggleFilterCheckbox={(checked) => {
+            if (!checked) {
+              destroyCookie(null, "jobMainFilters", { path: "*" });
+              destroyCookie(null, "displayName", { path: "*" });
+              handleResetAll();
+            }
+            setCookie(null, "is_filter_ticked", checked ? "1" : "0", {
+              maxAge: 30 * 24 * 60 * 60,
+              path: "*",
+            });
+            dispatch(setIsFilterTicked(checked ? "1" : "0"));
+          }}
+        />
 
-          <Flex alignItems="left" flexWrap={"wrap"}>
-            {Object.keys(mainFilters).map((filterKey) => {
-              if (mainFilters[filterKey]) {
-                return (
-                  <Tag
-                    key={filterKey}
-                    size={"md"}
-                    borderRadius="full"
-                    variant="solid"
-                    bg={"black.100"}
-                    color={"black"}
-                  >
-                    <TagLabel>
-                      {mainFilterDisplayNames[filterKey as keyof SelectedFilter]
-                        .label +
-                        ":" +
-                        mainFilterDisplayNames[
-                          filterKey as keyof SelectedFilter
-                        ].value}
-                    </TagLabel>
-                    <TagCloseButton
-                      onClick={() => {
-                        // Remove the filter when the tag is closed
-                        const newSelectedFilters = { ...mainFilters };
-                        delete newSelectedFilters[
-                          filterKey as keyof SelectedFilter
-                        ];
-                        updateTags(newSelectedFilters, jobFilter);
-                      }}
-                    />
-                  </Tag>
-                );
-              }
-              <Button
-                // onClick={clearJobFilters}
-                className="!h-[30px] ml-2"
-                variant="smallGreySquare"
-                bg={"none"}
-                onClick={() => handleResetAll()}
-              >
-                Clear all
-              </Button>;
-            })}
-          </Flex>
-          {/* <JobFiltersTagRow
+        <Flex alignItems="left" flexWrap={"wrap"}>
+          {Object.keys(mainFilters).map((filterKey) => {
+            if (mainFilters[filterKey]) {
+              return (
+                <Tag
+                  key={filterKey}
+                  size={"md"}
+                  borderRadius="full"
+                  variant="solid"
+                  bg={"black.100"}
+                  color={"black"}
+                >
+                  <TagLabel>
+                    {mainFilterDisplayNames[filterKey as keyof SelectedFilter]
+                      .label +
+                      ":" +
+                      mainFilterDisplayNames[filterKey as keyof SelectedFilter]
+                        .value}
+                  </TagLabel>
+                  <TagCloseButton
+                    onClick={() => {
+                      // Remove the filter when the tag is closed
+                      const newSelectedFilters = { ...mainFilters };
+                      delete newSelectedFilters[
+                        filterKey as keyof SelectedFilter
+                      ];
+                      updateTags(newSelectedFilters, jobFilter);
+                    }}
+                  />
+                </Tag>
+              );
+            }
+            <Button
+              // onClick={clearJobFilters}
+              className="!h-[30px] ml-2"
+              variant="smallGreySquare"
+              bg={"none"}
+              onClick={() => handleResetAll()}
+            >
+              Clear all
+            </Button>;
+          })}
+        </Flex>
+        {/* <JobFiltersTagRow
             mainFilters={mainFilters}
             mainFilterDisplayNames={mainFilterDisplayNames}
             onClearAll={handleResetAll}
@@ -802,170 +873,140 @@ export default function JobIndex({}: // initialLoadOnly = false,
             }}
           /> */}
 
-          <JobStatusDateFilter
-            statusOptions={statusOptions}
-            onStatusChange={handleStatusChange}
-            selectedStatus={selectedStatus}
-            rangeDate={rangeDate}
-            setRangeDate={setRangeDate}
-            withMedia={withMedia}
-            handleToggleWithMedia={handleToggleWithMedia}
-            isMediaBusy={isMediaBusy}
+        <JobStatusDateFilter
+          statusOptions={statusOptions}
+          onStatusChange={handleStatusChange}
+          selectedStatus={selectedStatus}
+          rangeDate={rangeDate}
+          setRangeDate={setRangeDate}
+          withMedia={withMedia}
+          handleToggleWithMedia={handleToggleWithMedia}
+          isMediaBusy={isMediaBusy}
+        />
+
+        {loadingGroupedJobs ? (
+          // 🔄 Loading State
+          <Box textAlign="center" py={4} px={10}>
+            Loading <Spinner size="sm" ml={2} />
+          </Box>
+        ) : groupedJobs?.groupedPaginatedJobs?.data?.length > 0 ? (
+          // 📊 Data Exists
+          <JobPaginationTable
+            columns={adminColumns}
+            data={groupedJobs?.groupedPaginatedJobs?.data}
+            total={groupedJobs?.groupedPaginatedJobs?.total}
+            options={{
+              manualSortBy: true,
+              initialState: {
+                pageIndex: queryPageIndex,
+                pageSize: queryPageSize,
+                sortBy: [
+                  { id: sorting?.id, desc: sorting?.direction === "DESC" },
+                ],
+              },
+              manualPagination: true,
+              pageCount: groupedJobs?.groupedPaginatedJobs?.last_page ?? 0,
+            }}
+            setQueryPageIndex={setQueryPageIndex}
+            setQueryPageSize={setQueryPageSize}
+            isServerSide
+            showPageSizeSelect
+            showRowSelection
+            setSelectedRow={setSelectedJobs}
+            isFilterRowSelected={isShowSelectedOnly}
+            isChecked={isChecked}
+            onSortingChange={handleSortingChange}
+            restyleTable
           />
+        ) : (
+          // 📭 No Data
+          <Box textAlign="center" py={4} px={10} color="gray.600">
+            No records found.
+          </Box>
+        )}
+      </SimpleGrid>
 
-          {(isAdmin && !isCompanyAdmin && loading) ||
-          (isCompanyAdmin && companyJobsLoading) ||
-          (!isAdmin && companyJobsLoading) ? (
-            <Box textAlign="center" py={4} px={10}>
-              Loading <Spinner size="sm" ml={2} />
-            </Box>
-          ) : isAdmin && !isCompanyAdmin ? (
-            _jobs?.data?.length > 0 ? (
-              <JobPaginationTable
-                columns={adminColumns}
-                data={_jobs?.data}
-                total={_jobs?.total}
-                options={{
-                  manualSortBy: true,
-                  initialState: {
-                    pageIndex: queryPageIndex,
-                    pageSize: queryPageSize,
-                    sortBy: [{ id: sorting?.id, desc: sorting?.direction }],
-                  },
-                  manualPagination: true,
-                  pageCount: _jobs?.last_page,
-                }}
-                setQueryPageIndex={setQueryPageIndex}
-                setQueryPageSize={setQueryPageSize}
-                isServerSide
-                showPageSizeSelect
-                showRowSelection
-                setSelectedRow={setSelectedJobs}
-                isFilterRowSelected={isShowSelectedOnly}
-                isChecked={isChecked}
-                showManualPages
-                onSortingChange={handleSortingChange}
-                restyleTable
-              />
-            ) : (
-              <Box textAlign="center" py={4} px={10} color="gray.600">
-                No records found.
-              </Box>
-            )
-          ) : companyJobs?.jobs?.data?.length > 0 ? (
-            <PaginationTableCustomer
-              columns={companyColumns}
-              data={companyJobs?.jobs?.data}
-              options={{
-                manualSortBy: true,
-                initialState: {
-                  pageIndex: queryPageIndex,
-                  pageSize: queryPageSize,
-                  sortBy: [{ id: sorting?.id, desc: sorting?.direction }],
+      {/* Floating Action Bar */}
+      {isAdmin && !loadingGroupedJobs && (
+        <ActionBar
+          selectedJobs={selectedJobs}
+          onSwitch={setIsShowSelectedOnly}
+          onClickBulkAssign={onOpenBulkAssign}
+          onClickBulkSort={onOpenBulkSort}
+        />
+      )}
+      <Suspense fallback={null}>
+        {isOpenFilter && (
+          <FilterJobsModal
+            isOpen={isOpenFilter}
+            onClose={onCloseFilter}
+            // jobStatuses={jobStatuses}
+            jobCategories={jobCategories}
+            onFilterApply={(selectedFilters, filterDisplayName) => {
+              // Update the tags
+              updateTags(selectedFilters, jobFilter);
+              console.log(selectedFilters, "selectedFilters");
+              setMainFilterDisplayNames(filterDisplayName);
+              setCookie(
+                null,
+                "displayName",
+                JSON.stringify(filterDisplayName),
+                {
+                  maxAge: 30 * 24 * 60 * 60,
+                  path: "*",
                 },
-                manualPagination: true,
-                pageCount: companyJobs?.jobs?.paginatorInfo?.lastPage,
-              }}
-              setQueryPageIndex={setQueryPageIndex}
-              setQueryPageSize={setQueryPageSize}
-              isServerSide
-              showPageSizeSelect
-              showRowSelection
-              setSelectedRow={setSelectedJobs}
-              isFilterRowSelected={isShowSelectedOnly}
-              isChecked={isChecked}
-              showManualPages
-              onSortingChange={handleSortingChange}
-              hideEditForStatuses={[1, 2, 3, 4, 5]}
-            />
-          ) : (
-            <Box textAlign="center" py={4} px={10} color="gray.600">
-              No records found.
-            </Box>
-          )}
-        </SimpleGrid>
-
-        {/* Floating Action Bar */}
-        {isAdmin && !loading && (
-          <ActionBar
-            selectedJobs={selectedJobs}
-            onSwitch={setIsShowSelectedOnly}
-            onClickBulkAssign={onOpenBulkAssign}
-            onClickBulkSort={onOpenBulkSort}
+              );
+            }}
+            selectedFilters={selectedFilters}
+            setSelectedFilters={setSelectedFilters}
+            jobFilter={jobFilter}
+            setJobFilter={setJobFilter}
+            filterDisplayNames={mainFilterDisplayNames}
           />
         )}
-        <Suspense fallback={null}>
-          {isOpenFilter && (
-            <FilterJobsModal
-              isOpen={isOpenFilter}
-              onClose={onCloseFilter}
-              // jobStatuses={jobStatuses}
-              jobCategories={jobCategories}
-              onFilterApply={(selectedFilters, filterDisplayName) => {
-                // Update the tags
-                updateTags(selectedFilters, jobFilter);
-                console.log(selectedFilters, "selectedFilters");
-                setMainFilterDisplayNames(filterDisplayName);
-                setCookie(
-                  null,
-                  "displayName",
-                  JSON.stringify(filterDisplayName),
-                  {
-                    maxAge: 30 * 24 * 60 * 60,
-                    path: "*",
-                  }
-                );
-              }}
-              selectedFilters={selectedFilters}
-              setSelectedFilters={setSelectedFilters}
-              jobFilter={jobFilter}
-              setJobFilter={setJobFilter}
-              filterDisplayNames={mainFilterDisplayNames}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {isOpenSetting && (
-            <JobTableSettingsModal
-              isOpen={isOpenSetting}
-              onClose={() => {
-                onCloseSetting();
-                // setSettingOpen(false);
-                getDynamicTableUsers();
-                refetchJobs(); // Optional: Refresh job data
-              }}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {isOpenBulkAssign && (
-            <JobBulkAssignModal
-              isOpen={isOpenBulkAssign}
-              onClose={onCloseBulkAssign}
-              driverOptions={driverOptions}
-              drivers={drivers}
-              selectedJobs={selectedJobs}
-              columns={bulkAssignColumns}
-              setIsChecked={setIsChecked}
-              setSelectedJobs={setSelectedJobs}
-              refreshPage={() => refetchJobs()}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {isOpenBulkSort && (
-            <JobBulkSortModal
-              isOpen={isOpenBulkSort}
-              onClose={onCloseBulkSort}
-              selectedJobs={selectedJobs}
-              columns={bulkAssignColumns}
-              setIsChecked={setIsChecked}
-              setSelectedJobs={setSelectedJobs}
-              refreshPage={() => refetchJobs()}
-            />
-          )}
-        </Suspense>
-      </Box>
-    </AdminLayout>
+      </Suspense>
+      <Suspense fallback={null}>
+        {isOpenSetting && (
+          <JobTableSettingsModal
+            isOpen={isOpenSetting}
+            onClose={() => {
+              onCloseSetting();
+              // setSettingOpen(false);
+              getDynamicTableUsers();
+              refetchGroupedJobs(); // Optional: Refresh job data
+            }}
+          />
+        )}
+      </Suspense>
+      {/* <Suspense fallback={null}>
+        {isOpenBulkAssign && (
+          <JobBulkAssignModal
+            isOpen={isOpenBulkAssign}
+            onClose={onCloseBulkAssign}
+            driverOptions={driverOptions}
+            drivers={drivers}
+            selectedJobs={selectedJobs}
+            columns={bulkAssignColumns}
+            setIsChecked={setIsChecked}
+            setSelectedJobs={setSelectedJobs}
+            refreshPage={() => refetchJobs()}
+          />
+        )}
+      </Suspense> */}
+      {/* <Suspense fallback={null}>
+        {isOpenBulkSort && (
+          <JobBulkSortModal
+            isOpen={isOpenBulkSort}
+            onClose={onCloseBulkSort}
+            selectedJobs={selectedJobs}
+            columns={bulkAssignColumns}
+            setIsChecked={setIsChecked}
+            setSelectedJobs={setSelectedJobs}
+            refreshPage={() => refetchJobs()}
+          />
+        )}
+      </Suspense> */}
+    </Box>
+    // </AdminLayout>
   );
 }

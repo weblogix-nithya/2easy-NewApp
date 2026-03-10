@@ -1174,3 +1174,93 @@ const defaultJobQuoteData: JobQuoteData = {
 };
 
 export default defaultJobQuoteData;
+
+export interface GroupedPaginatedJobsData {
+  groupedPaginatedJobs: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+    data: Array<{
+      driver: {
+        id: string;
+        full_name: string;
+        driver_no: string;
+        phone_no: string;
+        registration_no: string;
+        is_tailgated: boolean;
+        first_job_start_at_today: string | null;
+        last_job_drop_at_today: string | null;
+        cbm_summary_today: number;
+        weight_summary_today: number;
+        no_max_volume: boolean;
+        no_max_capacity: boolean;
+        no_max_pallets: boolean;
+      };
+      job: {
+        id: string;
+        reference_no: string;
+        name: string;
+        driver_id: string;
+        total_weight: number;
+        total_volume: number;
+        ready_at: string | null;
+        start_at: string | null;
+        drop_at: string | null;
+        pick_up_address: string;
+        last_free_at: string | null;
+        timeslot: string | null;
+        extras: string | null;
+        admin_notes: string | null;
+        customer_notes: string | null;
+
+        job_type?: {
+          id: string;
+          name: string;
+        };
+
+        job_status?: {
+          id: string;
+          name: string;
+        };
+
+        driver?: {
+          id: string;
+          full_name: string;
+        };
+
+        company?: {
+          id: string;
+          name: string;
+        };
+
+        job_category?: {
+          id: string;
+          name: string;
+        };
+
+        customer?: {
+          id: string;
+          full_name: string;
+        };
+
+        job_items: any[];
+        job_destinations: any[];
+      };
+    }>;
+  };
+}
+
+export interface GroupedPaginatedJobsVars {
+  query?: string;
+  page: number;
+  per_page?: number;
+  company_id?: number;
+  customer_id?: number;
+  job_status_ids?: number[];
+  between_at?: {
+    from_at: string;
+    to_at: string;
+  };
+}
+

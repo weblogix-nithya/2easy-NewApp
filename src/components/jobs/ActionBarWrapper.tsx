@@ -1,7 +1,7 @@
 'use client';
 
 import { Box } from '@chakra-ui/react';
-import ActionBar from 'components/jobs/ActionBar';
+import ActionBar from '@/components/jobs/ActionBar';
 
 interface ActionBarWrapperProps {
   isAdmin: boolean;

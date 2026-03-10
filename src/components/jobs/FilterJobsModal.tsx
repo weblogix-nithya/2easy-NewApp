@@ -1,4 +1,5 @@
-import { useQuery } from "@apollo/client";
+'use client';
+import { useQuery } from "@apollo/client/react";
 import {
   Box,
   Button,
@@ -18,19 +19,20 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { CreatableSelect, Select } from "chakra-react-select";
-import CustomInputField from "components/fields/CustomInputField";
+import CustomInputField from "@/components/fields/CustomInputField";
 import {
   defaultSelectedFilter,
   filterDisplayNames as defaultFilterDisplayNames,
-} from "components/jobs/Filters";
-import { GET_COMPANYS_QUERY } from "graphql/company";
+} from "@/components/jobs/Filters";
+import { GET_COMPANYS_QUERY, GetCompaniesResponse } from "@/graphql/company";
 // import { formatDateTimeToDB } from "helpers/helper";
 import debounce from "lodash.debounce";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "store/store";
+// import { RootState } from "store/store";
+import { RootState } from "@/lib/store/store";
 
-import { SelectedFilter } from "./Filters";
+import { SelectedFilter } from "@/components/jobs/Filters";
 
 interface FilterJobsModalProps extends UseDisclosureProps {
   // jobStatuses?: { value: string; label: string }[];
@@ -117,24 +119,52 @@ export default function FilterJobsModal({
   //   },
   // });
   // before: useQuery(..., { onCompleted: (...) { setCompaniesOptions(...) } })
-  const { data: companiesData } = useQuery(GET_COMPANYS_QUERY, {
-    variables: {
-      query: debouncedSearch,
-      page: 1,
-      first: 100,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
+
+  // const { data: companiesData } = useQuery(GET_COMPANYS_QUERY, {
+  //   variables: {
+  //     query: debouncedSearch,
+  //     page: 1,
+  //     first: 100,
+  //     orderByColumn: "id",
+  //     orderByOrder: "ASC",
+  //   },
+  //   skip: !isOpen, // don't fetch while modal is closed
+  // });
+  const { data: companiesData } = useQuery<GetCompaniesResponse>(
+    GET_COMPANYS_QUERY,
+    {
+      variables: {
+        query: debouncedSearch,
+        page: 1,
+        first: 100,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+      },
+      skip: !isOpen,
     },
-    skip: !isOpen, // don't fetch while modal is closed
-  });
+  );
+
+  // useEffect(() => {
+  //   if (!companiesData?.companys?.data) return;
+  //   setCompaniesOptions(
+  //     companiesData.companys.data.map((e: any) => ({
+  //       value: Number(e.id),
+  //       label: e.name,
+  //     })),
+  //   );
+  // }, [companiesData]);
   useEffect(() => {
-    if (!companiesData?.companys?.data) return;
-    setCompaniesOptions(
-      companiesData.companys.data.map((e: any) => ({
-        value: Number(e.id),
-        label: e.name,
-      })),
-    );
+    if (!companiesData?.companys?.data?.length) {
+      setCompaniesOptions([]);
+      return;
+    }
+
+    const options = companiesData.companys.data.map((company) => ({
+      value: Number(company.id),
+      label: company.name ?? "",
+    }));
+
+    setCompaniesOptions(options);
   }, [companiesData]);
 
   useEffect(() => {

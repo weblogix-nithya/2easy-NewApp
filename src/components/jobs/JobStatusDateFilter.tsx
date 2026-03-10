@@ -1,8 +1,9 @@
+'use client';
 import { InfoOutlineIcon } from "@chakra-ui/icons";
-import { Box, Checkbox, Flex, Spinner, Text } from "@chakra-ui/react";
+import { Box, Flex, Spinner, Text, Checkbox } from "@chakra-ui/react";
 import DateRangePicker from "@wojtekmaj/react-daterange-picker";
 import { Select } from "chakra-react-select";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 
 interface StatusOption {
   value: string;
@@ -41,6 +42,10 @@ const JobStatusDateFilter = ({
     },
     [setRangeDate],
   );
+
+  useEffect(() => {
+    console.log("withMedia changed:", withMedia);
+  }, [withMedia]);
 
   return (
     <Flex>
@@ -83,7 +88,7 @@ const JobStatusDateFilter = ({
       </Box>
       <Box px={2} py={2}>
         <Flex align="center" gap={2}>
-          {isMediaBusy && <Spinner size="xs" thickness="2px" />}
+        {isMediaBusy && <Spinner size="xs" thickness="2px" />}
           <Checkbox
             id="withMediaCheckbox"
             name="withMediaCheckbox"
@@ -100,6 +105,39 @@ const JobStatusDateFilter = ({
             </Flex>
           </Checkbox>
         </Flex>
+        {/* <Flex align="center" gap={2}> */}
+          {/* {isMediaBusy && <Spinner size="xs" thickness="2px" />}
+
+          <Switch
+            id="withMediaSwitch"
+            isChecked={withMedia}
+            onChange={handleToggleWithMedia}
+          />
+
+          <Flex align="center" fontSize="sm" color="gray.600">
+            <InfoOutlineIcon mr={1} />
+            <Text>
+              Show images for <strong>Pickup Address and Name</strong> and{" "}
+              <strong>Delivery Address and Name</strong>
+            </Text>
+          </Flex> */}
+          {/* <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              id="withMediaCheckbox"
+              name="withMediaCheckbox"
+              type="checkbox"
+              checked={withMedia}
+              onChange={handleToggleWithMedia}
+            />
+            <Flex align="center" fontSize="sm" color="gray.600" mt={1}>
+              <InfoOutlineIcon mr={1} />
+              <Text>
+                Show images for <strong>Pickup Address and Name</strong> and{" "}
+                <strong>Delivery Address and Name</strong>
+              </Text>
+            </Flex>
+          </label> */}
+        {/* </Flex> */}
         <Text fontSize="xs" color="gray.500" mt={1} pl={6}>
           Hint: Loading images may take a few seconds depending on network
           speed.

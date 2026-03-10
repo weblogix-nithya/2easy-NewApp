@@ -350,7 +350,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 // p={0}
                 minH="100vh"
                 bg="white"
-                pt={`108px`}
+                // pt={`108px`}
               >
                 {children}
               </Box>

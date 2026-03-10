@@ -1,4 +1,5 @@
-import { useMutation } from "@apollo/client";
+'use client';
+import { useMutation } from "@apollo/client/react";
 import {
   Box,
   Button,
@@ -26,14 +27,14 @@ import {
 import { DndContext, UniqueIdentifier } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { Select } from "chakra-react-select";
-import { showGraphQLErrorToast } from "components/toast/ToastError";
-import { defaultDriver, Driver } from "graphql/driver";
-import { BULK_UPDATE_JOB_MUTATION } from "graphql/job";
-import { reorderArray } from "helpers/helper";
+import { showGraphQLErrorToast } from "@/components/toast/ToastError";
+import { defaultDriver, Driver } from "@/graphql/driver";
+import { BULK_UPDATE_JOB_MUTATION } from "@/graphql/job";
+import { reorderArray } from "@/lib/helpers/helper";
 import moment from "moment";
 import { useEffect, useState } from "react";
 
-import { JobBulkAssignRow } from "./JobBulkAssignRow";
+import { JobBulkAssignRow } from "@/components/jobs/JobBulkAssignRow";
 interface FilterJobsModalProps extends UseDisclosureProps {
   driverOptions: { value: number; label: string }[];
   drivers: any;

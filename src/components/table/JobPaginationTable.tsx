@@ -23,20 +23,23 @@ import { faDownload, faEye, faPen } from "@fortawesome/pro-regular-svg-icons";
 import { faMessageLines } from "@fortawesome/pro-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Select } from "chakra-react-select";
-import { SortAlt } from "components/icons/Icons";
-import { formatCurrency, formatDate, formatToTimeDate } from "helpers/helper";
-import { useRouter } from "next/router";
+import { SortAlt } from "@/components/icons/Icons";
+import {
+  formatCurrency,
+  formatDate,
+  formatToTimeDate,
+} from "@/lib/helpers/helper";
+import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
+
 import {
-  Column,
-  PluginHook,
-  TableOptions,
-  usePagination,
-  useRowSelect,
-  useSortBy,
-  useTable,
-} from "react-table";
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 
 // Non-toggle column ids
 const EXCLUDED_IDS = new Set([
@@ -52,37 +55,84 @@ const isInteractive = (el: HTMLElement | null): boolean =>
     'a,button,[role="button"],input,textarea,select,[contenteditable="true"],[data-no-row-toggle]',
   );
 
-export const isAdmin = (state: RootState) => state.user.isAdmin;
-export const isCustomer = (state: RootState) => state.user.isCustomer;
-
 const getStatusStyle = (status: string) => {
   const st = status?.toLowerCase();
 
-  if (st === "in transit") {
-    return { background: "#FFD580", color: "#8B4000" }; // brighter orange
-  }
-
-  if (st === "assigned") {
-    return { background: "#FFFACD", color: "#665c00" }; // light lemon yellow
-  }
-
-  if (["completed", "delivered"].includes(st)) {
-    return { background: "#d4edda", color: "#155724" }; // green
-  }
-
-  if (["rejected", "cancelled"].includes(st)) {
-    return { background: "#f8d7da", color: "#721c24" }; // red
-  }
+  if (st === "in transit") return { background: "#FFD580", color: "#8B4000" };
+  if (st === "assigned") return { background: "#FFFACD", color: "#665c00" };
+  if (["completed", "delivered"].includes(st))
+    return { background: "#d4edda", color: "#155724" };
+  if (["rejected", "cancelled"].includes(st))
+    return { background: "#f8d7da", color: "#721c24" };
 
   return {};
 };
 
+// ----------- helpers: accept old v7 columns OR new v8 ColumnDef -----------
+function normalizeColumns(columns: any[]) {
+  // If columns already look like TanStack ColumnDef (have accessorKey/accessorFn/columnDef-ish),
+  // return as-is.
+  const looksLikeV8 = columns?.some(
+    (c) => "accessorKey" in (c || {}) || "accessorFn" in (c || {}),
+  );
+  if (looksLikeV8) return columns;
+
+  // Otherwise treat as v7 react-table columns and convert best-effort.
+  return (columns || []).map((c: any) => {
+    const id = c.id || c.accessor || c.Header;
+    const accessor = c.accessor;
+
+    // Put your custom flags/type/showCompany/etc into meta (so your render code can use them)
+    const meta = { ...c };
+
+    return {
+      id,
+      accessorKey: typeof accessor === "string" ? accessor : undefined,
+      accessorFn:
+        typeof accessor === "function"
+          ? (row: any) => accessor(row, undefined, undefined)
+          : undefined,
+      header: () => {
+        // v7 allows Header as string or function
+        if (typeof c.Header === "function") return c.Header({ column: c });
+        return c.Header ?? "";
+      },
+      enableSorting:
+        c.enableSorting !== undefined
+          ? !!c.enableSorting
+          : c.disableSortBy
+            ? false
+            : true,
+      cell: (info: any) => {
+        // If v7 column had Cell renderer, call it with a v7-ish shape
+        if (typeof c.Cell === "function") {
+          const v7CellLike = {
+            value: info.getValue(),
+            row: { original: info.row.original, id: info.row.id },
+            column: c,
+          };
+          return c.Cell(v7CellLike);
+        }
+
+        // Default: show value
+        const v = info.getValue();
+        return v ?? null;
+      },
+      meta,
+    };
+  });
+}
+
+// v7 sortBy shape expected by your parent: [{ id, desc }]
+function toV7SortBy(sortingState: any[]) {
+  return (sortingState || []).map((s) => ({ id: s.id, desc: !!s.desc }));
+}
+
 type PaginationTableProps<T extends object> = {
-  columns: Column<T>[];
+  columns: any[]; // accept v7 or v8
   data: T[];
   total: number;
-  options?: Omit<TableOptions<T>, "data" | "columns">;
-  plugins?: PluginHook<T>[];
+  options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
   path?: string;
   showDelete?: boolean;
   onDelete?: (data: any) => void;
@@ -111,35 +161,30 @@ type PaginationTableProps<T extends object> = {
       }
     | {
         showRowSelection: true;
-        setSelectedRow: React.Dispatch<React.SetStateAction<array>>;
+        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
         isFilterRowSelected: boolean;
       }
   );
+
 const PaginationTable = <T extends object>({
   columns,
   data,
   total,
   isServerSide = false,
   options,
-  plugins = [],
-  _showDelete = false,
-  setQueryPageIndex,
-  setQueryPageSize,
-  // onDelete,
   path,
   showPageSizeSelect = false,
-  // showManualPages = false,
   showRowSelection = false,
   isFilterRowSelected = false,
   setSelectedRow,
   isChecked,
   onSortingChange,
   restyleTable = false,
-}: // restyleTable = false,
-// autoResetSelectedRows= false,
-PaginationTableProps<T>) => {
+  setQueryPageIndex,
+  setQueryPageSize,
+  onDelete,
+}: PaginationTableProps<T>) => {
   const router = useRouter();
-  // const [pageRows, setPageRows] = useState([]);
 
   const pageSizeOptions = [
     { value: 10, label: "10 / page" },
@@ -150,149 +195,184 @@ PaginationTableProps<T>) => {
     { value: 200, label: "200 / page" },
   ];
 
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    prepareRow,
-    page,
-    canPreviousPage,
-    canNextPage,
-    nextPage,
-    previousPage,
-    setPageSize,
-    state: { pageIndex, pageSize, sortBy },
-    selectedFlatRows,
-    // gotoPage,
-    // pageCount,
-    toggleAllRowsSelected,
-    // autoResetSelectedRows
-  } = useTable<T>(
-    {
-      ...options,
-      columns,
-      data,
-      autoResetSelectedRows: false,
-    },
-    useSortBy,
-    usePagination,
-    ...plugins,
-    useRowSelect,
-  );
+  const v8Columns = React.useMemo(() => normalizeColumns(columns), [columns]);
 
+  // initial state from your v7-style options.initialState
+  const initialPageIndex = options?.initialState?.pageIndex ?? 0;
+  const initialPageSize = options?.initialState?.pageSize ?? 10;
+  const initialSortBy = options?.initialState?.sortBy ?? []; // v7 shape
+  const initialSorting = (initialSortBy || []).map((s: any) => ({
+    id: s.id,
+    desc: !!s.desc,
+  }));
+
+  const [sorting, setSorting] = React.useState<any[]>(initialSorting);
+  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>(
+    {},
+  );
+  const [pagination, setPagination] = React.useState({
+    pageIndex: initialPageIndex,
+    pageSize: initialPageSize,
+  });
+
+  const table = useReactTable({
+    data,
+    columns: v8Columns,
+    state: {
+      sorting,
+      rowSelection,
+      pagination,
+    },
+    onSortingChange: (updater: any) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(next);
+    },
+    onRowSelectionChange: (updater: any) => {
+      const next =
+        typeof updater === "function" ? updater(rowSelection) : updater;
+      setRowSelection(next);
+    },
+    onPaginationChange: (updater: any) => {
+      const next =
+        typeof updater === "function" ? updater(pagination) : updater;
+      setPagination(next);
+    },
+
+    enableRowSelection: showRowSelection,
+    getRowId: (row: any, index: number) => String(row?.job?.id ?? row?.id ?? index),
+
+    // core models
+    getCoreRowModel: getCoreRowModel(),
+    // if you do server-side sorting, set manualSorting true
+    manualSorting: !!options?.manualSortBy,
+    getSortedRowModel: options?.manualSortBy ? undefined : getSortedRowModel(),
+
+    // pagination
+    manualPagination: !!options?.manualPagination || isServerSide,
+    pageCount:
+      (!!options?.manualPagination || isServerSide) && options?.pageCount != null
+        ? options.pageCount
+        : undefined,
+    getPaginationRowModel: getPaginationRowModel(),
+
+    // prevent auto resets (similar to autoResetSelectedRows: false)
+    autoResetAll: false,
+  });
+
+  // optimistic selection (instant UI)
   const optimisticSelRef = React.useRef<Map<string, boolean>>(new Map());
   const [, force] = React.useState(0);
   const forceUpdate = () => force((x) => x + 1);
 
+  const selectedRows = table.getSelectedRowModel().rows;
+
   useEffect(() => {
     if (optimisticSelRef.current.size) {
       optimisticSelRef.current.clear();
-      // no need to force here; next render will show real state anyway
     }
-  }, [selectedFlatRows]);
+  }, [selectedRows.length]);
+
   function getOptimisticSelected(row: any) {
     const v = optimisticSelRef.current.get(row.id);
-    return typeof v === "boolean" ? v : row.isSelected;
+    return typeof v === "boolean" ? v : row.getIsSelected();
   }
 
   function toggleOptimisticRow(row: any) {
     const next = !getOptimisticSelected(row);
-    optimisticSelRef.current.set(row.id, next); // flip instantly
-    forceUpdate(); // paint now
-    row.toggleRowSelected(next); // real react-table state
+    optimisticSelRef.current.set(row.id, next);
+    forceUpdate();
+    row.toggleSelected(next);
   }
 
-  // useEffect(() => {
-  //   console.log("Page rows changed:", pageRows.map((r) => r.original?.job?.name));
-  // }, [pageRows]);
-
+  // server-side sync out to parent
   useEffect(() => {
     if (isServerSide && setQueryPageIndex && setQueryPageSize) {
-      setQueryPageIndex(pageIndex);
-      setQueryPageSize(pageSize);
+      setQueryPageIndex(table.getState().pagination.pageIndex);
+      setQueryPageSize(table.getState().pagination.pageSize);
     }
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isServerSide, pageIndex, pageSize, setQueryPageIndex, setQueryPageSize]);
-
-  useEffect(() => {
-    if (showRowSelection) {
-      setSelectedRow(selectedFlatRows);
-    }
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, showRowSelection, setSelectedRow, selectedFlatRows]);
-
-  // const pageRows = useMemo(() => {
-  //   return isFilterRowSelected ? page.filter((row) => row.isSelected) : page;
-  //   //eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [page, isFilterRowSelected]);
-
-  const pageRows = isFilterRowSelected
-    ? page.filter((row) => row.isSelected)
-    : page;
-
-  useEffect(() => {
-    if (onSortingChange) onSortingChange(sortBy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy]);
+  }, [
+    isServerSide,
+    table.getState().pagination.pageIndex,
+    table.getState().pagination.pageSize,
+  ]);
 
+  // selected rows output to parent (same as selectedFlatRows)
   useEffect(() => {
-    if (!isChecked) toggleAllRowsSelected(isChecked);
+    if (showRowSelection && setSelectedRow) {
+      setSelectedRow(selectedRows);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRowSelection, rowSelection]);
+
+  // sorting callback to parent (same as v7 sortBy)
+  useEffect(() => {
+    if (onSortingChange) onSortingChange(toV7SortBy(sorting));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorting]);
+
+  // external clear selection
+  useEffect(() => {
+    if (isChecked === false) {
+      table.toggleAllRowsSelected(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isChecked]);
 
+  // rows to render (paginated)
+  const rows = table.getRowModel().rows;
+  const pageRows = isFilterRowSelected ? rows.filter((r) => r.getIsSelected()) : rows;
+
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+
+  const canPreviousPage = table.getCanPreviousPage();
+  const canNextPage = table.getCanNextPage();
+
+  const previousPage = () => table.previousPage();
+  const nextPage = () => table.nextPage();
+  const setPageSize = (size: number) => table.setPageSize(size);
+
   return (
     <VStack w="full" align="start" spacing={4}>
-      <Table colorScheme="white" {...getTableProps()}>
+      <Table colorScheme="white">
         <Thead>
-          {headerGroups.map((headerGroup, index) => (
-            <Tr
-              {...headerGroup.getHeaderGroupProps()}
-              key={`header-row-${index}`}
-            >
-              {headerGroup.headers.map((column) => (
-                <Th
-                  {...column.getHeaderProps(
-                    column.enableSorting
-                      ? column.getSortByToggleProps()
-                      : undefined,
-                  )}
-                  {...column.getHeaderProps()}
-                  key={`row-header-${column.id}`}
-                  paddingLeft={restyleTable && 1}
-                  paddingInlineStart={restyleTable && 1}
-                  paddingRight={restyleTable && 2}
-                  paddingInlineEnd={restyleTable && 2}
-                >
-                  {restyleTable}
-                  {column.render("Header")}
-                  {column.enableSorting && (
-                    <span>
-                      {column.isSorted ? (
-                        column.isSortedDesc ? (
-                          "↓"
-                        ) : (
-                          "↑"
-                        )
-                      ) : (
-                        <SortAlt
-                          size={16}
-                          style={{ transform: "rotate(180deg)" }}
-                        />
-                      )}
-                    </span>
-                  )}
-                </Th>
-              ))}
+          {table.getHeaderGroups().map((headerGroup) => (
+            <Tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const isSorted = header.column.getIsSorted(); // 'asc' | 'desc' | false
+
+                return (
+                  <Th
+                    key={header.id}
+                    onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    cursor={canSort ? "pointer" : "default"}
+                    paddingLeft={restyleTable && 1}
+                    paddingInlineStart={restyleTable && 1}
+                    paddingRight={restyleTable && 2}
+                    paddingInlineEnd={restyleTable && 2}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {canSort && (
+                      <span style={{ marginLeft: 6 }}>
+                        {isSorted ? (isSorted === "desc" ? "↓" : "↑") : (
+                          <SortAlt size={16} style={{ transform: "rotate(180deg)" }} />
+                        )}
+                      </span>
+                    )}
+                  </Th>
+                );
+              })}
             </Tr>
           ))}
         </Thead>
-        <Tbody {...getTableBodyProps()}>
+
+        <Tbody>
           {pageRows.map((row, index) => {
-            // console.log(row, "row one");
-            prepareRow(row);
             const status = row.original?.job?.job_status?.name;
 
-            const driver = row.original.driver;
+            const driver = row.original?.driver;
             const prevDriver = pageRows[index - 1]?.original?.driver;
 
             const shouldShowDriverHeader =
@@ -300,10 +380,10 @@ PaginationTableProps<T>) => {
               (!prevDriver?.full_name || driver?.id !== prevDriver?.id);
 
             return (
-              <React.Fragment key={`driver-header-${index}`}>
+              <React.Fragment key={`driver-header-${row.id}`}>
                 {shouldShowDriverHeader && (
                   <Tr>
-                    <Td colSpan={columns.length} p={0}>
+                    <Td colSpan={v8Columns.length} p={0}>
                       <Box
                         bg="#1d2d53"
                         color="#fff"
@@ -330,15 +410,11 @@ PaginationTableProps<T>) => {
                             <Flex wrap="wrap" gap={3}>
                               <Badge colorScheme="purple" variant="subtle" fontSize="md">
                                 First Collection:{" "}
-                                {formatToTimeDate(
-                                  driver.first_job_start_at_today,
-                                )}
+                                {formatToTimeDate(driver.first_job_start_at_today)}
                               </Badge>
-                              <Badge colorScheme="purple" variant="subtle" fontSize="md" >
+                              <Badge colorScheme="purple" variant="subtle" fontSize="md">
                                 Last Delivery:{" "}
-                                {formatToTimeDate(
-                                  driver.last_job_drop_at_today,
-                                )}
+                                {formatToTimeDate(driver.last_job_drop_at_today)}
                               </Badge>
                               <Badge colorScheme="blue" variant="subtle" fontSize="md">
                                 CBM: {driver.cbm_summary_today ?? 0} /{" "}
@@ -354,12 +430,7 @@ PaginationTableProps<T>) => {
                             </Flex>
                           </Flex>
 
-                          <Flex
-                            wrap="wrap"
-                            justify="space-between"
-                            gap={4}
-                            w="full"
-                          >
+                          <Flex wrap="wrap" justify="space-between" gap={4} w="full">
                             <Badge colorScheme="red" variant="subtle" fontSize="md">
                               Current Suburb: WIP
                             </Badge>
@@ -378,34 +449,33 @@ PaginationTableProps<T>) => {
                     </Td>
                   </Tr>
                 )}
+
                 <Tr
-                  {...row.getRowProps()}
-                  key={`data-row-${row.id || idx}`}
+                  key={`data-row-${row.id}`}
                   style={getStatusStyle(status)}
                   cursor={showRowSelection ? "pointer" : "default"}
                   onClick={(e) => {
                     if (!showRowSelection) return;
                     const target = e.target as HTMLElement;
                     if (isInteractive(target)) return;
+
                     const td = target.closest("td");
                     const colId = td?.getAttribute("data-column-id") || "";
                     if (EXCLUDED_IDS.has(colId)) return;
-                    toggleOptimisticRow(row); // instant
+
+                    toggleOptimisticRow(row);
                   }}
-                  // className="css-en-xlrwr4"
-                  // onClick={
-                  //   isChecked ? () => row.toggleRowSelected() : undefined
-                  // }
                 >
-                  {row?.cells?.map((cell, index) => {
-                    let data;
+                  {row.getVisibleCells().map((cell, cellIndex) => {
+                    const meta = cell.column.columnDef.meta || {};
+                    const headerLabel = meta.Header;
+
+                    // selection column
                     if (cell.column.id === "selection") {
                       return (
                         <Td
-                          {...cell.getCellProps({
-                            "data-column-id": "selection",
-                          })}
-                          key={`selection-${index}`}
+                          key={cell.id}
+                          data-column-id="selection"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!showRowSelection) return;
@@ -414,18 +484,13 @@ PaginationTableProps<T>) => {
                           cursor="pointer"
                         >
                           <Box pointerEvents="none">
-                            {/* Render a visual checkbox using optimistic selected state */}
                             <HStack>
                               <Box
                                 boxSize="16px"
                                 border="1px solid"
                                 borderColor="gray.300"
                                 borderRadius="2px"
-                                bg={
-                                  getOptimisticSelected(row)
-                                    ? "blue.500"
-                                    : "white"
-                                }
+                                bg={getOptimisticSelected(row) ? "blue.500" : "white"}
                                 position="relative"
                               >
                                 {getOptimisticSelected(row) && (
@@ -437,173 +502,101 @@ PaginationTableProps<T>) => {
                                   />
                                 )}
                               </Box>
-                              {/* Optional: label */}
                             </HStack>
                           </Box>
                         </Td>
                       );
                     }
 
-                    if (cell.column.Header === "Actions") {
-                      data = (
+                    // Actions column
+                    if (headerLabel === "Actions" || cell.column.id === "actions") {
+                      const cellValue = cell.getValue();
+
+                      return (
                         <Td
-                          key={`action-${index}`}
+                          key={cell.id}
                           data-column-id="actions"
-                          // paddingLeft={restyleTable && 1}
-                          // paddingInlineStart={restyleTable && 1}
-                          // paddingRight={restyleTable && 2}
-                          // paddingInlineEnd={restyleTable && 2}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <Flex gap={2} wrap="wrap" align="center">
-                            {
-                              //@ts-expect-error
-                              cell.column.isDownload && (
-                                <Link
-                                  href={cell.value}
-                                  target="_blank"
-                                  fontWeight="700"
-                                  data-no-row-toggle
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button
-                                    // bg={boxBg}
-                                    bg="white"
-                                    fontSize="sm"
-                                    // fontWeight="500"
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    // color={textColorSecondary}
-                                    // borderRadius="7px"
-                                  >
-                                    <FontAwesomeIcon
-                                      icon={faDownload}
-                                      className="!text-[var(--chakra-colors-black-400)]"
-                                      size="lg"
-                                    />
-                                  </Button>
-                                </Link>
-                              )
-                            }
-                            {
-                              //@ts-expect-error
-                              (cell.column.isEdit == undefined ||
-                                //@ts-expect-error
-                                cell.column.isEdit) && (
-                                <Link
-                                  href={`${path || router.pathname}/${
-                                    cell.row.original.job.id
-                                  }`}
-                                  fontWeight="700"
-                                  data-no-row-toggle
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button
-                                    bg="white"
-                                    fontSize="sm"
-                                    // fontWeight="500"
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    // color={textColorSecondary}
-                                    // borderRadius="7px"
-                                  >
-                                    <FontAwesomeIcon
-                                      icon={faPen}
-                                      className="!text-[var(--chakra-colors-black-400)]"
-                                      size="lg"
-                                    />
-                                  </Button>
-                                </Link>
-                              )
-                            }
-                            {
-                              //@ts-expect-error
-                              cell.column.isView && (
-                                <Link
-                                  href={`${path || router.pathname}/${
-                                    cell.row.original.job.id
-                                  }`}
-                                  fontWeight="700"
-                                  data-no-row-toggle
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button
-                                    // bg={boxBg}
-                                    bg="white"
-                                    fontSize="sm"
-                                    // fontWeight="500"
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    // color={textColorSecondary}
-                                    // borderRadius="7px"
-                                  >
-                                    <FontAwesomeIcon
-                                      icon={faEye}
-                                      className="!text-[var(--chakra-colors-black-400)]"
-                                      size="lg"
-                                    />
-                                  </Button>
-                                </Link>
-                              )
-                            }
-                            {
-                              //@ts-expect-error
-                              cell.column.isTracking && (
-                                <Link
-                                  href={`${path || router.pathname}/tracking/${
-                                    cell.row.original.job.id
-                                  }`}
-                                  fontWeight="700"
-                                  data-no-row-toggle
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button
-                                    // bg={boxBg}
-                                    bg="white"
-                                    fontSize="sm"
-                                    // fontWeight="500"
-                                    className="!text-[#3B68DB]"
-                                    // color={textColorSecondary}
-                                    // borderRadius="7px"
-                                  >
-                                    Track
-                                  </Button>
-                                </Link>
-                              )
-                            }
-                            {
-                              //@ts-expect-error
-                              cell.column.isDelete && (
-                                <Button
-                                  // bg={boxBg}
-                                  bg="white"
-                                  fontSize="sm"
-                                  // fontWeight="500"
-                                  className="!text-[var(--chakra-colors-black-400)]"
-                                  onClick={() => {
-                                    onDelete(cell.row.original.job.id);
-                                  }}
-                                  // color={textColorSecondary}
-                                  // borderRadius="7px"
-                                >
-                                  <FontAwesomeIcon
-                                    icon={
-                                      cell.column.deleteIcon != undefined
-                                        ? cell.column.deleteIcon
-                                        : faTrashAlt
-                                    }
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    size="lg"
-                                  />
+                            {meta.isDownload && (
+                              <Link
+                                href={cellValue}
+                                target="_blank"
+                                fontWeight="700"
+                                data-no-row-toggle
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button bg="white" fontSize="sm" className="!text-[var(--chakra-colors-black-400)]">
+                                  <FontAwesomeIcon icon={faDownload} className="!text-[var(--chakra-colors-black-400)]" size="lg" />
                                 </Button>
-                              )
-                            }
+                              </Link>
+                            )}
+
+                            {(meta.isEdit === undefined || meta.isEdit) && (
+                              <Link
+                                href={`${path || ""}/${row.original?.job?.id}`}
+                                fontWeight="700"
+                                data-no-row-toggle
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button bg="white" fontSize="sm" className="!text-[var(--chakra-colors-black-400)]">
+                                  <FontAwesomeIcon icon={faPen} className="!text-[var(--chakra-colors-black-400)]" size="lg" />
+                                </Button>
+                              </Link>
+                            )}
+
+                            {meta.isView && (
+                              <Link
+                                href={`${path || ""}/${row.original?.job?.id}`}
+                                fontWeight="700"
+                                data-no-row-toggle
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button bg="white" fontSize="sm" className="!text-[var(--chakra-colors-black-400)]">
+                                  <FontAwesomeIcon icon={faEye} className="!text-[var(--chakra-colors-black-400)]" size="lg" />
+                                </Button>
+                              </Link>
+                            )}
+
+                            {meta.isTracking && (
+                              <Link
+                                href={`${path || ""}/tracking/${row.original?.job?.id}`}
+                                fontWeight="700"
+                                data-no-row-toggle
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button bg="white" fontSize="sm" className="!text-[#3B68DB]">
+                                  Track
+                                </Button>
+                              </Link>
+                            )}
+
+                            {meta.isDelete && (
+                              <Button
+                                bg="white"
+                                fontSize="sm"
+                                className="!text-[var(--chakra-colors-black-400)]"
+                                onClick={() => onDelete?.(row.original?.job?.id)}
+                              >
+                                <FontAwesomeIcon
+                                  icon={meta.deleteIcon != undefined ? meta.deleteIcon : faTrashAlt}
+                                  className="!text-[var(--chakra-colors-black-400)]"
+                                  size="lg"
+                                />
+                              </Button>
+                            )}
                           </Flex>
                         </Td>
                       );
-                    } else if (cell.column.Header === "Instructions") {
-                      data = (
+                    }
+
+                    // Instructions column
+                    if (headerLabel === "Instructions" || cell.column.id === "instructions") {
+                      return (
                         <Td
-                          {...cell.getCellProps({
-                            "data-column-id": cell.column.id,
-                          })}
-                          key={`instructions-${index}`}
+                          key={cell.id}
+                          data-column-id={cell.column.id}
                           paddingLeft={restyleTable && 1}
                           paddingInlineStart={restyleTable && 1}
                           paddingRight={restyleTable && 2}
@@ -615,17 +608,11 @@ PaginationTableProps<T>) => {
                                 <div className="text-xs">
                                   <p className="mb-2">
                                     <strong>Pick up Person: </strong>
-                                    {
-                                      // @ts-expect-error
-                                      row.original?.pick_up_name || "N/A"
-                                    }
+                                    {row.original?.pick_up_name || "N/A"}
                                   </p>
                                   <p>
                                     <strong>Instructions: </strong>
-                                    {
-                                      // @ts-expect-error
-                                      row.original?.pick_up_notes || "N/A"
-                                    }
+                                    {row.original?.pick_up_notes || "N/A"}
                                   </p>
                                 </div>
                               </React.Fragment>
@@ -642,50 +629,44 @@ PaginationTableProps<T>) => {
                           </Tooltip>
                         </Td>
                       );
-                    } else {
-                      data = (
-                        <Td
-                          {...cell.getCellProps({
-                            "data-column-id": cell.column.id,
-                          })}
-                          key={`default-${index}`}
-                          paddingLeft={restyleTable && 1}
-                          paddingInlineStart={restyleTable && 1}
-                          paddingRight={restyleTable && 2}
-                          paddingInlineEnd={restyleTable && 2}
-                          pr="20px"
-                        >
-                          {
-                            // @ts-expect-error
-                            cell.column.type === "date" ? (
-                              <Text>
-                                {cell.value
-                                  ? formatDate(cell.value, "DD/MM/YYYY")
-                                  : "-"}
-                              </Text>
-                            ) : cell.column.type === "money" ? (
-                              <Text>
-                                {cell.value ? formatCurrency(cell.value) : "$0"}
-                              </Text>
-                            ) : cell.column.type === "boolean" ? (
-                              <Text>
-                                {cell.value == true
-                                  ? cell.column.trueLabel || "Yes"
-                                  : cell.column.falseLabel || "No"}
-                              </Text>
-                            ) : (
-                              cell.render("Cell")
-                            )
-                          }
-                          {cell.column.showCompany == true && (
-                            <Text className="text-gray-400">
-                              {row.original.company?.name}
-                            </Text>
-                          )}
-                        </Td>
-                      );
                     }
-                    return data;
+
+                    // Default column render (supports meta.type like your old code)
+                    const value = cell.getValue();
+
+                    return (
+                      <Td
+                        key={cell.id}
+                        data-column-id={cell.column.id}
+                        paddingLeft={restyleTable && 1}
+                        paddingInlineStart={restyleTable && 1}
+                        paddingRight={restyleTable && 2}
+                        paddingInlineEnd={restyleTable && 2}
+                        pr="20px"
+                      >
+                        {meta.type === "date" ? (
+                          <Text>
+                            {value ? formatDate(value, "DD/MM/YYYY") : "-"}
+                          </Text>
+                        ) : meta.type === "money" ? (
+                          <Text>{value ? formatCurrency(value) : "$0"}</Text>
+                        ) : meta.type === "boolean" ? (
+                          <Text>
+                            {value == true
+                              ? meta.trueLabel || "Yes"
+                              : meta.falseLabel || "No"}
+                          </Text>
+                        ) : (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        )}
+
+                        {meta.showCompany === true && (
+                          <Text className="text-gray-400">
+                            {row.original?.company?.name}
+                          </Text>
+                        )}
+                      </Td>
+                    );
                   })}
                 </Tr>
               </React.Fragment>
@@ -712,21 +693,21 @@ PaginationTableProps<T>) => {
         {!isFilterRowSelected && (
           <>
             <Text>
-              Showing {pageIndex * pageSize + 1} to {(pageIndex + 1) * pageSize}{" "}
-              of {total} entries
+              Showing {pageIndex * pageSize + 1} to {(pageIndex + 1) * pageSize} of{" "}
+              {total} entries
             </Text>
             <ButtonGroup isAttached variant="outline">
               <IconButton
                 aria-label="Go to previous page"
                 icon={<HiChevronLeft />}
                 isDisabled={!canPreviousPage}
-                onClick={() => previousPage()}
+                onClick={previousPage}
               />
               <IconButton
                 aria-label="Go to next page"
                 icon={<HiChevronRight />}
                 isDisabled={!canNextPage}
-                onClick={() => nextPage()}
+                onClick={nextPage}
               />
             </ButtonGroup>
           </>

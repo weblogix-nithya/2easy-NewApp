@@ -1,3 +1,4 @@
+'use client';
 import { MultiValue } from "chakra-react-select";
 
 export type SelectedFilter = {

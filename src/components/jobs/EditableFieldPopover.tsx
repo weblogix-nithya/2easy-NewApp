@@ -1,5 +1,6 @@
+'use client';
 // EditableFieldPopover.tsx
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
 import {
   Flex,
@@ -14,10 +15,10 @@ import {
   Textarea,
   useToast,
 } from "@chakra-ui/react";
-import { UPDATE_JOB_MUTATION } from "graphql/job";
+import { UPDATE_JOB_MUTATION } from "@/graphql/job";
 import React, { useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "store/store";
+import { RootState } from "@/lib/store/store";
 
 type Props = {
   row: any;

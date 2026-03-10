@@ -1,4 +1,5 @@
-import { useMutation, useQuery } from "@apollo/client";
+'use client';
+import { useMutation } from "@apollo/client/react";
 import {
   Box,
   Button,
@@ -20,18 +21,19 @@ import {
 } from "@chakra-ui/react";
 import { DndContext, UniqueIdentifier } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
-import { showGraphQLErrorToast } from "components/toast/ToastError";
+import { showGraphQLErrorToast } from "@/components/toast/ToastError";
 import {
   BULK_UPDATE_DYNAMIC_TABLE_USERS_MUTATION,
   DynamicTableUser,
   GET_DYNAMIC_TABLE_USERS_QUERY,
-} from "graphql/dynamicTableUser";
-import { reorderArray } from "helpers/helper";
+} from "@/graphql/dynamicTableUser";
+import { reorderArray } from "@/lib/helpers/helper";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "store/store";
+import { RootState } from "@/lib/store/store";
 
-import SortableJobTableSetting from "./SortableJobTableSetting";
+import SortableJobTableSetting from "@/components/jobs/SortableJobTableSetting";
+import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
 export default function JobTableSettingsModal(props: UseDisclosureProps) {
   const { isOpen, onClose } = props;
@@ -56,27 +58,50 @@ export default function JobTableSettingsModal(props: UseDisclosureProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const { refetch: getDynamicTableUsers } = useQuery(
-    GET_DYNAMIC_TABLE_USERS_QUERY,
-    {
-      variables: {
-        query: "",
-        page: 1,
-        first: 100,
-        orderByColumn: "sort_id",
-        orderByOrder: "ASC",
-        user_id: userId,
-      },
-      skip: !userId && !isOpen,
-      notifyOnNetworkStatusChange: true,
-      fetchPolicy:  "network-only",
-      onCompleted: (data) => {
-        setDynamicTableUsers(
-          data.dynamicTableUsers.data.map((item: DynamicTableUser) => item));
-        setIsLoading(false);
-      },
-    },
-  );
+  // const { refetch: getDynamicTableUsers } = useQuery(
+  //   GET_DYNAMIC_TABLE_USERS_QUERY,
+  //   {
+  //     variables: {
+  //       query: "",
+  //       page: 1,
+  //       first: 100,
+  //       orderByColumn: "sort_id",
+  //       orderByOrder: "ASC",
+  //       user_id: userId,
+  //     },
+  //     skip: !userId && !isOpen,
+  //     notifyOnNetworkStatusChange: true,
+  //     fetchPolicy:  "network-only",
+  //     onCompleted: (data) => {
+  //       setDynamicTableUsers(
+  //         data.dynamicTableUsers.data.map((item: DynamicTableUser) => item));
+  //       setIsLoading(false);
+  //     },
+  //   },
+  // );
+    const { refetch: getDynamicTableUsers } =
+      useApolloQueryWithEffect(
+        GET_DYNAMIC_TABLE_USERS_QUERY,
+        {
+          variables: {
+            query: "",
+            page: 1,
+            first: 100,
+            orderByColumn: "sort_id",
+            orderByOrder: "ASC",
+            user_id: userId,
+          },
+          skip: !userId,
+          notifyOnNetworkStatusChange: true,
+        },
+        (data:any) => {
+          console.log("data-dynamic", data);
+          setDynamicTableUsers(
+            data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
+          );
+          setIsLoading(false);
+        },
+      );
   
     // // Prefetch data when component mounts
     // useEffect(() => {

@@ -1,3 +1,4 @@
+'use client';
 import { SettingsIcon } from "@chakra-ui/icons";
 import {
   Button,
@@ -6,10 +7,10 @@ import {
   // Link,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { FullChevronDown } from "components/icons/Icons";
-import { SearchBar } from "components/navbar/searchBar/SearchBar";
+import { FullChevronDown } from "@/components/icons/Icons";
+import { SearchBar } from "@/components/navbar/searchBar/SearchBar";
 // import NextLink from "next/link";
-import Router from "next/router";
+import { useRouter } from "next/navigation";
 import { FaFileExcel } from "react-icons/fa";
 
 interface JobHeaderProps {
@@ -34,6 +35,7 @@ const JobHeader = ({
   onToggleFilterCheckbox,
 }: JobHeaderProps) => {
   const menuBg = useColorModeValue("white", "navy.800");
+  const router = useRouter();
 
   return (
     <>
@@ -81,7 +83,7 @@ const JobHeader = ({
           <Button
             variant="primary"
             className="mr-2"
-            onClick={() => Router.push("/admin/jobs/create")}
+            onClick={() => router.push("/admin/jobs/create")}
             // onClick={() => {
             //   window.location.href = "/admin/jobs/create";
             // }}
