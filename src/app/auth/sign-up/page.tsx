@@ -126,10 +126,10 @@ export default function SignUp() {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
       });
-      setCookie(null, "is_sub_admin", d.login.user.is_sub_admin, {
-        maxAge: 30 * 24 * 60 * 60,
-        path: "/",
-      });
+      // setCookie(null, "is_sub_admin", d.login.user.is_sub_admin, {
+      //   maxAge: 30 * 24 * 60 * 60,
+      //   path: "/",
+      // });
       setCookie(null, "state", d.login.user.state, {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",

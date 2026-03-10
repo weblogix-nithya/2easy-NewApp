@@ -21,12 +21,12 @@ export const MUTATION_LOGIN = gql`
         }
         is_admin
         is_company_admin
-        is_sub_admin
         reset_approve
-      }
-    }
-  }
-`;
+        }
+        }
+        }
+        `;
+        // is_sub_admin
 
 export const MUTATION_REGISTER = gql`
   mutation register($input: RegisterInput) {
