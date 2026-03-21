@@ -344,11 +344,11 @@ export default function Layout(props: DashboardLayoutProps) {
   const { children } = props;
   return(
     <Providers>
-      {/* <Suspense fallback={<div>Loading...</div>}> */}
+      <Suspense fallback={<div>Loading...</div>}>
         <AdminLayout>
           {children}
         </AdminLayout>
-      {/* </Suspense> */}
+      </Suspense>
     </Providers>
   )
 }

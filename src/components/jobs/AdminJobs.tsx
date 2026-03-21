@@ -356,7 +356,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
     {
       variables: groupedVars,
 
-      skip: !userId || isCompanyAdmin || isCustomer || isCompany,
+      // skip: !userId || isCompanyAdmin || isCustomer || isCompany,
       fetchPolicy: "network-only",
     },
     (data) => {

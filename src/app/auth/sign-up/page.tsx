@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useMutation } from "@apollo/client/react";
 // Chakra imports
 import {
@@ -102,10 +102,10 @@ export default function SignUp() {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
       });
-      setCookie(null, "customer_id", d.login.user.customer?.id, {
-        maxAge: 30 * 24 * 60 * 60,
-        path: "/",
-      });
+      // setCookie(null, "customer_id", d.login.user.customer?.id, {
+      //   maxAge: 30 * 24 * 60 * 60,
+      //   path: "/",
+      // });
       setCookie(null, "company_id", d.login.user.customer?.company_id, {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
@@ -122,6 +122,18 @@ export default function SignUp() {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
       });
+      if (!d.login.user.is_admin) {
+        setCookie(null, "customer_id", d.login.user.customer?.id, {
+          maxAge: 30 * 24 * 60 * 60,
+          path: "/",
+        });
+      } else {
+        // Remove customer_id if admin
+        setCookie(null, "customer_id", "", {
+          maxAge: 0,
+          path: "/",
+        });
+      }
       setCookie(null, "is_company_admin", d.login.user.is_company_admin, {
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
@@ -153,36 +165,36 @@ export default function SignUp() {
 
   return (
     // <DefaultAuthLayout illustrationBackground={"/img/auth/auth.png"}>
-      <Box className="flex justify-center items-center w-1/2 min-w-1/2 bg-white h-full max-h-screen overflow-y-auto">
-        <Flex className="h-full w-full flex-col justify-center items-center">
-          <Box className="h-full p-10">
-            <Image
-              src={"/img/branding/logo-2easy.svg"}
-              alt=""
-              mb="16"
-              maxW="435px"
-            />
-            <Heading color={textColor} fontSize="36px" mb="10px">
-              Sign Up
-            </Heading>
-            <Text
-              className="mb-11 !font-medium text-sm"
-              color={textColorSecondary}
-            >
-              Enter your name, email and password to sign up!
-            </Text>
+    <Box className="flex justify-center items-center w-1/2 min-w-1/2 bg-white h-full max-h-screen overflow-y-auto">
+      <Flex className="h-full w-full flex-col justify-center items-center">
+        <Box className="h-full p-10">
+          <Image
+            src={"/img/branding/logo-2easy.svg"}
+            alt=""
+            mb="16"
+            maxW="435px"
+          />
+          <Heading color={textColor} fontSize="36px" mb="10px">
+            Sign Up
+          </Heading>
+          <Text
+            className="mb-11 !font-medium text-sm"
+            color={textColorSecondary}
+          >
+            Enter your name, email and password to sign up!
+          </Text>
 
-            <Flex
-              zIndex="2"
-              flexDirection="column"
-              w={{ base: "100%", md: "420px" }}
-              maxW="100%"
-              background="transparent"
-              mx={{ base: "auto", lg: "unset" }}
-              me="auto"
-              mb={{ base: "20px", md: "auto" }}
-            >
-              {/* <Button
+          <Flex
+            zIndex="2"
+            flexDirection="column"
+            w={{ base: "100%", md: "420px" }}
+            maxW="100%"
+            background="transparent"
+            mx={{ base: "auto", lg: "unset" }}
+            me="auto"
+            mb={{ base: "20px", md: "auto" }}
+          >
+            {/* <Button
                 className="mr-0 mb-6 py-4 h-[50px] !font-medium !text-sm rounded-lg"
                 bgColor={googleBg}
                 color={googleText}
@@ -209,153 +221,153 @@ export default function SignUp() {
                 </Text>
                 <HSeparator />
               </Flex> */}
-              <FormControl>
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  color={textColor}
-                >
-                  First Name<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <Input
-                  isRequired={true}
-                  variant="auth"
-                  fontSize="sm"
-                  ms={{ base: "0px", md: "0px" }}
-                  type="email"
-                  name="first_name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="John"
-                  mb="24px"
-                  fontWeight="500"
-                  size="lg"
-                />
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  color={textColor}
-                >
-                  Last Name<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <Input
-                  isRequired={true}
-                  variant="auth"
-                  fontSize="sm"
-                  ms={{ base: "0px", md: "0px" }}
-                  type="email"
-                  name="last_name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Doe"
-                  mb="24px"
-                  fontWeight="500"
-                  size="lg"
-                />
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  color={textColor}
-                >
-                  Email<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <Input
-                  isRequired={true}
-                  variant="auth"
-                  fontSize="sm"
-                  ms={{ base: "0px", md: "0px" }}
-                  type="email"
-                  name="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={`mail@${process.env.NEXT_PUBLIC_APP_NAME}.com.au`}
-                  mb="24px"
-                  fontWeight="500"
-                  size="lg"
-                />
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  color={textColor}
-                >
-                  Password<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <InputGroup size="md">
-                  <Input
-                    isRequired={true}
-                    fontSize="sm"
-                    placeholder="Min. 8 characters"
-                    mb="24px"
-                    size="lg"
-                    type={show ? "text" : "password"}
-                    variant="auth"
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <InputRightElement
-                    display="flex"
-                    alignItems="center"
-                    mt="4px"
-                  >
-                    <Icon
-                      color={textColorSecondary}
-                      _hover={{ cursor: "pointer" }}
-                      as={show ? RiEyeCloseLine as unknown as React.ElementType: MdOutlineRemoveRedEye as unknown as React.ElementType}
-                      onClick={handleClick}
-                    />
-                  </InputRightElement>
-                </InputGroup>
-                <InputGroup size="md">
-                  <Input
-                    isRequired={true}
-                    placeholder="Min. 8 characters"
-                    size="lg"
-                    type={show ? "text" : "password"}
-                    variant="auth"
-                    name="password_confirmation"
-                    value={passwordConfirmation}
-                    onChange={(e) => setPasswordConfirmation(e.target.value)}
-                    fontSize="sm"
-                    mb="24px"
-                  />
-                  <InputRightElement
-                    display="flex"
-                    alignItems="center"
-                    mt="4px"
-                  >
-                    <Icon
-                      color={textColorSecondary}
-                      _hover={{ cursor: "pointer" }}
-                      as={show ? RiEyeCloseLine as unknown as React.ElementType: MdOutlineRemoveRedEye as unknown as React.ElementType}
-                      onClick={handleClick}
-                    />
-                  </InputRightElement>
-                </InputGroup>
-                <Button
-                  className="!py-2.5 mb-6 w-full !h-[39px] rounded-lg"
-                  variant="brand"
-                  onClick={() => handleSignUp()}
-                >
-                  Sign Up
-                </Button>
-              </FormControl>
-
-              <Text
-                className="flex text-sm !font-normal pb-10"
-                color={textColorDetails}
+            <FormControl>
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                color={textColor}
               >
-                Already registered?
-                <Link href="/auth/login">
-                  <Text
-                    className="ml-[5px] !font-bold"
-                    color={textColorBrand}
-                    as="span"
-                  >
-                    Login
-                  </Text>
-                </Link>
-              </Text>
-            </Flex>
-          </Box>
-        </Flex>
-      </Box>
+                First Name<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <Input
+                isRequired={true}
+                variant="auth"
+                fontSize="sm"
+                ms={{ base: "0px", md: "0px" }}
+                type="email"
+                name="first_name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="John"
+                mb="24px"
+                fontWeight="500"
+                size="lg"
+              />
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                color={textColor}
+              >
+                Last Name<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <Input
+                isRequired={true}
+                variant="auth"
+                fontSize="sm"
+                ms={{ base: "0px", md: "0px" }}
+                type="email"
+                name="last_name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Doe"
+                mb="24px"
+                fontWeight="500"
+                size="lg"
+              />
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                color={textColor}
+              >
+                Email<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <Input
+                isRequired={true}
+                variant="auth"
+                fontSize="sm"
+                ms={{ base: "0px", md: "0px" }}
+                type="email"
+                name="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={`mail@${process.env.NEXT_PUBLIC_APP_NAME}.com.au`}
+                mb="24px"
+                fontWeight="500"
+                size="lg"
+              />
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                color={textColor}
+              >
+                Password<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <InputGroup size="md">
+                <Input
+                  isRequired={true}
+                  fontSize="sm"
+                  placeholder="Min. 8 characters"
+                  mb="24px"
+                  size="lg"
+                  type={show ? "text" : "password"}
+                  variant="auth"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <InputRightElement display="flex" alignItems="center" mt="4px">
+                  <Icon
+                    color={textColorSecondary}
+                    _hover={{ cursor: "pointer" }}
+                    as={
+                      show
+                        ? (RiEyeCloseLine as unknown as React.ElementType)
+                        : (MdOutlineRemoveRedEye as unknown as React.ElementType)
+                    }
+                    onClick={handleClick}
+                  />
+                </InputRightElement>
+              </InputGroup>
+              <InputGroup size="md">
+                <Input
+                  isRequired={true}
+                  placeholder="Min. 8 characters"
+                  size="lg"
+                  type={show ? "text" : "password"}
+                  variant="auth"
+                  name="password_confirmation"
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                  fontSize="sm"
+                  mb="24px"
+                />
+                <InputRightElement display="flex" alignItems="center" mt="4px">
+                  <Icon
+                    color={textColorSecondary}
+                    _hover={{ cursor: "pointer" }}
+                    as={
+                      show
+                        ? (RiEyeCloseLine as unknown as React.ElementType)
+                        : (MdOutlineRemoveRedEye as unknown as React.ElementType)
+                    }
+                    onClick={handleClick}
+                  />
+                </InputRightElement>
+              </InputGroup>
+              <Button
+                className="!py-2.5 mb-6 w-full !h-[39px] rounded-lg"
+                variant="brand"
+                onClick={() => handleSignUp()}
+              >
+                Sign Up
+              </Button>
+            </FormControl>
+
+            <Text
+              className="flex text-sm !font-normal pb-10"
+              color={textColorDetails}
+            >
+              Already registered?
+              <Link href="/auth/login">
+                <Text
+                  className="ml-[5px] !font-bold"
+                  color={textColorBrand}
+                  as="span"
+                >
+                  Login
+                </Text>
+              </Link>
+            </Text>
+          </Flex>
+        </Box>
+      </Flex>
+    </Box>
     // </DefaultAuthLayout>
   );
 }
