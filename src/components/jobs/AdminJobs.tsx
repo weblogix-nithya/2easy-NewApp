@@ -261,12 +261,19 @@ export default function JobIndex({}: // initialLoadOnly = false,
         notifyOnNetworkStatusChange: true,
       },
       (data) => {
-        console.log("data-dynamic", data);
-        setDynamicTableUsers(
-          data.dynamicTableUsers.data.filter(
-            (item: DynamicTableUser) => item.is_active === true,
-          ),
-        );
+        const all = data.dynamicTableUsers.data;
+
+        const activeJobsOnly = all
+          .filter(
+            (item: DynamicTableUser) =>
+              item.is_active === true &&
+              item.dynamic_table?.table_name === "jobs",
+          )
+          .sort((a, b) => a.sort_id - b.sort_id);
+
+        console.log("Active JOBS columns:", activeJobsOnly);
+
+        setDynamicTableUsers(activeJobsOnly);
       },
     );
 
@@ -361,7 +368,6 @@ export default function JobIndex({}: // initialLoadOnly = false,
     },
     (data) => {
       console.log("groupedjob", data);
-      
     },
   );
 
