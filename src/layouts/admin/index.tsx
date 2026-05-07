@@ -342,11 +342,11 @@ export default function AdminLayout(props: DashboardLayoutProps) {
               <Box
                 className="mk-adminLayout"
                 mx="auto"
-                pt={`108px`}
-                sx={{
-                  '& > .css-y352q4': {
-                    paddingTop: '0px',
-                  }}}
+                // pt={`108px`}
+                // sx={{
+                //   '& > .css-y352q4': {
+                //     paddingTop: '0px',
+                //   }}}
                 // p={0}
                 minH="100vh"
                 bg="white"

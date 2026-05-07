@@ -58,7 +58,7 @@ export default function Dashboard() {
         job_status_ids: [1],
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     },
   );
 
@@ -74,7 +74,7 @@ export default function Dashboard() {
       job_type_id: 1,
       today: date,
     },
-    skip: !isAdmin,
+    skip: !isAdminUser,
   });
 
   const { data: unassignedExpressJobs } =
@@ -87,7 +87,7 @@ export default function Dashboard() {
         job_type_id: 2,
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const { data: unassignedUrgentJobs } =
@@ -100,7 +100,7 @@ export default function Dashboard() {
         job_type_id: 3,
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const { data: declinedJobs } = useQuery<JobsResponse>(
@@ -113,7 +113,7 @@ export default function Dashboard() {
         job_status_ids: [9],
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     },
   );
 
@@ -127,7 +127,7 @@ export default function Dashboard() {
         job_status_ids: [2, 3, 4, 5],
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     },
   );
 
@@ -140,7 +140,7 @@ export default function Dashboard() {
         job_type_id: 3,
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const {  data: incompleteExpressJobs } = useQuery<JobsResponse>(GET_JOBS_QUERY, {
@@ -152,7 +152,7 @@ export default function Dashboard() {
         job_type_id: 2,
         today: date,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const {data: incompleteStandardJobs } = useQuery<JobsResponse>(GET_JOBS_QUERY, {
@@ -164,7 +164,7 @@ export default function Dashboard() {
       job_type_id: 1,
       today: date,
     },
-    skip: !isAdmin,
+    skip: !isAdminUser,
   });
 
   const {data: customerIssueReportJobs} = useQuery<JobsResponse>(GET_JOBS_QUERY, {
@@ -175,7 +175,7 @@ export default function Dashboard() {
       today: date,
       has_customer_issue: true,
     },
-    skip: !isAdmin,
+    skip: !isAdminUser,
   });
 
   const { loading: _driverIssueReportJobsLoading, data: driverIssueReportJobs } =
@@ -187,7 +187,7 @@ export default function Dashboard() {
         today: date,
         has_driver_issue: true,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const { loading: _reportIssueReportJobsLoading, data: _reportIssueReportJobs } =
@@ -199,7 +199,7 @@ export default function Dashboard() {
         today: date,
         has_report_issue: true,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   const { loading: _onlineDriversLoading, data: onlineDrivers } = useQuery<DriversResponse>(
@@ -212,7 +212,7 @@ export default function Dashboard() {
         orderByOrder: "DESC",
         available: true,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     },
   );
 
@@ -226,7 +226,7 @@ export default function Dashboard() {
         orderByOrder: "DESC",
         driverStatusId: 1,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     },
   );
 
@@ -239,7 +239,7 @@ export default function Dashboard() {
         orderByOrder: "DESC",
         has_expired: true,
       },
-      skip: !isAdmin,
+      skip: !isAdminUser,
     });
 
   return (
