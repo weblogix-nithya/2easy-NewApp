@@ -1,14 +1,13 @@
 // Chakra imports
 "use client"
 import { Box, Flex, Image, Portal, useDisclosure } from "@chakra-ui/react";
-import { Status, Wrapper } from "@googlemaps/react-wrapper";
 import { defaultSelectedFilter } from "@/components/jobs/Filters";
 // Layout components
 import Navbar from "@/components/navbar/NavbarAdmin";
 import { SidebarContext } from "@/lib/contexts/SidebarContext";
 import { usePathname, useRouter } from "next/navigation";
 import { parseCookies } from "nookies";
-import { PropsWithChildren, ReactElement, useEffect, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import routes, { NAV_CONFIG } from "@/routes";
 import {
@@ -40,15 +39,15 @@ import {
 import { enforceCompanyAccess } from "@/utils/routeGuard";
 import TobNavbar from "@/components/topbar/Topbarhover";
 
-const render = (status: Status): ReactElement => {
-  if (status === Status.LOADING) {
-    return;
-  }
-  if (status === Status.FAILURE) {
-    return;
-  }
-  return null;
-};
+// const render = (status: Status): ReactElement => {
+//   if (status === Status.LOADING) {
+//     return;
+//   }
+//   if (status === Status.FAILURE) {
+//     return;
+//   }
+//   return null;
+// };
 
 interface DashboardLayoutProps extends PropsWithChildren {
   [x: string]: any;
@@ -101,7 +100,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
       dispatch(
         setRoutes(
           flatRoutes.map(
-            ({name, layout, path, isAdmin, isCompany, isPrivate }) => ({
+            ({ name, layout, path, isAdmin, isCompany, isPrivate }) => ({
               title: name,
               name,
               layout,
@@ -113,7 +112,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           ),
         ),
       );
-      if (  
+      if (
         cookies.is_admin !== undefined &&
         cookies.is_admin !== "undefined" &&
         cookies.is_admin !== ""
@@ -127,10 +126,10 @@ export default function AdminLayout(props: DashboardLayoutProps) {
       ) {
         dispatch(setIsSubAdmin(cookies.is_sub_admin === "true" ? true : false));
         if (
-          cookies.is_admin !== "true" && 
+          cookies.is_admin !== "true" &&
           cookies.is_sub_admin === "true" &&
           typeof window !== "undefined" &&
-          !window.location.hash 
+          !window.location.hash
         ) {
           const activeRoute = flatRoutes.find((r) =>
             pathname.includes(r.path),
@@ -248,11 +247,13 @@ export default function AdminLayout(props: DashboardLayoutProps) {
   if (!isClient) return null;
 
   return (
-    <Wrapper
-      apiKey={process.env.NEXT_PUBLIC_MAPS_KEY}
-      render={render}
-  libraries={["places", "marker"]}
-    >
+    // Removed wrapper and Created Map provider and wrapped in the particular pages
+    //   <Wrapper
+    //     apiKey={process.env.NEXT_PUBLIC_MAPS_KEY}
+    //     render={render}
+    // libraries={["places", "marker"]}
+    //   >
+    <>
       {isAuth && (
         <Box className="mk-admin-index">
           <SidebarContext.Provider
@@ -264,11 +265,11 @@ export default function AdminLayout(props: DashboardLayoutProps) {
             {/* <Sidebar routes={routes} display="none" {...rest} /> */}
 
             {/* TODO: change the width based on if the user has toggled width */}
-           
+
 
             <Box
               className={
-                "mk-admin-index relative h-full max-h-full overflow-auto bg-white " +"w-full"
+                "mk-admin-index relative h-full max-h-full overflow-auto bg-white " + "w-full"
                 // (toggleFullSidebar ? "w-[calc(100%_-_190px)]" : "w-full")
               }
               // w={{ base: "100%", xl: "calc( 100% - 190px )" }}
@@ -327,9 +328,9 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 // h={`68px`}
                 zIndex="1"
                 bg="white"
-                // borderBottom="1px solid"
-                // borderColor="gray.200"
-                // className="mt-[68px]"
+              // borderBottom="1px solid"
+              // borderColor="gray.200"
+              // className="mt-[68px]"
               >
                 <TobNavbar routes={NAV_CONFIG} />
               </Box>
@@ -360,6 +361,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           </Box> */}
         </Box>
       )}
-    </Wrapper>
+    </>
+    // </Wrapper>
   );
 }

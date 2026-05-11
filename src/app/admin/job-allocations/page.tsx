@@ -55,6 +55,7 @@ import { RootState } from "@/lib/store/store";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
 import { useSearchParams } from "next/navigation";
+import GoogleMapProvider from "@/components/providers/GoogleMapProvider";
 
 
 const stateMap: Record<string, string> = {
@@ -448,8 +449,14 @@ export default function JobAllocationIndex() {
     getJobs();
   }, [onChangeSearchQuery, rightSideBarJob, australianState, getJobs]);
 
+
   return (
-    <>
+    // <Wrapper
+    //   apiKey={process.env.NEXT_PUBLIC_MAPS_KEY}
+    //   render={render}
+    //   libraries={["places", "marker"]}
+    // >
+    <GoogleMapProvider>
       <RightSideBar setMarkers={setMarkers}/>
       <Box
         pt={{ base: "130px", md: "97px", xl: "97px" }}
@@ -953,6 +960,7 @@ export default function JobAllocationIndex() {
           </GridItem>
         </Grid>
       </Box>
-    </>
+    </GoogleMapProvider>
+    // </Wrapper>
   );
 }
