@@ -431,6 +431,7 @@ export default function JobAllocationIndex() {
   useEffect(() => {
     if (urlState && stateMap[urlState]) {
       setAustralianState(stateMap[urlState]);
+      console.log("useffect state")
     } else if (state) {
       setAustralianState(state);
     }
@@ -443,8 +444,10 @@ export default function JobAllocationIndex() {
     australianStates.forEach((st: any) => {
       if (st.value === australianState) {
         setCenter({ lat: st.lat, lng: st.lng });
+        console.log("center state1")
       }
     });
+    console.log("center state2")
     // }
     getJobs();
   }, [onChangeSearchQuery, rightSideBarJob, australianState, getJobs]);
