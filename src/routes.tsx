@@ -322,9 +322,9 @@ export const NAV_CONFIG: IRouteNew[] = [
         isSubAdmin: true,
         isPrivate: false,
         children: [
-          { name: "VIC", href: "/admin/job-allocations?id=vic" },
-          { name: "QLD", href: "/admin/job-allocations?id=qld" },
-          { name: "ALL", href: "/admin/job-allocations?id=all" },
+          { name: "VIC", href: "/admin/job-allocations?state=vic" },
+          { name: "QLD", href: "/admin/job-allocations?state=qld" },
+          { name: "NSW", href: "/admin/job-allocations?state=nsw" },
         ],
       },
       {

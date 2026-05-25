@@ -19,3 +19,12 @@ option {
 /* .css-en-xlrwr4 {
   border-bottom: 1px solid black !important;
 } */
+
+.chakra-portal:has(.map-drawer) .chakra-modal__content-container {
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on the actual drawer panel */
+.map-drawer {
+  pointer-events: auto;
+}
