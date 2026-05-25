@@ -24,6 +24,17 @@ export function formatTimeUTCtoInput(dateTime: string) {
   return moment.utc(dateTime).local().format("HH:mm");
 }
 
+export function getLocalYMD(): string {
+  const d = new Date();
+  return (
+    d.getFullYear() +
+    "-" +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getDate()).padStart(2, "0")
+  );
+}
+
 export const getRowBgColor = (status?: string): string => {
   const normalizedStatus = status?.toLowerCase();
 

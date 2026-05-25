@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
   Box,
   Button,
@@ -36,15 +36,20 @@ import {
 } from "../../graphql/dynamicTableUser";
 // import { GET_JOBS_QUERY, Job } from "graphql/job";
 import {
-  GET_JOBS_QUERY,
+  // GET_JOBS_QUERY,
   GROUPED_PAGINATED_JOBS_QUERY,
   GroupedPaginatedJobsData,
   GroupedPaginatedJobsVars,
+  CREATE_DRIVER_FREE_TEXT,
+  UPDATE_DRIVER_FREE_TEXT,
+
 } from "@/graphql/job";
 import { GET_JOB_CATEGORIES_QUERY } from "@/graphql/jobCategories";
 import { GET_JOB_STATUSES_QUERY } from "@/graphql/jobStatus";
 import { JoinOnClause } from "@/graphql/types/types";
 import {
+  
+  getLocalYMD,
   outputDynamicTableBody,
   outputDynamicTableHeader,
 } from "@/lib/helpers/helper";
@@ -52,7 +57,14 @@ import {
 import debounce from "lodash.debounce";
 import dynamic from "next/dynamic";
 import { destroyCookie, parseCookies, setCookie } from "nookies";
-import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { downloadExcel } from "react-export-table-to-excel";
 // import { FaFileExcel } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -233,6 +245,13 @@ export default function JobIndex({}: // initialLoadOnly = false,
     useState<typeof filterDisplayNames>(filterDisplayNames);
   // const [companyColumns, setCompanyColumns] = useState([]); // State for company columns
 
+  const [freeTextValue, setFreeTextValue] = React.useState("");
+  const [editingDriverId, setEditingDriverId] = React.useState<number | null>(
+    null,
+  );
+  const [savingDriverId, setSavingDriverId] = React.useState<number | null>(
+    null,
+  );
   const handleToggleWithMedia = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const checked = e.target.checked;
@@ -367,19 +386,89 @@ export default function JobIndex({}: // initialLoadOnly = false,
       fetchPolicy: "network-only",
     },
     (data) => {
-      console.log("groupedjob", data);
+      console.log("groupedjob oncompleted res", data);
     },
   );
 
+  type GroupedRow =
+    | {
+        __rowType: "driverHeader";
+        id: string;
+        driver: any;
+      }
+    | {
+        __rowType: "jobRow";
+        id: string;
+        [key: string]: any;
+      };
+  const groupedJobsData = useMemo(() => {
+    const raw = groupedJobs?.groupedPaginatedJobs?.data ?? [];
+
+    const result: GroupedRow[] = [];
+    let lastDriverId: string | null = null;
+
+    for (const job of raw) {
+      const driver = job?.driver;
+
+      // ✅ Skip rows without valid driver
+      if (!driver?.id) {
+        result.push({
+          __rowType: "jobRow",
+          ...job,
+          id: `job-${job?.job?.id ?? Math.random()}`,
+        });
+        continue;
+      }
+
+      // Insert driver header if driver changes
+      if (driver.id !== lastDriverId) {
+        result.push({
+          __rowType: "driverHeader",
+          id: `driver-${driver.id}`,
+          driver,
+        });
+
+        lastDriverId = driver.id;
+      }
+
+      result.push({
+        __rowType: "jobRow",
+        ...job,
+        id: `job-${job?.job?.id ?? Math.random()}`,
+      });
+    }
+
+    return result;
+  }, [groupedJobs]);
+
+  // const dynamicUsers = dynamicTableData?.dynamicTableUsers?.data ?? [];
+
+  // const activeDynamicUsers = useMemo(
+  //   () => dynamicUsers.filter((d) => d.is_active) as DynamicTableUser[],
+  //   [dynamicUsers],
+  // );
+
+  const refetchJobsRef = useRef(refetchGroupedJobs);
+  useEffect(() => {
+    console.log("called refetch");
+    refetchJobsRef.current = refetchGroupedJobs;
+  }, [refetchGroupedJobs]);
+
+  const stableRefetch = useCallback(
+    (...args: any[]) => refetchJobsRef.current(...args),
+    [],
+  );
+
+  // Then use stableRefetch in adminColumns useMemo
   const adminColumns = useMemo(() => {
     return getColumns(
       isAdmin,
       isCustomer,
       withMedia,
-      refetchGroupedJobs,
-      (dynamicTableData?.dynamicTableUsers?.data || []) as DynamicTableUser[],
+      stableRefetch,
+      dynamicTableUsers,
     );
-  }, [dynamicTableData, isAdmin, isCustomer, withMedia]);
+  }, [isAdmin, isCustomer, withMedia, stableRefetch, dynamicTableUsers]);
 
   useEffect(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -793,6 +882,46 @@ export default function JobIndex({}: // initialLoadOnly = false,
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [groupedVars, isAdmin, isCompany, isCustomer, isCompanyAdmin]);
 
+    const handleUpdateDriverFreeText = async (driver: any, value: string) => {
+    // if (!driver?.id) {
+    //   console.error("Driver ID missing!", driver);
+    //   return;
+    // }
+
+    try {
+      if (driver?.today_free_text?.id) {
+        // 🔹 UPDATE existing freetext
+        await updateDriverFreeText({
+          variables: {
+            input: {
+              id: Number(driver?.today_free_text?.id),
+              text: value,
+            },
+          },
+        });
+      } else {
+        // 🔹 CREATE new freetext
+        await createDriverFreeText({
+          variables: {
+            input: {
+              driver_id: Number(driver.id),
+              date: getLocalYMD(), // only if your API still requires date
+              text: value,
+            },
+          },
+        });
+      }
+
+      await refetchGroupedJobs();
+    } catch (err) {
+      console.error("Failed to save driver note", err);
+    }
+  };
+
+  // const [updateDriverFreeTextMutation] = useMutation(UPDATE_DRIVER_FREE_TEXT);
+  const [createDriverFreeText] = useMutation(CREATE_DRIVER_FREE_TEXT);
+  const [updateDriverFreeText] = useMutation(UPDATE_DRIVER_FREE_TEXT);
+
   return (
     // <AdminLayout>
     <Box pt={{ base: "130px", md: "97px", xl: "97px" }}>
@@ -923,6 +1052,17 @@ export default function JobIndex({}: // initialLoadOnly = false,
             isChecked={isChecked}
             onSortingChange={handleSortingChange}
             restyleTable
+            // onContextMenu={handleContextMenu}
+            freeTextValue={freeTextValue}
+            setFreeTextValue={setFreeTextValue}
+            editingDriverId={editingDriverId}
+            setEditingDriverId={setEditingDriverId}
+            savingDriverId={savingDriverId}
+            setSavingDriverId={setSavingDriverId}
+            onUpdateDriverFreeText={(driver, value) => {
+              console.log(driver, "driver", value, "value");
+              return handleUpdateDriverFreeText(driver, value);
+            }}
           />
         ) : (
           // 📭 No Data

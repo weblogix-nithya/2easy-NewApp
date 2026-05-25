@@ -411,7 +411,7 @@ export const ItemsTypeCell = ({ row }: any) => {
     <div>
       {items?.map((item: any) => (
         <Text key={`items-type-${item.id}`} mb={2}>
-          {item.item_type.name}
+          {item?.item_type?.name}
         </Text>
       ))}
     </div>
@@ -420,7 +420,7 @@ export const ItemsTypeCell = ({ row }: any) => {
 export const ItemsTypeCellExport = ({ row }: any) => {
   const items = row?.original?.job?.job_items;
   return items?.map((item: any) => {
-    return [`${item.item_type.name}  \n`];
+    return [`${item?.item_type?.name}  \n`];
   });
 };
 export const ItemsDimensionCell = ({ row }: any) => {
@@ -728,9 +728,9 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "company.name",
+    accessorFn: (row) => row.job?.company?.name,
     header: "Booked By",
-    cell: BookedByCell, // Use the new cell component
-    // CellExport: BookedByCellExport,
+    cell: BookedByCell,
   },
   {
     id: "reference_no",
@@ -909,7 +909,7 @@ export const getColumns = (
   ];
 
   // 2) If no config yet, show your default tableColumn only
-  if (!dynamicTableUsers || dynamicTableUsers.length === 0) {
+  if (dynamicTableUsers === undefined) {
     const cols = uniqueById([
       ...base,
       ...tableColumn(refetchJobs), // your static defaults

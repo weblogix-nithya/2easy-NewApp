@@ -36,6 +36,7 @@ import SortableJobTableSetting from "@/components/jobs/SortableJobTableSetting";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
 export default function JobTableSettingsModal(props: UseDisclosureProps) {
+  alert(" form modal");
   const { isOpen, onClose } = props;
   const userId = useSelector((state: RootState) => state.user.userId);
   const toast = useToast();
