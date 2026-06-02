@@ -82,7 +82,7 @@ const ActionBar = <_P extends object>({
           variant="secondary"
           onClick={onClickBulkAssign}
         >
-          Bulk assign {"  "}
+          Bulk Assign {"  "}
           {selectedJobs.length > 0 && <>( {selectedJobs.length} )</>}
         </Button>
       </Box>

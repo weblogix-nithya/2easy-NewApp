@@ -36,14 +36,13 @@ import SortableJobTableSetting from "@/components/jobs/SortableJobTableSetting";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
 export default function JobTableSettingsModal(props: UseDisclosureProps) {
-  alert(" form modal");
   const { isOpen, onClose } = props;
   const userId = useSelector((state: RootState) => state.user.userId);
   const toast = useToast();
   const [dynamicTableUsers, setDynamicTableUsers] = useState<
     DynamicTableUser[]
   >([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const getIndex = (id: UniqueIdentifier) =>
     dynamicTableUsers?.findIndex(
@@ -52,12 +51,22 @@ export default function JobTableSettingsModal(props: UseDisclosureProps) {
   // const getPosition = (id: UniqueIdentifier) => getIndex(id) + 1;
   const activeIndex = activeId ? getIndex(activeId) : -1;
 
+  // useEffect(() => {
+  //   if (isOpen == true) {
+  //     getDynamicTableUsers();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [isOpen]);
+
   useEffect(() => {
-    if (isOpen == true) {
-      getDynamicTableUsers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  if (isOpen) {
+    setIsLoading(true);
+    setDynamicTableUsers([]);
+
+    getDynamicTableUsers();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isOpen]);
 
   // const { refetch: getDynamicTableUsers } = useQuery(
   //   GET_DYNAMIC_TABLE_USERS_QUERY,
@@ -96,10 +105,23 @@ export default function JobTableSettingsModal(props: UseDisclosureProps) {
           notifyOnNetworkStatusChange: true,
         },
         (data:any) => {
+           const all = data.dynamicTableUsers.data;
           console.log("data-dynamic", data);
-          setDynamicTableUsers(
-            data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
-          );
+           const activeJobsOnly = all
+                    .filter(
+                      (item: DynamicTableUser) =>
+                        item.is_active === true &&
+                        item.dynamic_table?.table_name === "jobs",
+                    )
+                    .sort((a, b) => a.sort_id - b.sort_id);
+          
+                  console.log("Active JOBS columns:", activeJobsOnly);
+          
+                  setDynamicTableUsers(activeJobsOnly);
+
+          // setDynamicTableUsers(
+          //   data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
+          // );
           setIsLoading(false);
         },
       );

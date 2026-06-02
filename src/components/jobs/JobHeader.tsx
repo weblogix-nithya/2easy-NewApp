@@ -79,7 +79,7 @@ const JobHeader = ({
           )}
         </Flex>
 
-        <Flex>
+        {/* <Flex>
           <Button
             variant="primary"
             className="mr-2"
@@ -98,7 +98,7 @@ const JobHeader = ({
           >
             Export Xls
           </Button>
-        </Flex>
+        </Flex> */}
       </Flex>
     </>
   );

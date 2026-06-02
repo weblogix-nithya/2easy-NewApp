@@ -1,7 +1,7 @@
 import { Flex } from "@chakra-ui/react";
 
 export default function IconBox(props: {
-  icon: JSX.Element | string;
+  icon: React.ReactNode | string;
   [x: string]: any;
 }) {
   const { icon, ...rest } = props;

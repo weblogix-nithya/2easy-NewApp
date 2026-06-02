@@ -1,4 +1,3 @@
-'use client';
 import { useMutation } from "@apollo/client/react";
 import {
   Box,
@@ -60,11 +59,17 @@ export default function JobBulkAssignModal({
   const [isError, setIsError] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver>(defaultDriver);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+
+  // Fix 1: getIndex uses correct nested id path
   const getIndex = (id: UniqueIdentifier) =>
     selectedJobs?.findIndex(
-      (dynamicTableUser: any) => dynamicTableUser.id == id,
+      (item: any) => item.original.job.id == id, // ✅ was dynamicTableUser.id
     );
-  // console.log(selectedJobs, "sssss");
+  console.log(selectedJobs, "sssss");
+  console.log(columns, "col");
+  console.log(driverOptions, "driverOptions");
+  console.log(drivers, "drivers");
+
   const activeIndex = activeId ? getIndex(activeId) : -1;
   const totals = selectedJobs.reduce(
     (acc, job) => {
@@ -87,7 +92,7 @@ export default function JobBulkAssignModal({
       job_type_id: item.original.job.job_type.id,
     };
   });
-  // console.log(sortedBulkAssignJobs,'sortedBulkAssignJobs')
+  console.log(sortedBulkAssignJobs, "sortedBulkAssignJobs");
   const [handleBulkAssignJobs, {}] = useMutation(BULK_UPDATE_JOB_MUTATION, {
     variables: {
       input: sortedBulkAssignJobs,
@@ -107,6 +112,7 @@ export default function JobBulkAssignModal({
     },
     onError: (error) => {
       showGraphQLErrorToast(error);
+      // console.log(error,'err')
     },
   });
   useEffect(() => {
@@ -131,7 +137,7 @@ export default function JobBulkAssignModal({
                     (driver: any) => driver.id == e.value,
                   );
                   setSelectedDriver(_selectedDriver);
-                  console.log(_selectedDriver, "selectedDriver")
+                  console.log(_selectedDriver, "selectedDriver");
                 }}
               ></Select>
             </FormControl>
@@ -154,7 +160,7 @@ export default function JobBulkAssignModal({
                 <Tr>
                   {columns.map((column) => (
                     <Th key={`row-header-bulk-assign-${column.id}`}>
-                      {column.Header}
+                      {column.header}
                     </Th>
                   ))}
                 </Tr>
@@ -167,23 +173,36 @@ export default function JobBulkAssignModal({
                     }
                     setActiveId(active.id);
                   }}
+                  // onDragEnd={({ over }) => {
+                  //   setActiveId(null);
+                  //   if (over) {
+                  //     const overIndex = getIndex(over.id);
+                  //     if (activeIndex !== overIndex) {
+                  //       let newArray = reorderArray(
+                  //         selectedJobs,
+                  //         activeIndex,
+                  //         overIndex,
+                  //       );
+                  //       setSelectedJobs(newArray);
+                  //     }
+                  //   }
+                  // }}
                   onDragEnd={({ over }) => {
                     setActiveId(null);
                     if (over) {
                       const overIndex = getIndex(over.id);
                       if (activeIndex !== overIndex) {
-                        let newArray = reorderArray(
-                          selectedJobs,
-                          activeIndex,
-                          overIndex,
-                        );
-                        setSelectedJobs(newArray);
+                        setSelectedJobs(
+                          reorderArray(selectedJobs, activeIndex, overIndex),
+                        ); // ✅ preserve original objects
                       }
                     }
                   }}
                   onDragCancel={() => setActiveId(null)}
                 >
-                  <SortableContext items={selectedJobs}>
+                  <SortableContext
+                    items={selectedJobs.map((item) => item.original.job.id)}
+                  >
                     {selectedJobs.map((item) => {
                       return (
                         <JobBulkAssignRow

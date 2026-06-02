@@ -12,7 +12,7 @@ import {
 export default function Default(props: {
   id: string;
   label: string;
-  extra: JSX.Element;
+  extra: React.ReactNode;
   placeholder: string;
   type: string;
   mb: SpaceProps["mb"];

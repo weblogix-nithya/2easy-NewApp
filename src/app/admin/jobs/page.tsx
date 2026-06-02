@@ -6,13 +6,14 @@ import AdminJobs from '@/components/jobs/AdminJobs';
 import CustomerJobs from '@/components/jobs/CustomerJobs';
 
 export default function JobsPage() {
-  const { isAdmin, isCustomer } = useSelector(
+  const { isAdmin,isSubAdmin, isCustomer } = useSelector(
     (state: RootState) => state.user
   );
+  const isAdminUser = isAdmin || isSubAdmin;
 
   // if (loading) return <div>Loading...</div>;
 
-  if (isAdmin) return <AdminJobs />;
+  if (isAdminUser) return <AdminJobs />;
   if (isCustomer) return <CustomerJobs />;
 
   return <div>No access</div>;

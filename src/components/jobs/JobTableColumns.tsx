@@ -2,8 +2,10 @@
 // import { useMutation } from "@apollo/client";
 // import { CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
 import {
+  Badge,
   Flex,
   Icon,
+  IconButton,
   // IconButton,
   Link,
   Popover,
@@ -14,6 +16,8 @@ import {
   PopoverHeader,
   PopoverTrigger,
   Text,
+  Tooltip,
+  VStack,
   // Textarea,
   // useToast,
 } from "@chakra-ui/react";
@@ -33,6 +37,8 @@ import React from "react";
 import { MdMenu } from "react-icons/md";
 // import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
+import { useRouter } from "next/navigation";
+import { EditIcon } from "@chakra-ui/icons";
 
 export const isAdmin = (state: RootState) => state.user.isAdmin;
 export const isCustomer = (state: RootState) => state.user.isCustomer;
@@ -644,9 +650,67 @@ export const CategoryCell = ({ row }: any) => {
     <Text maxW="100px">{row?.original?.job?.job_category?.name || "-"}</Text>
   );
 };
-
+type JobLabel = {
+  id: number;
+  type: "label";
+  name: string;
+  color?: string;
+};
 export const DeliveryCell = ({ row }: any) => {
-  return <Text maxW="100px">{row?.original?.job?.name || "-"}</Text>;
+  const router = useRouter();
+  const job = row?.original?.job;
+  const labels: JobLabel[] = Array.isArray(job?.meta) ? job.meta : [];
+  const getBadgeStyle = (color?: string) => {
+    if (!color)
+      return { bg: "gray", color: "#fff", boxShadow: `0 0 0 1px ${color}` };
+    if (color.startsWith("#")) {
+      return { bg: `${color}`, color: `#fff`, boxShadow: `0 0 0 1px ${color}` };
+    }
+    return { bg: `${color}`, color: `#fff`, boxShadow: `0 0 0 1px ${color}` };
+  };
+  const handleNavigate = () => {
+    if (job?.id) router.push(`/admin/jobs/${job.id}`);
+  };
+
+  return (
+    <>
+      {labels.length > 0 && (
+        <VStack align="start" spacing="4px" mb="10px">
+          {labels.map((label) => (
+            <Badge
+              key={label.id}
+              fontSize="12px"
+              px="8px"
+              py="2px"
+              borderRadius="4px"
+              whiteSpace="nowrap"
+              {...getBadgeStyle(label.color)}
+            >
+              {label?.name}
+            </Badge>
+          ))}
+        </VStack>
+      )}
+
+      <Flex align="center" justify="space-between" gap="8px" maxW="260px">
+        {/* RIGHT SIDE */}
+        {job?.id && (
+          <>
+            <Text noOfLines={1}>{job?.name || "-"}</Text>
+            <Tooltip label="Edit Job" placement="top">
+              <IconButton
+                aria-label="Edit Job"
+                icon={<EditIcon />}
+                size="xs"
+                variant="ghost"
+                onClick={handleNavigate}
+              />
+            </Tooltip>
+          </>
+        )}
+      </Flex>
+    </>
+  );
 };
 
 export const AdminNotesCell = ({ row }: any) => {
@@ -959,11 +1023,18 @@ export const bulkassigntableColumn = [
     cell: DeliveryCell,
     // width: "100px",
   },
-  {
+  // {
+  //   id: "company.name",
+  //   header: "Booked By",
+    
+  //   cell: BookedByCell, // Use the new cell component
+  //   // CellExport: BookedByCellExport,
+  // },
+    {
     id: "company.name",
+    accessorFn: (row) => row.job?.company?.name,
     header: "Booked By",
-    cell: BookedByCell, // Use the new cell component
-    // CellExport: BookedByCellExport,
+    cell: BookedByCell,
   },
   {
     id: "reference_no",

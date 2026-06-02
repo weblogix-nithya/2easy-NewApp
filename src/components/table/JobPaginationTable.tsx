@@ -70,64 +70,9 @@ const getStatusStyle = (status: string) => {
 };
 
 // ----------- helpers: accept old v7 columns OR new v8 ColumnDef -----------
-function normalizeColumns(columns: any[]) {
-  // If columns already look like TanStack ColumnDef (have accessorKey/accessorFn/columnDef-ish),
-  // return as-is.
-  const looksLikeV8 = columns?.some(
-    (c) => "accessorKey" in (c || {}) || "accessorFn" in (c || {}),
-  );
-  if (looksLikeV8) return columns;
-
-  // Otherwise treat as v7 react-table columns and convert best-effort.
-  return (columns || []).map((c: any) => {
-    const id = c.id || c.accessor || c.Header;
-    const accessor = c.accessor;
-
-    // Put your custom flags/type/showCompany/etc into meta (so your render code can use them)
-    const meta = { ...c };
-
-    return {
-      id,
-      accessorKey: typeof accessor === "string" ? accessor : undefined,
-      accessorFn:
-        typeof accessor === "function"
-          ? (row: any) => accessor(row, undefined, undefined)
-          : undefined,
-      header: () => {
-        // v7 allows Header as string or function
-        if (typeof c.Header === "function") return c.Header({ column: c });
-        return c.Header ?? "";
-      },
-      enableSorting:
-        c.enableSorting !== undefined
-          ? !!c.enableSorting
-          : c.disableSortBy
-            ? false
-            : true,
-      cell: (info: any) => {
-        // If v7 column had Cell renderer, call it with a v7-ish shape
-        if (typeof c.Cell === "function") {
-          const v7CellLike = {
-            value: info.getValue(),
-            row: { original: info.row.original, id: info.row.id },
-            column: c,
-          };
-          return c.Cell(v7CellLike);
-        }
-
-        // Default: show value
-        const v = info.getValue();
-        return v ?? null;
-      },
-      meta,
-    };
-  });
-}
 
 // v7 sortBy shape expected by your parent: [{ id, desc }]
-function toV7SortBy(sortingState: any[]) {
-  return (sortingState || []).map((s) => ({ id: s.id, desc: !!s.desc }));
-}
+
 
 type PaginationTableProps<T extends object> = {
   columns: any[]; // accept v7 or v8
@@ -213,7 +158,6 @@ const PaginationTable = <T extends object>({
     { value: 200, label: "200 / page" },
   ];
 
-  const v8Columns = React.useMemo(() => normalizeColumns(columns), [columns]);
 
   // initial state from your v7-style options.initialState
   const initialPageIndex = options?.initialState?.pageIndex ?? 0;
@@ -235,7 +179,8 @@ const PaginationTable = <T extends object>({
 
   const table = useReactTable({
     data,
-    columns: v8Columns,
+    // columns: v8Columns,
+    columns,
     state: {
       sorting,
       rowSelection,
@@ -326,10 +271,9 @@ const PaginationTable = <T extends object>({
   }, [showRowSelection, rowSelection]);
 
   // sorting callback to parent (same as v7 sortBy)
-  useEffect(() => {
-    if (onSortingChange) onSortingChange(toV7SortBy(sorting));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorting]);
+useEffect(() => {
+  if (onSortingChange) onSortingChange(sorting);
+}, [sorting]);
 
   // external clear selection
   useEffect(() => {
@@ -357,7 +301,18 @@ const PaginationTable = <T extends object>({
 
   return (
     <VStack w="full" align="start" spacing={4}>
-      <Table colorScheme="white">
+      {/* <Table colorScheme="white"> */}
+      <Table
+        colorScheme="white"
+        border="1px solid"
+        borderColor="gray.200"
+        sx={{
+          "th, td": {
+            border: "1px solid",
+            borderColor: "gray.200",
+          },
+        }}
+      >
         <Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Tr key={headerGroup.id}>
@@ -673,7 +628,7 @@ const PaginationTable = <T extends object>({
                   key={`data-row-${row.id}`}
                   style={getStatusStyle(status)}
                   cursor={showRowSelection ? "pointer" : "default"}
-                   onContextMenu={(e) => {
+                  onContextMenu={(e) => {
                     if (onContextMenu) {
                       // ✅ Check if handler exists
                       onContextMenu(e, row.original.job);
