@@ -178,12 +178,12 @@ function RightSideBar({
       orderByColumn: "id",
       orderByOrder: "ASC",
       driver_id: route.driver_id,
-    }},
-    (data) => {
+    },
+    onCompleted: (data) => {
       const d = data as any;
       setDriverAvailabilitys(d.driverAvailabilitys.data);
     },
-  );
+  });
 
   const [handleUpdateRoutePointSortId, { }] = useMutation(
     UPDATE_ROUTE_POINT_SORT_ID_MUTATION,

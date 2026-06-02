@@ -108,14 +108,13 @@ const RightSideBarJob = forwardRef((props: any, ref: any) => {
     //   id: job.id,
     // },
     fetchPolicy: "network-only",
-  },
-    (data) => {
+    onCompleted: (data) => {
       if (data.job) {
         setJob(data.job);
         dispatch(setRightSideBarJob(data.job));
       }
-    },
-  );
+    }
+  });
 
   // GET JOB CATEGORIES QUERY.
   useApolloQueryWithEffect(GET_JOB_CATEGORIES_QUERY, {
@@ -125,8 +124,8 @@ const RightSideBarJob = forwardRef((props: any, ref: any) => {
       first: 100,
       orderByColumn: "id",
       orderByOrder: "ASC",
-    }},
-    (data) => {
+    },
+    onCompleted: (data) => {
       const d = data as any;
       setJobCategories([]);
       d.jobCategorys.data.map((category: any) => {
@@ -140,8 +139,8 @@ const RightSideBarJob = forwardRef((props: any, ref: any) => {
           },
         ]);
       });
-    },
-  );
+    }
+  });
 
   // Chakra Color Mode
   return (
