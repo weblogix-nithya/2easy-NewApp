@@ -109,9 +109,8 @@ export default function JobAllocationIndex() {
       first: 100,
       orderByColumn: "id",
       orderByOrder: "ASC",
-    }
-  },
-    (data) => {
+    },
+    onCompleted: (data) => {
       const d = data as any;
       setVehicleClasses([]);
       d.vehicleClasses.data.map((vehicleClass: any) => {
@@ -124,8 +123,8 @@ export default function JobAllocationIndex() {
           parseInt(vehicleClass.id),
         ]);
       });
-    },
-  );
+    }
+  });
 
   useApolloQueryWithEffect(GET_AVAILABLE_DRIVERS_QUERY, {
     variables: {
@@ -139,8 +138,7 @@ export default function JobAllocationIndex() {
     },
     pollInterval: pollingSpeed,
     notifyOnNetworkStatusChange: true,
-  },
-    (data) => {
+    onCompleted: (data) => {
       const d = data as any;
       // setDrivers([]);
       // data.drivers.data.map((driver: any) => {
@@ -222,7 +220,7 @@ export default function JobAllocationIndex() {
 
       dispatch(setAvailableDrivers(d.drivers.data));
     },
-  );
+  });
 
   const visibleDrivers = useMemo(() => {
     if (!drivers.length) return [];
@@ -275,27 +273,25 @@ export default function JobAllocationIndex() {
     //   id: selectedRouteId,
     // },
     fetchPolicy: "network-only",
-  },
-    (data) => {
+    onCompleted: (data) => {
       if (data.route) {
         dispatch(setRightSideBarRoute(data.route));
       }
     }
-  );
+  });
 
   const [getJob, { }] = useApolloLazyQueryWithEffect<any>(GET_JOB_QUERY, {
     // variables: {
     //   id: selectedJobId,
     // },
     fetchPolicy: "network-only",
-  },
-    (data) => {
+    onCompleted: (data) => {
       if (data.job) {
         dispatch(setRightSideBarJob(data.job));
         dispatch(setIsShowRightSideBar(true));
       }
     }
-  );
+  });
 
   const [getDriverCurrentRoute, { }] = useApolloLazyQueryWithEffect<any>(
     GET_DRIVER_CURRENT_ROUTE_QUERY,
@@ -311,28 +307,27 @@ export default function JobAllocationIndex() {
       //   // driver_id: "5",
       // },
       fetchPolicy: "network-only",
-    },
-    (data) => {
-      if (data.routes.data.length > 0) {
-        dispatch(setRightSideBarRoute(data.routes.data[0]));
-        setMarkers([]);
-        data.routes.data[0].route_points.map((route_point: any) => {
-          setMarkers((markers) => [
-            ...markers,
-            {
-              lat: route_point.lat,
-              lng: route_point.lng,
-              icon: getMapIcon(route_point),
-              data: route_point,
-            },
-          ]);
-        });
-        setSelectedRouteIdRouting(data.routes.data[0].id);
-      } else {
-        setMarkers([]);
+      onCompleted: (data) => {
+        if (data.routes.data.length > 0) {
+          dispatch(setRightSideBarRoute(data.routes.data[0]));
+          setMarkers([]);
+          data.routes.data[0].route_points.map((route_point: any) => {
+            setMarkers((markers) => [
+              ...markers,
+              {
+                lat: route_point.lat,
+                lng: route_point.lng,
+                icon: getMapIcon(route_point),
+                data: route_point,
+              },
+            ]);
+          });
+          setSelectedRouteIdRouting(data.routes.data[0].id);
+        } else {
+          setMarkers([]);
+        }
       }
-    }
-  );
+  });
 
   function clearJobFilters() {
     setCustomerName("");
