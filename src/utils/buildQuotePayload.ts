@@ -8,7 +8,7 @@ export const buildQuotePayload = ({
   pickUpDestination,
   companyRates,
   jobCategories,
-  jobTypeOptions,
+  // jobTypeOptions,
   depotOptions,
   readyAt,
   dropAt,
@@ -29,9 +29,9 @@ export const buildQuotePayload = ({
     (c) => c.value === job?.job_category_id,
   )?.label;
 
-  const selectedJobTypeName = jobTypeOptions?.find(
-    (j) => j.value === job?.job_type_id,
-  )?.label;
+  // const selectedJobTypeName = jobTypeOptions?.find(
+  //   (j) => j.value === job?.job_type_id,
+  // )?.label;
 
   const selectedDepot = depotOptions?.find(
     (d) => d.value === job?.timeslot_depots,

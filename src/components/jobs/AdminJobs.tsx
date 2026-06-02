@@ -46,9 +46,7 @@ import {
 } from "@/graphql/job";
 import { GET_JOB_CATEGORIES_QUERY } from "@/graphql/jobCategories";
 import { GET_JOB_STATUSES_QUERY } from "@/graphql/jobStatus";
-import { JoinOnClause } from "@/graphql/types/types";
-import {
-  
+import { 
   getLocalYMD,
   outputDynamicTableBody,
   outputDynamicTableHeader,
@@ -666,14 +664,14 @@ console.log(drivers,'k')
         direction: true,
       });
     } else {
-      const [sort] = sortBy;
+      // const [sort] = sortBy;
       // eslint-disable-next-line no-unused-vars
-      const _newDirection = sort.desc ? "DESC" : "ASC";
-      const newSorting = {
-        id: sort.id,
-        direction: sort.desc,
-      };
-      setSorting(newSorting);
+      // const _newDirection = sort.desc ? "DESC" : "ASC";
+      // const newSorting = {
+      //   id: sort.id,
+      //   direction: sort.desc,
+      // };
+      // setSorting(newSorting)'
     }
   };
 

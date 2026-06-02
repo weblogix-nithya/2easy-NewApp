@@ -1185,7 +1185,7 @@ export const getBulkAssignColumns = (
       {
         id: "order",
         header: "",
-        cell: ({ _row }: any) => (
+        cell: ({}: any) => (
           <div>
             <Icon mt="auto" mb="auto" as={MdMenu} h="16px" w="16px" me="8px" />
           </div>
@@ -1212,7 +1212,7 @@ export const getBulkAssignColumns = (
     {
       id: "order",
       header: "",
-      cell: ({ _row }: any) => (
+      cell: ({ }: any) => (
         <div>
           <Icon as={MdMenu} h="16px" w="16px" me="8px" />
         </div>

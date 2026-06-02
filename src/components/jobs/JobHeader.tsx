@@ -10,8 +10,8 @@ import {
 import { FullChevronDown } from "@/components/icons/Icons";
 import { SearchBar } from "@/components/navbar/searchBar/SearchBar";
 // import NextLink from "next/link";
-import { useRouter } from "next/navigation";
-import { FaFileExcel } from "react-icons/fa";
+// import { useRouter } from "next/navigation";
+// import { FaFileExcel } from "react-icons/fa";
 
 interface JobHeaderProps {
   isAdmin: boolean;
@@ -30,12 +30,12 @@ const JobHeader = ({
   onOpenSetting,
   onOpenFilter,
   isFilterTicked,
-  handleExport,
+  // handleExport,
   debouncedSearch,
   onToggleFilterCheckbox,
 }: JobHeaderProps) => {
   const menuBg = useColorModeValue("white", "navy.800");
-  const router = useRouter();
+  // const router = useRouter();
 
   return (
     <>
