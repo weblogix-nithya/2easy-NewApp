@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useEffect, useRef } from "react";
 import { useQuery } from "@apollo/client/react";
 import type { DocumentNode, ErrorLike, OperationVariables } from "@apollo/client";
@@ -41,11 +41,11 @@ export function useApolloQueryWithEffect<
     }, [onError]);
 
     // const hasCalledRef = useRef(false);
-
+ 
     // useEffect(() => {
     //     hasCalledRef.current = false;
     // }, [options?.variables]);
-
+ 
     useEffect(() => {
         if (!result.loading && !result.error && result.data && onDataRef.current) {
             // hasCalledRef.current = true;

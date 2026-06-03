@@ -1,5 +1,5 @@
 // Chakra imports
-"use client"
+"use client";
 import { Box, Flex, Image, Portal, useDisclosure } from "@chakra-ui/react";
 import { defaultSelectedFilter } from "@/components/jobs/Filters";
 // Layout components
@@ -108,9 +108,9 @@ export default function AdminLayout(props: DashboardLayoutProps) {
               isAdmin,
               isCompany,
               isPrivate,
-            }),
-          ),
-        ),
+            })
+          )
+        )
       );
       if (
         cookies.is_admin !== undefined &&
@@ -150,7 +150,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
         cookies.is_company_admin !== ""
       ) {
         dispatch(
-          setIsCompanyAdmin(cookies.is_company_admin === "true" ? true : false),
+          setIsCompanyAdmin(cookies.is_company_admin === "true" ? true : false)
         );
       }
       if (
@@ -235,7 +235,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
           setJobFilters({
             key: key,
             value: JSON.parse(cookies[cookies_key]),
-          }),
+          })
         );
       }
     }
@@ -351,6 +351,7 @@ export default function AdminLayout(props: DashboardLayoutProps) {
                 // p={0}
                 minH="100vh"
                 bg="white"
+                // pt={`108px`}
               >
                 {children}
               </Box>

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useMutation } from "@apollo/client/react";
 // Chakra imports
 import {
@@ -17,7 +17,7 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import {Icon} from "@chakra-ui/icons"
+import { Icon } from "@chakra-ui/icons";
 import { useToast } from "@chakra-ui/react";
 // Custom components
 // import { setAuthToken } from "graphql/ApolloClient";
@@ -32,8 +32,6 @@ import React, { useState } from "react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import { RiEyeCloseLine } from "react-icons/ri";
 // import { HSeparator } from "@/components/separator/Separator";
-
-
 
 export default function SignIn() {
   // Chakra color mode
@@ -60,7 +58,7 @@ export default function SignIn() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
   // const {redirectTo} = use(searchParams);
-  
+
   const toast = useToast();
 
   const [username, setUsername] = useState(
@@ -96,14 +94,14 @@ export default function SignIn() {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
           });
-          setCookie(null, "customer_id", d.login.user.customer?.id, {
-            maxAge: 30 * 24 * 60 * 60,
-            path: "/",
-          });
-          setCookie(null, "company_id", d.login.user.customer?.company_id, {
-            maxAge: 30 * 24 * 60 * 60,
-            path: "/",
-          });
+          // setCookie(null, "customer_id", d.login.user.customer?.id, {
+          //   maxAge: 30 * 24 * 60 * 60,
+          //   path: "/",
+          // });
+          // setCookie(null, "company_id", d.login.user.customer?.company_id, {
+          //   maxAge: 30 * 24 * 60 * 60,
+          //   path: "/",
+          // });
           setCookie(null, "user_id", d.login.user?.id, {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
@@ -116,23 +114,42 @@ export default function SignIn() {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
           });
+          if (!d.login.user.is_admin) {
+            setCookie(null, "customer_id", d.login.user.customer?.id, {
+              maxAge: 30 * 24 * 60 * 60,
+              path: "/",
+            });
+          } else {
+            // Remove customer_id if admin
+            setCookie(null, "customer_id", "", {
+              maxAge: 0,
+              path: "/",
+            });
+          }
+          if (!d.login.user.is_admin) {
+            setCookie(null, "company_id", d.login.user.customer?.company_id, {
+              maxAge: 30 * 24 * 60 * 60,
+              path: "/",
+            });
+          } else {
+            // Remove company_id if admin
+            setCookie(null, "company_id", "", {
+              maxAge: 0,
+              path: "/",
+            });
+          }
           setCookie(null, "reset_approve", d.login.user.reset_approve, {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
           });
-          setCookie(
-            null,
-            "is_company_admin",
-            d.login.user.is_company_admin,
-            {
-              maxAge: 30 * 24 * 60 * 60,
-              path: "/",
-            },
-          );
-          setCookie(null, "is_sub_admin", d.login.user.is_sub_admin, {
+          setCookie(null, "is_company_admin", d.login.user.is_company_admin, {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
           });
+          // setCookie(null, "is_sub_admin", d.login.user.is_sub_admin, {
+          //   maxAge: 30 * 24 * 60 * 60,
+          //   path: "/",
+          // });
           setCookie(null, "state", d.login.user.state, {
             maxAge: 30 * 24 * 60 * 60,
             path: "/",
@@ -173,27 +190,27 @@ export default function SignIn() {
 
   return (
     // <DefaultAuthLayout illustrationBackground={"/img/auth/auth.png"}>
-      <Box className="flex justify-center items-center w-1/2 min-w-1/2 bg-white">
-        <Flex className="h-full w-full flex-col justify-center items-center">
-          <Box>
-            <Image
-              src={"/img/branding/logo-2easy.svg"}
-              alt=""
-              mb="16"
-              maxW="435px"
-            />
-            <Heading color={textColor} fontSize="24px" mb="45px">
-              Log in to your account
-            </Heading>
+    <Box className="flex justify-center items-center w-1/2 min-w-1/2 bg-white">
+      <Flex className="h-full w-full flex-col justify-center items-center">
+        <Box>
+          <Image
+            src={"/img/branding/logo-2easy.svg"}
+            alt=""
+            mb="16"
+            maxW="435px"
+          />
+          <Heading color={textColor} fontSize="24px" mb="45px">
+            Log in to your account
+          </Heading>
 
-            <Flex
-              className="flex-col max-w-full bg-transparent mr-auto"
-              zIndex="2"
-              w={{ base: "100%", md: "420px" }}
-              mx={{ base: "auto", lg: "unset" }}
-              mb={{ base: "20px", md: "auto" }}
-            >
-              {/* <Button
+          <Flex
+            className="flex-col max-w-full bg-transparent mr-auto"
+            zIndex="2"
+            w={{ base: "100%", md: "420px" }}
+            mx={{ base: "auto", lg: "unset" }}
+            mb={{ base: "20px", md: "auto" }}
+          >
+            {/* <Button
                 className="mr-0 mb-6 py-4 h-[50px] !font-medium !text-sm rounded-lg"
                 bgColor={googleBg}
                 color={googleText}
@@ -214,7 +231,7 @@ export default function SignIn() {
                 Sign in with Google
               </Button> */}
 
-              {/* <Flex align="center" mb="25px">
+            {/* <Flex align="center" mb="25px">
                 <HSeparator />
                 <Text color="black.500" mx="14px">
                   or
@@ -222,128 +239,128 @@ export default function SignIn() {
                 <HSeparator />
               </Flex> */}
 
-              <FormControl>
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  color={textColor}
-                  htmlFor="login-email"
-                >
-                  Email<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <Input
-                  id="login-email"
-                  isRequired={true}
-                  variant="auth"
-                  type="email"
-                  name="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={`mail@${process.env.NEXT_PUBLIC_APP_NAME}.com.au`}
-                  className="mb-6 !text-sm !font-medium"
-                  ms={{ base: "0px", md: "0px" }}
-                  size="lg"
-                />
-
-                <FormLabel
-                  className="!flex ml-1 mb-2 !text-sm !font-medium"
-                  htmlFor="login-password"
-                  color={textColor}
-                >
-                  Password<Text color={brandStars}>*</Text>
-                </FormLabel>
-                <InputGroup size="md">
-                  <Input
-                    id="login-password"
-                    isRequired={true}
-                    placeholder="Min. 8 characters"
-                    size="lg"
-                    type={show ? "text" : "password"}
-                    variant="auth"
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleLogin();
-                      }
-                    }}
-                    className="mb-6 !text-sm !font-medium"
-                  />
-                  <InputRightElement
-                    display="flex"
-                    alignItems="center"
-                    mt="4px"
-                  >
-                    <Icon
-                      color={textColorSecondary}
-                      _hover={{ cursor: "pointer" }}
-                      as={show ? RiEyeCloseLine as unknown as React.ElementType: MdOutlineRemoveRedEye as unknown as React.ElementType}
-                      onClick={handleClick}
-                    />
-                  </InputRightElement>
-                </InputGroup>
-
-                <Flex justifyContent="space-between" align="center" mb="24px">
-                  <FormControl display="flex" alignItems="center">
-                    <Checkbox
-                      id="login-remember-checkbox"
-                      colorScheme="primary"
-                      me="10px"
-                    />
-                    <FormLabel
-                      htmlFor="login-remember-checkbox"
-                      mb="0"
-                      fontWeight="normal"
-                      color={textColor}
-                      fontSize="sm"
-                    >
-                      Keep me logged in
-                    </FormLabel>
-                  </FormControl>
-
-                  <Link href="/auth/forgot-password">
-                    <Text
-                      color={textColorBrand}
-                      fontSize="sm"
-                      w="124px"
-                      fontWeight="700"
-                    >
-                      Forgot password?
-                    </Text>
-                  </Link>
-                </Flex>
-
-                <Flex>
-                  <Button
-                    className="!py-2.5 mb-6 !h-[39px] rounded-lg"
-                    variant="primary"
-                    onClick={() => handleLogin()}
-                    isLoading={loading}
-                  >
-                    Log in
-                  </Button>
-                </Flex>
-              </FormControl>
-
-              <Text
-                className="flex text-sm !font-normal"
-                color={textColorDetails}
+            <FormControl>
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                color={textColor}
+                htmlFor="login-email"
               >
-                Not registered yet?
-                <Link href="/auth/sign-up">
-                  <Text
-                    className="ml-[5px] !font-bold"
-                    color={textColorBrand}
-                    as="span"
+                Email<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <Input
+                id="login-email"
+                isRequired={true}
+                variant="auth"
+                type="email"
+                name="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={`mail@${process.env.NEXT_PUBLIC_APP_NAME}.com.au`}
+                className="mb-6 !text-sm !font-medium"
+                ms={{ base: "0px", md: "0px" }}
+                size="lg"
+              />
+
+              <FormLabel
+                className="!flex ml-1 mb-2 !text-sm !font-medium"
+                htmlFor="login-password"
+                color={textColor}
+              >
+                Password<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <InputGroup size="md">
+                <Input
+                  id="login-password"
+                  isRequired={true}
+                  placeholder="Min. 8 characters"
+                  size="lg"
+                  type={show ? "text" : "password"}
+                  variant="auth"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleLogin();
+                    }
+                  }}
+                  className="mb-6 !text-sm !font-medium"
+                />
+                <InputRightElement display="flex" alignItems="center" mt="4px">
+                  <Icon
+                    color={textColorSecondary}
+                    _hover={{ cursor: "pointer" }}
+                    as={
+                      show
+                        ? (RiEyeCloseLine as unknown as React.ElementType)
+                        : (MdOutlineRemoveRedEye as unknown as React.ElementType)
+                    }
+                    onClick={handleClick}
+                  />
+                </InputRightElement>
+              </InputGroup>
+
+              <Flex justifyContent="space-between" align="center" mb="24px">
+                <FormControl display="flex" alignItems="center">
+                  <Checkbox
+                    id="login-remember-checkbox"
+                    colorScheme="primary"
+                    me="10px"
+                  />
+                  <FormLabel
+                    htmlFor="login-remember-checkbox"
+                    mb="0"
+                    fontWeight="normal"
+                    color={textColor}
+                    fontSize="sm"
                   >
-                    Create an Account
+                    Keep me logged in
+                  </FormLabel>
+                </FormControl>
+
+                <Link href="/auth/forgot-password">
+                  <Text
+                    color={textColorBrand}
+                    fontSize="sm"
+                    w="124px"
+                    fontWeight="700"
+                  >
+                    Forgot password?
                   </Text>
                 </Link>
-              </Text>
-            </Flex>
-          </Box>
-        </Flex>
-      </Box>
+              </Flex>
+
+              <Flex>
+                <Button
+                  className="!py-2.5 mb-6 !h-[39px] rounded-lg"
+                  variant="primary"
+                  onClick={() => handleLogin()}
+                  isLoading={loading}
+                >
+                  Log in
+                </Button>
+              </Flex>
+            </FormControl>
+
+            <Text
+              className="flex text-sm !font-normal"
+              color={textColorDetails}
+            >
+              Not registered yet?
+              <Link href="/auth/sign-up">
+                <Text
+                  className="ml-[5px] !font-bold"
+                  color={textColorBrand}
+                  as="span"
+                >
+                  Create an Account
+                </Text>
+              </Link>
+            </Text>
+          </Flex>
+        </Box>
+      </Flex>
+    </Box>
     // </DefaultAuthLayout>
   );
 }

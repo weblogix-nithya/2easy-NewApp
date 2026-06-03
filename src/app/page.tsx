@@ -22,10 +22,10 @@ export default async function Page() {
       router.push("/auth/login");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  });
+  },[router]);
 
   return (
-    <div>
+    // <div>
       <Center h="100vh">
         <SimpleGrid columns={1}>
           <Box>
@@ -40,7 +40,7 @@ export default async function Page() {
           </Box>
         </SimpleGrid>
       </Center>
-    </div>
+    // </div>
   )
 }
 

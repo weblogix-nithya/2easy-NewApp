@@ -24,6 +24,17 @@ export function formatTimeUTCtoInput(dateTime: string) {
   return moment.utc(dateTime).local().format("HH:mm");
 }
 
+export function getLocalYMD(): string {
+  const d = new Date();
+  return (
+    d.getFullYear() +
+    "-" +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getDate()).padStart(2, "0")
+  );
+}
+
 export const getRowBgColor = (status?: string): string => {
   const normalizedStatus = status?.toLowerCase();
 
@@ -75,17 +86,17 @@ export function outputDynamicTable(
       );
       const outputValue = {
         id: dynamicTableUser.dynamic_table.column_name,
-        Header: dynamicTableUser.dynamic_table.name,
-        accessor: dynamicTableUser.dynamic_table.column_name,
+        header: dynamicTableUser.dynamic_table.name,
+        accessorKey: dynamicTableUser.dynamic_table.column_name,
         ...(tableColumnItem?.enableSorting
           ? { enableSorting: tableColumnItem.enableSorting }
           : { enableSorting: false }),
         ...(tableColumnItem?.type !== undefined
           ? { type: tableColumnItem?.type }
           : {
-              Cell: ({ row }: any) => {
-                if (tableColumnItem && tableColumnItem.Cell) {
-                  return tableColumnItem.Cell({ row });
+              cell: ({ row }: any) => {
+                if (tableColumnItem && tableColumnItem.cell) {
+                  return tableColumnItem.cell({ row });
                 }
                 return (
                   <>
@@ -140,8 +151,8 @@ export function outputDynamicTableBody(
         const tableColumnItem = tableColumn.find(
           (item: any) => item.id === dynamicTableUser.dynamic_table.column_name,
         );
-        if (tableColumnItem && tableColumnItem.CellExport) {
-          return tableColumnItem.CellExport({ row });
+        if (tableColumnItem && tableColumnItem.cellExport) {
+          return tableColumnItem.cellExport({ row });
         }
         const outputValue = columnNames.map((columnName) => {
           return tableColumnItem?.type == "date"

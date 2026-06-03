@@ -227,6 +227,19 @@ export const defaultCompany: Company = {
   standard_static: false,
 };
 
+export interface GetCompaniesResponse {
+  companys: {
+    data: Pick<Company, "id" | "name">[];
+    paginatorInfo: {
+      total: number;
+      currentPage: number;
+      lastPage: number;
+      perPage: number;
+      count: number;
+    };
+  };
+}
+
 export const paymentTerms = [
   { label: "EOD", value: "EOD" },
   { label: "7 Days", value: "7_days" },
