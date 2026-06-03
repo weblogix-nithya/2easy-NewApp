@@ -89,42 +89,48 @@ export default function JobTableSettingsModal(props: UseDisclosureProps) {
   //     },
   //   },
   // );
-    const { refetch: getDynamicTableUsers } =
-      useApolloQueryWithEffect(
-        GET_DYNAMIC_TABLE_USERS_QUERY,
-        {
-          variables: {
-            query: "",
-            page: 1,
-            first: 100,
-            orderByColumn: "sort_id",
-            orderByOrder: "ASC",
-            user_id: userId,
-          },
-          skip: !userId,
-          notifyOnNetworkStatusChange: true,
-        },
-        (data:any) => {
-           const all = data.dynamicTableUsers.data;
-          console.log("data-dynamic", data);
-           const activeJobsOnly = all
-                    .filter(
-                      (item: DynamicTableUser) =>
-                        item.is_active === true &&
-                        item.dynamic_table?.table_name === "jobs",
-                    )
-                    .sort((a, b) => a.sort_id - b.sort_id);
-          
-                  console.log("Active JOBS columns:", activeJobsOnly);
-          
-                  setDynamicTableUsers(activeJobsOnly);
+const { refetch: getDynamicTableUsers } =
+  useApolloQueryWithEffect(
+    GET_DYNAMIC_TABLE_USERS_QUERY,
+    {
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "sort_id",
+        orderByOrder: "ASC",
+        user_id: userId,
+      },
+      skip: !userId,
+      notifyOnNetworkStatusChange: true,
+      onCompleted: (data: any) => {
+        const all = data.dynamicTableUsers.data;
 
-          // setDynamicTableUsers(
-          //   data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
-          // );
-          setIsLoading(false);
-        },
-      );
+        console.log("data-dynamic", data);
+
+        const activeJobsOnly = all
+          .filter(
+            (item: DynamicTableUser) =>
+              item.is_active === true &&
+              item.dynamic_table?.table_name === "jobs",
+          )
+          .sort(
+            (a: DynamicTableUser, b: DynamicTableUser) =>
+              a.sort_id - b.sort_id,
+          );
+
+        console.log("Active JOBS columns:", activeJobsOnly);
+
+        setDynamicTableUsers(activeJobsOnly);
+
+        // setDynamicTableUsers(
+        //   data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
+        // );
+
+        setIsLoading(false);
+      },
+    },
+  );
   
     // // Prefetch data when component mounts
     // useEffect(() => {

@@ -165,21 +165,6 @@ function formatDate(date: Date, isStart: boolean): string {
   return `${year}-${month}-${day} ${time}`;
 }
 
-interface GetDynamicTableUsersData {
-  dynamicTableUsers?: {
-    data: DynamicTableUser[];
-  };
-}
-
-interface GetDynamicTableUsersVars {
-  query: string;
-  page: number;
-  first: number;
-  orderByColumn: string;
-  orderByOrder: "ASC" | "DESC";
-  user_id: string;
-}
-
 // export default function JobIndex() {
 export default function JobIndex({}: // initialLoadOnly = false,
 {
@@ -261,40 +246,37 @@ export default function JobIndex({}: // initialLoadOnly = false,
     [],
   );
 // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
-    useApolloQueryWithEffect<
-      GetDynamicTableUsersData,
-      GetDynamicTableUsersVars
-    >(
-      GET_DYNAMIC_TABLE_USERS_QUERY,
-      {
-        variables: {
-          query: "",
-          page: 1,
-          first: 100,
-          orderByColumn: "sort_id",
-          orderByOrder: "ASC",
-          user_id: userId,
-        },
-        skip: !userId,
-        notifyOnNetworkStatusChange: true,
-      },
-      (data) => {
-        const all = data.dynamicTableUsers.data;
+const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
+  useApolloQueryWithEffect(GET_DYNAMIC_TABLE_USERS_QUERY, {
+    variables: {
+      query: "",
+      page: 1,
+      first: 100,
+      orderByColumn: "sort_id",
+      orderByOrder: "ASC",
+      user_id: userId,
+    },
+    skip: !userId,
+    notifyOnNetworkStatusChange: true,
+    onCompleted: (data) => {
+      const d = data as any;
 
-        const activeJobsOnly = all
-          .filter(
-            (item: DynamicTableUser) =>
-              item.is_active === true &&
-              item.dynamic_table?.table_name === "jobs",
-          )
-          .sort((a, b) => a.sort_id - b.sort_id);
+      const activeJobsOnly = d.dynamicTableUsers.data
+        .filter(
+          (item: DynamicTableUser) =>
+            item.is_active === true &&
+            item.dynamic_table?.table_name === "jobs",
+        )
+        .sort(
+          (a: DynamicTableUser, b: DynamicTableUser) =>
+            a.sort_id - b.sort_id,
+        );
 
-        console.log("Active JOBS columns:", activeJobsOnly);
+      console.log("Active JOBS columns:", activeJobsOnly);
 
-        setDynamicTableUsers(activeJobsOnly);
-      },
-    );
+      setDynamicTableUsers(activeJobsOnly);
+    },
+  });
 
   const groupedVars = useMemo(() => {
     const base = {
@@ -332,25 +314,26 @@ export default function JobIndex({}: // initialLoadOnly = false,
     is_filter_ticked,
   ]);
  
-  const {
-    data: groupedJobs,
-    loading: loadingGroupedJobs,
-    refetch: refetchGroupedJobs,
-  } = useApolloQueryWithEffect<
-    GroupedPaginatedJobsData,
-    GroupedPaginatedJobsVars
-  >(
-    GROUPED_PAGINATED_JOBS_QUERY,
-    {
-      variables: groupedVars,
+const {
+  data: groupedJobs,
+  loading: loadingGroupedJobs,
+  refetch: refetchGroupedJobs,
+} = useApolloQueryWithEffect<
+  GroupedPaginatedJobsData,
+  GroupedPaginatedJobsVars
+>(
+  GROUPED_PAGINATED_JOBS_QUERY,
+  {
+    variables: groupedVars,
 
-      // skip: !userId || isCompanyAdmin || isCustomer || isCompany,
-      fetchPolicy: "network-only",
-    },
-    (data) => {
+    // skip: !userId || isCompanyAdmin || isCustomer || isCompany,
+    fetchPolicy: "network-only",
+
+    onCompleted: (data) => {
       console.log("groupedjob oncompleted res", data);
     },
-  );
+  },
+);
   
   const refetchJobsRef = useRef(refetchGroupedJobs);
   useEffect(() => {
@@ -545,19 +528,17 @@ export default function JobIndex({}: // initialLoadOnly = false,
     [],
   );
 
-  const { refetch: getJobStatuses } = useApolloQueryWithEffect(
-    GET_JOB_STATUSES_QUERY,
-    {
-      // skip: true,
-      variables: {
-        query: "",
-        page: 1,
-        first: 100,
-        orderByColumn: "id",
-        orderByOrder: "ASC",
-      },
+const { refetch: getJobStatuses } = useApolloQueryWithEffect(
+  GET_JOB_STATUSES_QUERY,
+  {
+    variables: {
+      query: "",
+      page: 1,
+      first: 100,
+      orderByColumn: "id",
+      orderByOrder: "ASC",
     },
-    (data: any) => {
+    onCompleted: (data: any) => {
       setJobStatuses(
         data.jobStatuses.data.map((jobStatus: any) => ({
           value: parseInt(jobStatus.id),
@@ -565,7 +546,8 @@ export default function JobIndex({}: // initialLoadOnly = false,
         })),
       );
     },
-  );
+  },
+);
 
   // const { refetch: getJobCategories } = useQuery(GET_JOB_CATEGORIES_QUERY, {
   //   skip: true,
@@ -589,56 +571,56 @@ export default function JobIndex({}: // initialLoadOnly = false,
   //     });
   //   },
   // });
-  const { refetch: getJobCategories } = useApolloQueryWithEffect(
-    GET_JOB_CATEGORIES_QUERY,
-    {
-      // skip: true,
-      variables: {
-        query: "",
-        page: 1,
-        first: 100,
-        orderByColumn: "id",
-        orderByOrder: "ASC",
-      },
+const { refetch: getJobCategories } = useApolloQueryWithEffect(
+  GET_JOB_CATEGORIES_QUERY,
+  {
+    variables: {
+      query: "",
+      page: 1,
+      first: 100,
+      orderByColumn: "id",
+      orderByOrder: "ASC",
     },
-    (data: any) => {
+    onCompleted: (data: any) => {
       setJobCategories(
-        data.jobCategorys.data.map((category) => ({
+        data.jobCategorys.data.map((category: any) => ({
           value: parseInt(category.id),
           label: category.name,
         })),
       );
     },
-  );
+  },
+);
 // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
-    GET_AVAILABLE_DRIVERS_QUERY,
-    {
-      // skip: true,
-      variables: {
-        query: "",
-        page: 1,
-        first: 500,
-        orderByColumn: "id",
-        orderByOrder: "ASC",
-        available: true,
-      },
-      notifyOnNetworkStatusChange: true,
+const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
+  GET_AVAILABLE_DRIVERS_QUERY,
+  {
+    variables: {
+      query: "",
+      page: 1,
+      first: 500,
+      orderByColumn: "id",
+      orderByOrder: "ASC",
+      available: true,
     },
-    (data: any) => {
+    notifyOnNetworkStatusChange: true,
+    onCompleted: (data: any) => {
       const drivers = data.drivers.data;
 
       setDrivers(drivers);
-console.log(drivers,'k')
+
+      console.log(drivers, "k");
+
       setDriverOptions(
-        drivers.map((driver) => ({
+        drivers.map((driver: any) => ({
           value: parseInt(driver.id),
           label: driver.full_name,
           data: driver,
         })),
       );
     },
-  );
+  },
+);
 
   const handleExport = () => {
     const header = outputDynamicTableHeader(dynamicTableUsers);
