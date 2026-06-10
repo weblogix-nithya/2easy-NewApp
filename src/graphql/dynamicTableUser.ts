@@ -10,6 +10,7 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
     $orderByColumn: String!
     $orderByOrder: SortOrder!
     $user_id: ID
+    $table_name:String
   ) {
     dynamicTableUsers(
         query: $query
@@ -17,6 +18,7 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
         first: $first
         orderBy: { column: $orderByColumn, order: $orderByOrder }
         user_id: $user_id
+        table_name: $table_name
     ) {
       data {
         id
@@ -125,37 +127,37 @@ export const BULK_UPDATE_DYNAMIC_TABLE_USERS_MUTATION = gql`
 `;
 
 export interface UpdateDynamicTableUserInput {
-    id: Number;
-    name: String;
-    dynamic_table_id: number;
-    user_id: number;
-    is_active: Boolean;
-    sort_id: number;
+  id: Number;
+  name: String;
+  dynamic_table_id: number;
+  user_id: number;
+  is_active: Boolean;
+  sort_id: number;
 }
 
 export interface CreateDynamicTableUserInput {
-    name: String;
-    dynamic_table_id: number;
-    user_id: number;
-    is_active: Boolean;
-    sort_id: number;
+  name: String;
+  dynamic_table_id: number;
+  user_id: number;
+  is_active: Boolean;
+  sort_id: number;
 }
 
 export type DynamicTableUser = {
-    id: number | string |null;
-    name: string;
-    dynamic_table_id: number;
-    user_id: number;
-    is_active: boolean;
-    sort_id: number;
-    dynamic_table?: DynamicTable;
+  id: number | string | null;
+  name: string;
+  dynamic_table_id: number;
+  user_id: number;
+  is_active: boolean;
+  sort_id: number;
+  dynamic_table?: DynamicTable;
 };
 
 export const defaultDynamicTableUser: DynamicTableUser = {
-    id: null,
-    name: "",
-    dynamic_table_id: null,
-    user_id: null,
-    is_active: false,
-    sort_id: null
+  id: null,
+  name: "",
+  dynamic_table_id: null,
+  user_id: null,
+  is_active: false,
+  sort_id: null
 };

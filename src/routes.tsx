@@ -21,7 +21,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import Invoices from "pages/admin/invoices/index";
 // import JobAllocationIndex from "pages/admin/job-allocations/index";
 // import Jobs from "pages/admin/jobs/index";
-// import PreAllocation from "pages/admin/pre-allocation/index";
+// import PreAllocation from "pages/admin/pre-job-allocations/index";
 // import Quote from "pages/admin/quotes/quotes";
 // import Rctis from "pages/admin/rctis/index";
 // import Users from "pages/admin/users/index";
@@ -64,10 +64,10 @@ const routes: IRoute[] = [
     isPrivate: false,
   },
   {
-    name: "Pre-Allocation",
-    title: "Pre-Allocation",
+    name: "pre-job-allocations",
+    title: "pre-job-allocations",
     layout: "/admin",
-    path: "/pre-allocation",
+    path: "/pre-job-allocations",
     icon: <FontAwesomeIcon icon={faTruckRampBox} className="mr-1" />,
     // component: PreAllocation,
     sidebar: true,
@@ -297,19 +297,19 @@ export const NAV_CONFIG: IRouteNew[] = [
         name: "Pre Allocation",
         key: "preallocation",
         layout: "/admin",
-        path: "/pre-allocation",
+        path: "/pre-job-allocations",
         isAdmin: true,
         isCompany: false,
         isSubAdmin: true,
         isPrivate: false,
         children: [
-          { name: "VIC", href: "/admin/pre-allocation?id=vic" },
-          { name: "QLD", href: "/admin/pre-allocation?id=qld" },
-          { name: "QLD / NSW", href: "/admin/pre-allocation?id=qld-nsw" },
-          { name: "NSW", href: "/admin/pre-allocation?id=nsw" },
-          { name: "Road Freight", href: "/admin/pre-allocation?id=road" },
-          { name: "FCL", href: "/admin/pre-allocation?id=fcl" },
-          { name: "ALL", href: "/admin/pre-allocation?id=all" },
+          { name: "VIC", href: "/admin/pre-job-allocations?id=vic" },
+          { name: "QLD", href: "/admin/pre-job-allocations?id=qld" },
+          { name: "QLD / NSW", href: "/admin/pre-job-allocations?id=qld-nsw" },
+          { name: "NSW", href: "/admin/pre-job-allocations?id=nsw" },
+          { name: "Road Freight", href: "/admin/pre-job-allocations?id=road" },
+          { name: "FCL", href: "/admin/pre-job-allocations?id=fcl" },
+          { name: "ALL", href: "/admin/pre-job-allocations?id=all" },
         ],
       },
       {
@@ -406,11 +406,11 @@ export const NAV_CONFIG: IRouteNew[] = [
         isSubAdmin: false,
         isPrivate: true,
         children: [
-          { name: "Draft Invoices", href: "/admin/invoices#draft", key:"draft" },
-          { name: "Outstanding Invoices", href: "/admin/invoices#outstanding", key:"out" },
-          { name: "Paid Invoices", href: "/invoices/jobs#customer_paid", key:"paid" },
-          { name: "Approved Invoices", href: "/admin/invoices#approved", key:"approved" },
-          { name: "Create Invoice - No booking ", href: "/admin/invoices/create" , key:"create"}
+          { name: "Draft Invoices", href: "/admin/invoices#draft", key: "draft" },
+          { name: "Outstanding Invoices", href: "/admin/invoices#outstanding", key: "out" },
+          { name: "Paid Invoices", href: "/invoices/jobs#customer_paid", key: "paid" },
+          { name: "Approved Invoices", href: "/admin/invoices#approved", key: "approved" },
+          { name: "Create Invoice - No booking ", href: "/admin/invoices/create", key: "create" }
         ],
       },
     ]
@@ -534,8 +534,8 @@ export const NAV_CONFIG: IRouteNew[] = [
         isSubAdmin: true,
         isPrivate: true,
         children: [
-          { name: "Pending RCTI", href: "/admin/rctis#pending", key:"pendingrcti" },
-          { name: "Approved RCTI", href: "/admin/rctis#processed", key:"processedrcti" },
+          { name: "Pending RCTI", href: "/admin/rctis#pending", key: "pendingrcti" },
+          { name: "Approved RCTI", href: "/admin/rctis#processed", key: "processedrcti" },
         ]
       },
     ]
