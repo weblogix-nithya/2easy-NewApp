@@ -1301,7 +1301,7 @@ export const tableColumn = (refetchJobs: () => void) => [
 ];
 
 export const getColumnsPre = (
-  isAdmin: boolean,
+  // isAdmin: boolean,
   // isCustomer: boolean,
   withMedia: boolean,
   refetchJobs?: () => void,
@@ -1530,8 +1530,8 @@ export const bulkassigntableColumn = [
 ];
 
 export const getBulkAssignColumns = (
-  isAdmin: boolean,
-  isCustomer: boolean,
+  // isAdmin: boolean,
+  // isCustomer: boolean,
   dynamicTableUsers?: DynamicTableUser[],
 ) => {
   if (dynamicTableUsers === undefined || dynamicTableUsers.length === 0) {

@@ -87,7 +87,6 @@ export default function JobIndex({ }: {}) {
 
   const {
     isAdmin,
-    isCustomer,
     userId,
   } = useSelector((state: RootState) => state.user);
 
@@ -221,8 +220,8 @@ export default function JobIndex({ }: {}) {
   });
 
   const adminColumns = useMemo(() => {
-    return getColumnsPre(isAdmin, withMedia, refetchGroupedJobs, dynamicTableUsers);
-  }, [isAdmin, withMedia, refetchGroupedJobs, dynamicTableUsers]);
+    return getColumnsPre(withMedia, refetchGroupedJobs, dynamicTableUsers);
+  }, [withMedia, refetchGroupedJobs, dynamicTableUsers]);
 
   useEffect(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -235,7 +234,7 @@ export default function JobIndex({ }: {}) {
     };
   }, [adminColumns]);
 
-  const bulkAssignColumns = getBulkAssignColumns(isAdmin, isCustomer, dynamicTableUsers);
+  const bulkAssignColumns = getBulkAssignColumns(dynamicTableUsers);
 
   useEffect(() => {
     const hasPreAllocationJobs = groupedJobs?.preAllocationJobs?.data?.length > 0;
