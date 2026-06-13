@@ -154,8 +154,8 @@ const JobStatusDateFilter = ({
             position={isFixed ? "fixed" : "relative"}
             top={isFixed ? 0 : undefined}
             // left={isFixed ? 10 : undefined}
-            width={isFixed ? "87%" : undefined}
-            zIndex={10}
+            width={isFixed ? "98%" : undefined}
+            zIndex={1001}
             bg="#1d2d53"
             color="#fff"
             px={6}
@@ -217,7 +217,7 @@ const JobStatusDateFilter = ({
                   <Thead>
                     <Tr>
                       {columns.slice(1).map((column) => (
-                        <Th key={column.id} fontSize="xs">{column.Header}</Th>
+                        <Th key={column.id} fontSize="xs">{column.header}</Th>
                       ))}
                     </Tr>
                   </Thead>

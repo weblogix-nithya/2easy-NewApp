@@ -97,8 +97,8 @@ type PaginationTableProps<T extends object> = {
   isChecked?: boolean;
   onSortingChange?: any;
   restyleTable?: boolean;
-  editingDriverId: number | null;
-  setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
+  // editingDriverId: number | null;
+  // setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
   freeTextValue?: string;
   savingDriverId?: number | null;
   setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
@@ -148,8 +148,8 @@ const PaginationTable = <T extends object>({
   restyleTable = false,
   onContextMenu,
   onAssignClick,
-  editingDriverId,
-  setEditingDriverId,
+  // editingDriverId,
+  // setEditingDriverId,
   // setFreeTextValue,
   savingDriverId,
   setSavingDriverId,
@@ -506,7 +506,7 @@ const PaginationTable = <T extends object>({
                           </Box>
 
                           {/* CENTER — FIXED START POSITION */}
-                          <Box w="550px" flexShrink={0}>
+                          {/* <Box w="550px" flexShrink={0}>
                             {editingDriverId === driver?.id ? (
                               <HStack align="flex-start" spacing={2}>
                                 <Textarea
@@ -583,7 +583,7 @@ const PaginationTable = <T extends object>({
                                 )}
                               </Box>
                             )}
-                          </Box>
+                          </Box> */}
 
                           {/* RIGHT — PRICE */}
                           <Box minW="150px" textAlign="right">

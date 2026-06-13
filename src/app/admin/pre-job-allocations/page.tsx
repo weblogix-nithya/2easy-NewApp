@@ -5,12 +5,11 @@ import { RootState } from '@/lib/store/store';
 import AdminPreJobs from '@/components/preJobAllocation/AdminPreJobs';
 
 export default function PreJobAllocationsPage() {
-  const { isAdmin, isSubAdmin, isCustomer } = useSelector(
+  const { isAdmin, isSubAdmin } = useSelector(
     (state: RootState) => state.user
   );
-  const isAdminUser = isAdmin || isSubAdmin;
 
-  // if (loading) return <div>Loading...</div>;
+  const isAdminUser = isAdmin || isSubAdmin;
 
   if (isAdminUser) return <AdminPreJobs />;
 

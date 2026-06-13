@@ -1,10 +1,10 @@
 'use client';
 import { Button, Flex, Tag, TagCloseButton, TagLabel } from "@chakra-ui/react"
-import { SelectedFilter } from "@/components/jobs/Filters"
+import { SelectedFilter } from "./Filters"
 
 interface JobFiltersTagRowProps {
   mainFilters: SelectedFilter
-  mainFilterDisplayNames: typeof import("@/components/jobs/Filters").filterDisplayNames
+  mainFilterDisplayNames: typeof import("./Filters").filterDisplayNames
   onRemoveFilter: (key: keyof SelectedFilter) => void
   onClearAll: () => void
 }

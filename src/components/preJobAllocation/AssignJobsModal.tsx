@@ -128,7 +128,7 @@ export default function AssignJobsModal({
                 <Tr>
                   {columns.map((column) => (
                     <Th key={`row-header-bulk-assign-${column.id}`}>
-                      {column.Header}
+                      {column.header}
                     </Th>
                   ))}
                 </Tr>

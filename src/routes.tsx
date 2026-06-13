@@ -64,8 +64,8 @@ const routes: IRoute[] = [
     isPrivate: false,
   },
   {
-    name: "pre-job-allocations",
-    title: "pre-job-allocations",
+    name: "Pre Allocation",
+    title: "Pre Allocation",
     layout: "/admin",
     path: "/pre-job-allocations",
     icon: <FontAwesomeIcon icon={faTruckRampBox} className="mr-1" />,
