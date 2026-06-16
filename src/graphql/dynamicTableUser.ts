@@ -19,7 +19,6 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
         orderBy: { column: $orderByColumn, order: $orderByOrder }
         user_id: $user_id
         table_name: $table_name
-        table_name: $table_name
     ) {
       data {
         id
