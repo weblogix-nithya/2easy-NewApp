@@ -100,13 +100,32 @@ const { refetch: getDynamicTableUsers } =
         orderByColumn: "sort_id",
         orderByOrder: "ASC",
         user_id: userId,
-        table_name: "jobs",
       },
       skip: !userId,
       notifyOnNetworkStatusChange: true,
       onCompleted: (data: any) => {
-         const all = data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item);
-        setDynamicTableUsers(all);
+        const all = data.dynamicTableUsers.data;
+
+        console.log("data-dynamic", data);
+
+        const activeJobsOnly = all
+          .filter(
+            (item: DynamicTableUser) =>
+              item.is_active === true &&
+              item.dynamic_table?.table_name === "jobs",
+          )
+          .sort(
+            (a: DynamicTableUser, b: DynamicTableUser) =>
+              a.sort_id - b.sort_id,
+          );
+
+        console.log("Active JOBS columns:", activeJobsOnly);
+
+        setDynamicTableUsers(activeJobsOnly);
+
+        // setDynamicTableUsers(
+        //   data.dynamicTableUsers.data.filter((item: DynamicTableUser) => item),
+        // );
 
         setIsLoading(false);
       },

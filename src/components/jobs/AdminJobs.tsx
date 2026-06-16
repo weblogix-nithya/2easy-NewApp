@@ -42,12 +42,12 @@ import {
   GroupedPaginatedJobsVars,
   CREATE_DRIVER_FREE_TEXT,
   UPDATE_DRIVER_FREE_TEXT,
-
 } from "@/graphql/job";
 import { GET_JOB_CATEGORIES_QUERY } from "@/graphql/jobCategories";
 import { GET_JOB_STATUSES_QUERY } from "@/graphql/jobStatus";
-import { 
+import {
   getLocalYMD,
+  jobformatDate,
   outputDynamicTableBody,
   outputDynamicTableHeader,
 } from "@/lib/helpers/helper";
@@ -55,14 +55,7 @@ import {
 import debounce from "lodash.debounce";
 import dynamic from "next/dynamic";
 import { destroyCookie, setCookie } from "nookies";
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { downloadExcel } from "react-export-table-to-excel";
 // import { FaFileExcel } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -76,7 +69,7 @@ import { RootState } from "@/lib/store/store";
 import JobHeader from "@/components/jobs/JobHeader";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 // "./job-components/JobHeader";
-
+import { useSearchParams } from "next/navigation";
 const JobStatusDateFilter = dynamic(
   () => import("@/components/jobs/JobStatusDateFilter"),
   {
@@ -157,14 +150,6 @@ const companyStatusOptions = [
   },
 ];
 
-function formatDate(date: Date, isStart: boolean): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const time = isStart ? "00:00:00" : "23:59:59";
-  return `${year}-${month}-${day} ${time}`;
-}
-
 // export default function JobIndex() {
 export default function JobIndex({}: // initialLoadOnly = false,
 {
@@ -172,6 +157,10 @@ export default function JobIndex({}: // initialLoadOnly = false,
 }) {
   // const [hasInitialLoadDone, setHasInitialLoadDone] = useState(!initialLoadOnly);
   // const [initialJobsData, setInitialJobsData] = useState<any[]>([]);
+  const searchParams = useSearchParams();
+  const urlFilter = searchParams.get("id")?.toLowerCase();
+  console.log("urlFilter", urlFilter);
+  const appliedUrlFilterRef = useRef<string | null>(null);
   const [queryPageIndex, setQueryPageIndex] = useState(0);
   const [queryPageSize, setQueryPageSize] = useState(100);
 
@@ -183,7 +172,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
   const [_isTableLoading, _setIsTableLoading] = useState(false);
   const {
     isAdmin,
-    companyId,
+    isSubAdmin,
     customerId,
     isCompany,
     isCompanyAdmin,
@@ -191,11 +180,12 @@ export default function JobIndex({}: // initialLoadOnly = false,
     userId,
   } = useSelector((state: RootState) => state.user);
 
+  const AdminUser = isAdmin || isSubAdmin;
   // Adjusted logic for choosing correct options
   const statusOptions = useMemo(() => {
-    if (isAdmin && isCompanyAdmin) return companyStatusOptions;
+    if (AdminUser && isCompanyAdmin) return companyStatusOptions;
     return isCompany ? companyStatusOptions : adminStatusOptions;
-  }, [isAdmin, isCompany, isCompanyAdmin]);
+  }, [AdminUser, isCompany, isCompanyAdmin]);
 
   const [selectedStatus, setSelectedStatus] = useState<
     (typeof statusOptions)[number] | null
@@ -237,6 +227,163 @@ export default function JobIndex({}: // initialLoadOnly = false,
   const [savingDriverId, setSavingDriverId] = React.useState<number | null>(
     null,
   );
+
+  const clearUrlFilters = () => {
+    setMainJobFilter((prev: any) => {
+      const updated = { ...(prev || {}) };
+      delete updated.states;
+      delete updated.has_job_category_ids;
+      return updated;
+    });
+
+    setMainFilters((prev: any) => {
+      const updated = { ...(prev || {}) };
+      delete updated.states;
+      delete updated.has_job_category_ids;
+      return updated;
+    });
+
+    setSelectedFilters((prev: any) => {
+      const updated = { ...(prev || {}) };
+      delete updated.states;
+      delete updated.has_job_category_ids;
+      return updated;
+    });
+  };
+  useEffect(() => {
+    console.log("URL EFFECT RUNNING", {
+      urlFilter,
+      jobCategoriesLength: jobCategories.length,
+      is_filter_ticked,
+    });
+    if (urlFilter === "all") {
+      appliedUrlFilterRef.current = null;
+      handleResetAll();
+
+      destroyCookie(null, "jobMainFilters", { path: "*" });
+      destroyCookie(null, "displayName", { path: "*" });
+
+      dispatch(setIsFilterTicked("0"));
+
+      return;
+    }
+
+    if (!urlFilter) return;
+    if (appliedUrlFilterRef.current === urlFilter) {
+      return;
+    }
+    clearUrlFilters();
+
+    // STATE FILTERS
+    appliedUrlFilterRef.current = urlFilter;
+    const stateMap: Record<string, string> = {
+      vic: "Victoria",
+      qld: "Queensland",
+      nsw: "New South Wales",
+    };
+
+    const stateKeys = urlFilter?.split("-") ?? [];
+
+    const matchedStates = stateKeys
+      .filter((key) => stateMap[key])
+      .map((key) => ({
+        value: stateMap[key],
+        label: key.toUpperCase(),
+      }));
+    const stateValues = stateKeys
+      .filter((key) => stateMap[key])
+      .map((key) => stateMap[key]);
+
+    if (matchedStates.length > 0) {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        states: matchedStates,
+      }));
+
+      setMainFilters((prev) => ({
+        ...prev,
+        states: matchedStates,
+      }));
+
+      setJobFilter((prev) => ({
+        ...prev,
+        states: stateValues,
+      }));
+
+      setMainJobFilter((prev) => ({
+        ...prev,
+        states: stateValues,
+      }));
+      setCookie(null, "is_filter_ticked", "1", {
+        maxAge: 30 * 24 * 60 * 60,
+        path: "*",
+      });
+
+      dispatch(setIsFilterTicked("1"));
+
+      setMainFilterDisplayNames((prev) => ({
+        ...prev,
+        states: {
+          ...prev.states,
+          value: matchedStates.map((s) => s.label).join(","),
+        },
+      }));
+    }
+
+    appliedUrlFilterRef.current = urlFilter;
+    const categoryMap: Record<string, string> = {
+      fcl: "FCL",
+      road: "Road Freight",
+      roadfreight: "Road Freight",
+    };
+
+    const categoryLabel = categoryMap[urlFilter || ""];
+
+    console.log("urlFilter1", urlFilter);
+    console.log("categoryLabel1", categoryLabel);
+    console.log("jobCategories1", jobCategories);
+    const category = jobCategories.find((c: any) => c.label === categoryLabel);
+
+    console.log("matched category", category);
+
+    if (category) {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        has_job_category_ids: [category],
+      }));
+
+      setMainFilters((prev) => ({
+        ...prev,
+        has_job_category_ids: [category],
+      }));
+
+      setJobFilter((prev) => ({
+        ...prev,
+        has_job_category_ids: [category.value],
+      }));
+
+      setMainJobFilter((prev) => ({
+        ...prev,
+        has_job_category_ids: [category.value],
+      }));
+
+      setMainFilterDisplayNames((prev) => ({
+        ...prev,
+        has_job_category_ids: {
+          ...prev.has_job_category_ids,
+          value: category.label,
+        },
+      }));
+
+      setCookie(null, "is_filter_ticked", "1", {
+        maxAge: 30 * 24 * 60 * 60,
+        path: "*",
+      });
+
+      dispatch(setIsFilterTicked("1"));
+    }
+  }, [urlFilter, jobCategories]);
+
   const handleToggleWithMedia = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const checked = e.target.checked;
@@ -245,38 +392,27 @@ export default function JobIndex({}: // initialLoadOnly = false,
     },
     [],
   );
-// eslint-disable-next-line react-hooks/exhaustive-deps
-const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
-  useApolloQueryWithEffect(GET_DYNAMIC_TABLE_USERS_QUERY, {
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "sort_id",
-      orderByOrder: "ASC",
-      user_id: userId,
-    },
-    skip: !userId,
-    notifyOnNetworkStatusChange: true,
-    onCompleted: (data) => {
-      const d = data as any;
-
-      const activeJobsOnly = d.dynamicTableUsers.data
-        .filter(
-          (item: DynamicTableUser) =>
-            item.is_active === true &&
-            item.dynamic_table?.table_name === "jobs",
-        )
-        .sort(
-          (a: DynamicTableUser, b: DynamicTableUser) =>
-            a.sort_id - b.sort_id,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
+    useApolloQueryWithEffect(GET_DYNAMIC_TABLE_USERS_QUERY, {
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "sort_id",
+        orderByOrder: "ASC",
+        user_id: userId,
+        table_name: "jobs",
+      },
+      skip: !userId,
+      notifyOnNetworkStatusChange: true,
+      onCompleted: (data: any) => {
+        const all = data.dynamicTableUsers.data.filter(
+          (item: DynamicTableUser) => item,
         );
-
-      console.log("Active JOBS columns:", activeJobsOnly);
-
-      setDynamicTableUsers(activeJobsOnly);
-    },
-  });
+        setDynamicTableUsers(all);
+      },
+    });
 
   const groupedVars = useMemo(() => {
     const base = {
@@ -286,13 +422,12 @@ const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
       job_status_ids: mainJobFilter?.job_status_ids || [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
       ],
-      company_id: isCompany ? parseInt(companyId) : undefined,
-      customer_id:
-        isCustomer && !isCompanyAdmin ? parseInt(customerId) : undefined,
+      company_id:  undefined,
+      customer_id:undefined,
       between_at: rangeDate?.[0]
         ? {
-            from_at: formatDate(rangeDate[0], true),
-            to_at: formatDate(rangeDate[1], false),
+            from_at: jobformatDate(rangeDate[0], true),
+            to_at: jobformatDate(rangeDate[1], false),
           }
         : undefined,
     };
@@ -306,56 +441,51 @@ const { refetch: getDynamicTableUsers, data: _dynamicTableData } =
     searchQuery,
     mainJobFilter,
     isCompany,
-    companyId,
     isCustomer,
     isCompanyAdmin,
     customerId,
     rangeDate,
     is_filter_ticked,
   ]);
- 
-const {
-  data: groupedJobs,
-  loading: loadingGroupedJobs,
-  refetch: refetchGroupedJobs,
-} = useApolloQueryWithEffect<
-  GroupedPaginatedJobsData,
-  GroupedPaginatedJobsVars
->(
-  GROUPED_PAGINATED_JOBS_QUERY,
-  {
-    variables: groupedVars,
 
-    // skip: !userId || isCompanyAdmin || isCustomer || isCompany,
+  const {
+    data: groupedJobs,
+    loading: loadingGroupedJobs,
+    refetch: refetchGroupedJobs,
+  } = useApolloQueryWithEffect<
+    GroupedPaginatedJobsData,
+    GroupedPaginatedJobsVars
+  >(GROUPED_PAGINATED_JOBS_QUERY, {
+    variables: groupedVars,
+    skip: isCompanyAdmin || isCustomer || isCompany,
     fetchPolicy: "network-only",
 
     onCompleted: (data) => {
       console.log("groupedjob oncompleted res", data);
     },
-  },
-);
-  
-  const refetchJobsRef = useRef(refetchGroupedJobs);
-  useEffect(() => {
-    console.log("called refetch");
-    refetchJobsRef.current = refetchGroupedJobs;
-  }, [refetchGroupedJobs]);
+  });
 
-  const stableRefetch = useCallback(
-    (...args: any[]) => refetchJobsRef.current(...args),
-    [],
-  );
+  // const refetchJobsRef = useRef(refetchGroupedJobs);
+  // useEffect(() => {
+  //   console.log("called refetch");
+  //   refetchJobsRef.current = refetchGroupedJobs;
+  // }, [refetchGroupedJobs]);
+
+  // const stableRefetch = useCallback(
+  //   (...args: any[]) => refetchJobsRef.current(...args),
+  //   [],
+  // );
 
   // Then use stableRefetch in adminColumns useMemo
   const adminColumns = useMemo(() => {
     return getColumns(
-      isAdmin,
+      AdminUser,
       isCustomer,
       withMedia,
-      stableRefetch,
+      refetchGroupedJobs,
       dynamicTableUsers,
     );
-  }, [isAdmin, isCustomer, withMedia, stableRefetch, dynamicTableUsers]);
+  }, [AdminUser, isCustomer, withMedia, refetchGroupedJobs, dynamicTableUsers]);
 
   useEffect(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -371,26 +501,28 @@ const {
   // useEffect(() => {
   //   const columns = getCompanyColumns(isAdmin, isCustomer, withMedia);
   //   setCompanyColumns(columns);
-  // }, [withMedia, isAdmin, isCustomer]);
+  // }, [withMedia, AdminUser, isCustomer]);
   const bulkAssignColumns = getBulkAssignColumns(
-    isAdmin,
+    AdminUser,
     isCustomer,
     dynamicTableUsers,
   );
 
-    useEffect(() => {
-    if (isAdmin && groupedJobs)  {
-      getJobStatuses();
-      getJobCategories();
-      getAvailableDrivers();
-      getDynamicTableUsers();
-    }}
+  useEffect(
+    () => {
+      if (AdminUser && groupedJobs) {
+        getJobStatuses();
+        getJobCategories();
+        getAvailableDrivers();
+        getDynamicTableUsers();
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  , [groupedJobs?.groupedPaginatedJobs?.data?.length])
+    [groupedJobs?.groupedPaginatedJobs?.data?.length],
+  );
 
   useEffect(() => {
     if (is_filter_ticked == "1") {
-      let _jobFilter = jobFilter;
       const updatedValues: any = {};
       for (const key in defaultSelectedFilter) {
         if (
@@ -402,10 +534,14 @@ const {
         }
       }
 
-      setJobFilter(jobMainFilters);
-      _jobFilter = jobMainFilters;
+      const mergedJobFilter = {
+        ...jobMainFilters,
+        ...mainJobFilter,
+      };
+      setJobFilter(mergedJobFilter);
+      // jobFilter = mergedJobFilter;
       if (displayName) setMainFilterDisplayNames(displayName);
-      updateTags(updatedValues, _jobFilter);
+      updateTags(updatedValues, mergedJobFilter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [is_filter_ticked]);
@@ -478,9 +614,8 @@ const {
     onClose: onCloseBulkAssign,
   } = useDisclosure();
 
-
   // useEffect(() => {
-  //   if (isAdmin) {
+  //   if (AdminUser) {
   //     refetchJobs(); // GROUPED_PAGINATED_JOBS_QUERY
   //   } else if (isCompany || isCustomer) {
   //     getCompanyJobs(); // GET_JOBS_QUERY
@@ -493,13 +628,13 @@ const {
   //   mainFilters,
   //   rangeDate,
   //   withMedia,
-  //   isAdmin,
+  //   AdminUser,
   //   isCompany,
   //   isCustomer,
   // ]);
 
   // useEffect(() => {
-  //   if (isAdmin) {
+  //   if (AdminUser) {
   //     refetchGroupedJobs(groupedVars); // <— pass latest vars
   //   }
   //   // else if (isCompany || isCustomer) {
@@ -508,7 +643,7 @@ const {
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [
   //   groupedVars, // <— single source captures page, size, search, dates, AND is_filter_ticked/mainJobFilter
-  //   isAdmin,
+  //   AdminUser,
   //   // isCompany,
   //   // isCustomer,
   // ]);
@@ -528,26 +663,26 @@ const {
     [],
   );
 
-const { refetch: getJobStatuses } = useApolloQueryWithEffect(
-  GET_JOB_STATUSES_QUERY,
-  {
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
+  const { refetch: getJobStatuses } = useApolloQueryWithEffect(
+    GET_JOB_STATUSES_QUERY,
+    {
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+      },
+      onCompleted: (data: any) => {
+        setJobStatuses(
+          data.jobStatuses.data.map((jobStatus: any) => ({
+            value: parseInt(jobStatus.id),
+            label: jobStatus.name,
+          })),
+        );
+      },
     },
-    onCompleted: (data: any) => {
-      setJobStatuses(
-        data.jobStatuses.data.map((jobStatus: any) => ({
-          value: parseInt(jobStatus.id),
-          label: jobStatus.name,
-        })),
-      );
-    },
-  },
-);
+  );
 
   // const { refetch: getJobCategories } = useQuery(GET_JOB_CATEGORIES_QUERY, {
   //   skip: true,
@@ -571,56 +706,56 @@ const { refetch: getJobStatuses } = useApolloQueryWithEffect(
   //     });
   //   },
   // });
-const { refetch: getJobCategories } = useApolloQueryWithEffect(
-  GET_JOB_CATEGORIES_QUERY,
-  {
-    variables: {
-      query: "",
-      page: 1,
-      first: 100,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
+  const { refetch: getJobCategories } = useApolloQueryWithEffect(
+    GET_JOB_CATEGORIES_QUERY,
+    {
+      variables: {
+        query: "",
+        page: 1,
+        first: 100,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+      },
+      onCompleted: (data: any) => {
+        setJobCategories(
+          data.jobCategorys.data.map((category: any) => ({
+            value: parseInt(category.id),
+            label: category.name,
+          })),
+        );
+      },
     },
-    onCompleted: (data: any) => {
-      setJobCategories(
-        data.jobCategorys.data.map((category: any) => ({
-          value: parseInt(category.id),
-          label: category.name,
-        })),
-      );
-    },
-  },
-);
-// eslint-disable-next-line react-hooks/exhaustive-deps
-const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
-  GET_AVAILABLE_DRIVERS_QUERY,
-  {
-    variables: {
-      query: "",
-      page: 1,
-      first: 500,
-      orderByColumn: "id",
-      orderByOrder: "ASC",
-      available: true,
-    },
-    notifyOnNetworkStatusChange: true,
-    onCompleted: (data: any) => {
-      const drivers = data.drivers.data;
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
+    GET_AVAILABLE_DRIVERS_QUERY,
+    {
+      variables: {
+        query: "",
+        page: 1,
+        first: 500,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+        available: true,
+      },
+      notifyOnNetworkStatusChange: true,
+      onCompleted: (data: any) => {
+        const drivers = data.drivers.data;
 
-      setDrivers(drivers);
+        setDrivers(drivers);
 
-      console.log(drivers, "k");
+        console.log(drivers, "k");
 
-      setDriverOptions(
-        drivers.map((driver: any) => ({
-          value: parseInt(driver.id),
-          label: driver.full_name,
-          data: driver,
-        })),
-      );
+        setDriverOptions(
+          drivers.map((driver: any) => ({
+            value: parseInt(driver.id),
+            label: driver.full_name,
+            data: driver,
+          })),
+        );
+      },
     },
-  },
-);
+  );
 
   const handleExport = () => {
     const header = outputDynamicTableHeader(dynamicTableUsers);
@@ -686,16 +821,16 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
   // }, [loading]);
 
   // useEffect(() => {
-  //   if (isAdmin && !isCompanyAdmin) {
+  //   if (AdminUser && !isCompanyAdmin) {
   //     refetchGroupedJobs(groupedVars);
   //   }
-  //   // else if (isCompany || isCustomer || (isAdmin && isCompanyAdmin)) {
+  //   // else if (isCompany || isCustomer || (AdminUser && isCompanyAdmin)) {
   //   //   getCompanyJobs();
   //   // }
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [groupedVars, isAdmin, isCompany, isCustomer, isCompanyAdmin]);
+  // }, [groupedVars, AdminUser, isCompany, isCustomer, isCompanyAdmin]);
 
-    const handleUpdateDriverFreeText = async (driver: any, value: string) => {
+  const handleUpdateDriverFreeText = async (driver: any, value: string) => {
     // if (!driver?.id) {
     //   console.error("Driver ID missing!", driver);
     //   return;
@@ -746,7 +881,7 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
         spacing={{ base: "20px", xl: "20px" }}
       >
         <JobHeader
-          isAdmin={isAdmin}
+          isAdmin={AdminUser}
           isCompany={isCompany}
           onOpenSetting={onOpenSetting}
           onOpenFilter={onOpenFilter}
@@ -754,10 +889,14 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
           handleExport={handleExport}
           debouncedSearch={debouncedSearch}
           onToggleFilterCheckbox={(checked) => {
+            // if (!checked) {
+            //   destroyCookie(null, "jobMainFilters", { path: "*" });
+            //   destroyCookie(null, "displayName", { path: "*" });
+            //   handleResetAll();
+            // }
             if (!checked) {
-              destroyCookie(null, "jobMainFilters", { path: "*" });
-              destroyCookie(null, "displayName", { path: "*" });
-              handleResetAll();
+              dispatch(setIsFilterTicked("0"));
+              return;
             }
             setCookie(null, "is_filter_ticked", checked ? "1" : "0", {
               maxAge: 30 * 24 * 60 * 60,
@@ -886,7 +1025,7 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
       </SimpleGrid>
 
       {/* Floating Action Bar */}
-      {isAdmin && !loadingGroupedJobs && (
+      {AdminUser && !loadingGroupedJobs && (
         <ActionBar
           selectedJobs={selectedJobs}
           onSwitch={setIsShowSelectedOnly}
@@ -925,35 +1064,35 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
         )}
       </Suspense>
       {/* <Suspense fallback={null}> */}
-        {/* {isOpenSetting && ( */}
-          <JobTableSettingsModal
-            isOpen={isOpenSetting}
-            onClose={() => {
-              onCloseSetting();
-              // setSettingOpen(false);
-              getDynamicTableUsers();
-              refetchGroupedJobs(); // Optional: Refresh job data
-            }}
-          />
-        {/* )} */}
+      {/* {isOpenSetting && ( */}
+      <JobTableSettingsModal
+        isOpen={isOpenSetting}
+        onClose={() => {
+          onCloseSetting();
+          // setSettingOpen(false);
+          getDynamicTableUsers();
+          refetchGroupedJobs(); // Optional: Refresh job data
+        }}
+      />
+      {/* )} */}
       {/* </Suspense> */}
       {/* <Suspense fallback={null}> */}
-        {isOpenBulkAssign && (
-          <JobBulkAssignModal
-            isOpen={isOpenBulkAssign}
-            onClose={onCloseBulkAssign}
-            driverOptions={driverOptions}
-            drivers={drivers}
-            selectedJobs={selectedJobs}
-            columns={bulkAssignColumns}
-            setIsChecked={setIsChecked}
-            setSelectedJobs={setSelectedJobs}
-            refreshPage={() => refetchGroupedJobs()}
-          />
-        )}
+      {isOpenBulkAssign && (
+        <JobBulkAssignModal
+          isOpen={isOpenBulkAssign}
+          onClose={onCloseBulkAssign}
+          driverOptions={driverOptions}
+          drivers={drivers}
+          selectedJobs={selectedJobs}
+          columns={bulkAssignColumns}
+          setIsChecked={setIsChecked}
+          setSelectedJobs={setSelectedJobs}
+          refreshPage={() => refetchGroupedJobs()}
+        />
+      )}
       {/* </Suspense> */}
-        {isOpenBulkSort && (
-          <JobBulkSortModal
+      {isOpenBulkSort && (
+        <JobBulkSortModal
           isOpen={isOpenBulkSort}
           onClose={onCloseBulkSort}
           selectedJobs={selectedJobs}
@@ -961,9 +1100,9 @@ const { refetch: getAvailableDrivers } = useApolloQueryWithEffect(
           setIsChecked={setIsChecked}
           setSelectedJobs={setSelectedJobs}
           refreshPage={() => refetchGroupedJobs()}
-          />
-          )}
-          {/* <Suspense fallback={null}>
+        />
+      )}
+      {/* <Suspense fallback={null}>
       </Suspense> */}
     </Box>
     // </AdminLayout>

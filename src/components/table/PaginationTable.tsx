@@ -1,6 +1,5 @@
 // @ts-nocheck
 import {
-  Badge,
   Box,
   Button,
   ButtonGroup,
@@ -12,7 +11,6 @@ import {
   Tbody,
   Td,
   Text,
-  Textarea,
   Th,
   Thead,
   Tooltip,
@@ -28,13 +26,21 @@ import { SortAlt } from "@/components/icons/Icons";
 import {
   formatCurrency,
   formatDate,
-  formatToTimeDate,
   getTimeDifferenceInMinutes,
 } from "@/lib/helpers/helper";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useRef } from "react";
+// import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
-
+// import { useRouter } from "next/navigation"; // changed: router no longer used in this v8 refactor
+// import {
+//   Column,
+//   PluginHook,
+//   TableOptions,
+//   usePagination,
+//   useRowSelect,
+//   useSortBy,
+//   useTable,
+// } from "react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -42,45 +48,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
-// Non-toggle column ids
-const EXCLUDED_IDS = new Set([
-  "actions",
-  "admin_notes",
-  "timeslot",
-  "job_destinations.address",
-]);
-
-// Click landed on a control? then don't toggle the row.
-const isInteractive = (el: HTMLElement | null): boolean =>
-  !!el?.closest(
-    'a,button,[role="button"],input,textarea,select,[contenteditable="true"],[data-no-row-toggle]',
-  );
-
-const getStatusStyle = (status: string) => {
-  const st = status?.toLowerCase();
-
-  if (st === "in transit") return { background: "#FFD580", color: "#8B4000" };
-  if (st === "assigned") return { background: "#FFFACD", color: "#665c00" };
-  if (["completed", "delivered"].includes(st))
-    return { background: "#d4edda", color: "#155724" };
-  if (["rejected", "cancelled"].includes(st))
-    return { background: "#f8d7da", color: "#721c24" };
-
-  return {};
-};
-
-export const getTimeslotBgColor = (time: string | null | undefined) => {
-  const diffMinutes = getTimeDifferenceInMinutes(time);
-
-  if (diffMinutes === null) return "transparent";
-
-  // const diffHours = diffMinutes / 60;
-
-  if (diffMinutes <= 60) return "#e63a49"; //red
-  if (diffMinutes <= 120) return "#ff7f00"; //orange
-  return "#00ff00"; //green
-};
+import { getTimeslotBgColor } from "./JobPaginationTable";
 
 type PaginationTableProps<T extends object> = {
   columns: any[]; // accept v7 or v8
@@ -88,44 +56,41 @@ type PaginationTableProps<T extends object> = {
   total: number;
   options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
   path?: string;
-  showDelete?: boolean;
+  // showDelete?: boolean; // changed: unused in current v8 implementation
+    onReset?: (data: any) => void;
   onDelete?: (data: any) => void;
+   isapprove?: boolean; // changed: unused in current v8 implementation
+  isRestore?: boolean;
+  onRestore?: (data: any) => void;
+  onApprove?: (data: any) => void;
   showPageSizeSelect?: boolean;
-  showManualPages?: boolean;
+  // showManualPages?: boolean; // changed: unused in current v8 implementation
   isChecked?: boolean;
   onSortingChange?: any;
   restyleTable?: boolean;
-  editingDriverId: number | null;
-  setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
-  freeTextValue?: string;
-  savingDriverId?: number | null;
-  setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
-  setFreeTextValue?: React.Dispatch<React.SetStateAction<string>>;
-  // onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
-  onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
 } & (
-    | {
+  | {
       isServerSide?: false;
       setQueryPageIndex?: never;
       setQueryPageSize?: never;
     }
-    | {
+  | {
       isServerSide: true;
       setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
       setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
     }
-  ) &
+) &
   (
     | {
-      showRowSelection?: false;
-      setSelectedRow?: never;
-      isFilterRowSelected?: never;
-    }
+        showRowSelection?: false;
+        setSelectedRow?: never;
+        isFilterRowSelected?: never;
+      }
     | {
-      showRowSelection: true;
-      setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
-      isFilterRowSelected: boolean;
-    }
+        showRowSelection: true;
+        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
+        isFilterRowSelected: boolean;
+      }
   );
 
 const PaginationTable = <T extends object>({
@@ -142,20 +107,14 @@ const PaginationTable = <T extends object>({
   isChecked,
   onSortingChange,
   restyleTable = false,
-  onContextMenu,
-  editingDriverId,
-  setEditingDriverId,
-  // setFreeTextValue,
-  savingDriverId,
-  setSavingDriverId,
-  onUpdateDriverFreeText,
   setQueryPageIndex,
   setQueryPageSize,
-  onDelete,
+   onDelete,
+  onApprove,
+  onRestore,
+  onReset,
 }: PaginationTableProps<T>) => {
-  const router = useRouter();
-
-  const freeTextRef = useRef<HTMLTextAreaElement>(null);
+  // const router = useRouter(); // changed: router not used in this v8 implementation
 
   const pageSizeOptions = [
     { value: 10, label: "10 / page" },
@@ -185,14 +144,15 @@ const PaginationTable = <T extends object>({
   });
 
   const table = useReactTable({
+    ...(options || {}),
     data,
-    // columns: v8Columns,
     columns,
     state: {
       sorting,
       rowSelection,
       pagination,
     },
+    enableRowSelection: showRowSelection,
     onSortingChange: (updater: any) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       setSorting(next);
@@ -207,27 +167,16 @@ const PaginationTable = <T extends object>({
         typeof updater === "function" ? updater(pagination) : updater;
       setPagination(next);
     },
-
-    enableRowSelection: showRowSelection,
-    getRowId: (row: any, index: number) =>
-      String(row?.job?.id ?? row?.id ?? index),
-
-    // core models
     getCoreRowModel: getCoreRowModel(),
-    // if you do server-side sorting, set manualSorting true
-    manualSorting: !!options?.manualSortBy,
     getSortedRowModel: options?.manualSortBy ? undefined : getSortedRowModel(),
-
-    // pagination
+    getPaginationRowModel: getPaginationRowModel(),
+    manualSorting: !!options?.manualSortBy,
     manualPagination: !!options?.manualPagination || isServerSide,
     pageCount:
       (!!options?.manualPagination || isServerSide) &&
-        options?.pageCount != null
+      options?.pageCount != null
         ? options.pageCount
         : undefined,
-    getPaginationRowModel: getPaginationRowModel(),
-
-    // prevent auto resets (similar to autoResetSelectedRows: false)
     autoResetAll: false,
   });
 
@@ -308,18 +257,21 @@ const PaginationTable = <T extends object>({
 
   return (
     <VStack w="full" align="start" spacing={4}>
-      {/* <Table colorScheme="white"> */}
-      <Table
+      <Table colorScheme="white">
+        {/* <Table
         colorScheme="white"
         border="1px solid"
         borderColor="gray.200"
         sx={{
           "th, td": {
-            border: "1px solid",
-            borderColor: "gray.200",
+            border: "1px solid", 
+            // borderColor: "gray.500",
+            px: 3,
+            py: 3,
+            verticalAlign: "top",
           },
         }}
-      >
+      >*/}
         <Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Tr key={headerGroup.id}>
@@ -376,267 +328,8 @@ const PaginationTable = <T extends object>({
 
         <Tbody>
           {pageRows.map((row, index) => {
-            const status = row.original?.job?.job_status?.name;
-
-            const driver = row.original?.driver;
-            const prevDriver = pageRows[index - 1]?.original?.driver;
-
-            const shouldShowDriverHeader =
-              !!driver?.full_name &&
-              (!prevDriver?.full_name || driver?.id !== prevDriver?.id);
-
             return (
               <React.Fragment key={`driver-header-${row.id}`}>
-                {shouldShowDriverHeader && (
-                  <Tr>
-                    <Td fontSize="md" colSpan={columns.length} p={0}>
-                      <Box
-                        bg="#1d2d53"
-                        color="#fff"
-                        px={6}
-                        py={3}
-                        borderTop="4px solid"
-                        borderLeft="4px solid"
-                        borderColor="#2F80ED"
-                        borderRadius="md"
-                        w="100%"
-                      >
-                        {/* ================= ROW 1 ================= */}
-                        <Flex
-                          w="100%"
-                          align="flex-start"
-                          justify="space-between"
-                          gap={6}
-                          mb={4}
-                        >
-                          {/* LEFT COLUMN — FIXED WIDTH */}
-                          <Box minW="420px" maxW="420px">
-                            <VStack align="start" spacing={2}>
-                              <Badge
-                                colorScheme="darkblue"
-                                variant="subtle"
-                                fontSize="md"
-                                whiteSpace="nowrap"
-                                overflow="hidden"
-                                textOverflow="ellipsis"
-                                maxW="100%"
-                              >
-                                #{driver?.id} : {driver?.full_name}
-                              </Badge>
-
-                              <HStack spacing={3} whiteSpace="nowrap">
-                                <Badge
-                                  colorScheme="purple"
-                                  variant="subtle"
-                                  fontSize="md"
-                                >
-                                  First Collection:{" "}
-                                  {formatToTimeDate(
-                                    driver?.first_job_start_at_today,
-                                  )}
-                                </Badge>
-
-                                <Badge
-                                  colorScheme="purple"
-                                  variant="subtle"
-                                  fontSize="md"
-                                >
-                                  Last Delivery:{" "}
-                                  {formatToTimeDate(
-                                    driver?.last_job_drop_at_today,
-                                  )}
-                                </Badge>
-                                {driver?.no_max_length != null && (
-                                  <Badge
-                                    colorScheme="blue"
-                                    variant="subtle"
-                                    fontSize="md"
-                                  >
-                                    L: {driver.no_max_length} M
-                                  </Badge>
-                                )}
-                                {driver?.no_max_height != null && (
-                                  <Badge
-                                    colorScheme="blue"
-                                    variant="subtle"
-                                    fontSize="md"
-                                  >
-                                    H: {driver.no_max_height} M
-                                  </Badge>
-                                )}
-                              </HStack>
-                            </VStack>
-                          </Box>
-
-                          {/* CENTER — FIXED START POSITION */}
-                          <Box w="550px" flexShrink={0}>
-                            {editingDriverId === driver?.id ? (
-                              <HStack align="flex-start" spacing={2}>
-                                <Textarea
-                                  flex="1"
-                                  defaultValue={
-                                    driver?.today_free_text?.text || ""
-                                  }
-                                  ref={freeTextRef}
-                                  resize="none"
-                                  fontSize="md"
-                                  bg="gray.100"
-                                  color="red.600"
-                                  border="1px solid"
-                                  borderColor="gray.300"
-                                  minH="60px"
-                                />
-
-                                <VStack spacing={2}>
-                                  <IconButton
-                                    aria-label="Save"
-                                    size="sm"
-                                    colorScheme="green"
-                                    icon={<span>✔</span>}
-                                    isLoading={savingDriverId === driver?.id}
-                                    onClick={async () => {
-                                      if (!onUpdateDriverFreeText) return;
-                                      try {
-                                        const value =
-                                          freeTextRef.current?.value || "";
-                                        setSavingDriverId(driver?.id);
-                                        await onUpdateDriverFreeText(
-                                          driver,
-                                          value.trim(),
-                                        );
-                                        setEditingDriverId(null);
-                                      } finally {
-                                        setSavingDriverId(null);
-                                      }
-                                    }}
-                                  />
-
-                                  <IconButton
-                                    aria-label="Cancel"
-                                    size="sm"
-                                    colorScheme="red"
-                                    icon={<span>✖</span>}
-                                    onClick={() => setEditingDriverId(null)}
-                                  />
-                                </VStack>
-                              </HStack>
-                            ) : (
-                              <Box
-                                w="100%"
-                                minH="60px"
-                                px={3}
-                                py={2}
-                                bg="gray.100"
-                                color="red.600"
-                                border="1px solid"
-                                borderColor="gray.300"
-                                borderRadius="md"
-                                // whiteSpace="pre-line"
-                                cursor="pointer"
-                                onClick={() => setEditingDriverId(driver.id)}
-                              >
-                                {driver?.today_free_text?.text?.trim() ? (
-                                  <Box
-                                    dangerouslySetInnerHTML={{
-                                      __html: driver.today_free_text.text,
-                                    }}
-                                  />
-                                ) : (
-                                  "Click to add driver notes"
-                                )}
-                              </Box>
-                            )}
-                          </Box>
-
-                          {/* RIGHT — PRICE */}
-                          <Box minW="150px" textAlign="right">
-                            <>
-                              <Badge
-                                colorScheme="red"
-                                variant="subtle"
-                                fontSize="sm"
-                                mr={"4px"}
-                              >
-                                Today Price:{" "}
-                                {driver?.total_jobs_today_price ?? 0}
-                              </Badge>
-
-                              <Badge
-                                colorScheme="red"
-                                variant="subtle"
-                                fontSize="sm"
-                              >
-                                Weekly Price:{" "}
-                                {driver?.total_jobs_weekly_price ?? 0}
-                              </Badge>
-                            </>
-                          </Box>
-                        </Flex>
-
-                        {/* ================= ROW 2 ================= */}
-                        <Flex wrap="wrap" align="center" gap={3}>
-                          <Badge
-                            colorScheme="red"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            Current Suburb: {driver?.current_suburb ?? "-"}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="red"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            Mobile Number: {driver?.phone_no ?? "-"}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="red"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            Rego: {driver?.registration_no ?? "-"}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="red"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            TAILGATE: {driver?.is_tailgated ? "Yes" : "No"}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="blue"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            CBM: {driver?.cbm_summary_today ?? 0} /{" "}
-                            {driver?.no_max_volume ?? 0}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="blue"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            Weight: {driver?.weight_summary_today ?? 0} /{" "}
-                            {driver?.no_max_capacity ?? 0}
-                          </Badge>
-
-                          <Badge
-                            colorScheme="blue"
-                            variant="subtle"
-                            fontSize="md"
-                          >
-                            Pallets: {driver?.no_max_pallets ?? 0}
-                          </Badge>
-                        </Flex>
-                      </Box>
-                    </Td>
-                  </Tr>
-                )}
                 <Tr
                   key={`data-row-${row.id || index}`}
                   // key={`data-row-${row.id}`}
@@ -644,14 +337,9 @@ const PaginationTable = <T extends object>({
                   //   borderbottom: "2px solid",
                   //   borderColor: "#020e1e !important",
                   // }}
-                  style={getStatusStyle(status)}
+                  // style={getStatusStyle(status)}
                   cursor={showRowSelection ? "pointer" : "default"}
-                  onContextMenu={(e) => {
-                    if (onContextMenu) {
-                      // ✅ Check if handler exists
-                      onContextMenu(e, row.original.job);
-                    }
-                  }}
+                 
                   onClick={(e) => {
                     if (!showRowSelection) return;
                     const target = e.target as HTMLElement;
@@ -825,6 +513,105 @@ const PaginationTable = <T extends object>({
                                 />
                               </Button>
                             )}
+                            {
+                              //@ts-expect-error
+                              meta.isApprove &&
+                                (row.original.is_approve === false ||
+                                  row.original.is_approve === "false" ||
+                                  row.original.is_approve === 0 ||
+                                  row.original.is_approve === "0") && (
+                                  <Button
+                                    bg="blue.100"
+                                    color="white"
+                                    fontSize="sm"
+                                    _hover={{ bg: "blue.300" }}
+                                    className="!text-[var(--chakra-colors-black-400)]"
+                                    // onClick={() => {onApprove(cell.row.original.id)}}
+                                    onClick={() => onApprove?.(row.original.id)}
+                                  >
+                                    Approve
+                                  </Button>
+                                )
+                            }
+                            {
+                              //@ts-expect-error
+                              meta.isRestore && (
+                                <Button
+                                  bg="white"
+                                  fontSize="sm"
+                                  className="!text-[var(--chakra-colors-black-400)]"
+                                  // onClick={() => {onRestore(cell.row.original.id)}}
+                                  onClick={() => onRestore?.(row.original.id)}
+                                >
+                                  Restore
+                                </Button>
+                              )
+                            }
+                            {meta.isReset && (
+                              <Flex
+                                align="center"
+                                justify="space-between"
+                                width="100%"
+                              >
+                                <Button
+                                  bg={
+                                    row.original.is_admin
+                                      ? row.original.reset_approve
+                                        ? "green.100"
+                                        : "blue.100"
+                                      : "gray.100"
+                                  }
+                                  color={
+                                    row.original.is_admin
+                                      ? row.original.reset_approve
+                                        ? "green.800"
+                                        : "blue.800"
+                                      : "gray.600"
+                                  }
+                                  _hover={{
+                                    bg: row.original.is_admin
+                                      ? row.original.reset_approve
+                                        ? "green.200"
+                                        : "blue.200"
+                                      : "gray.200",
+                                  }}
+                                  fontSize="sm"
+                                  className="!text-[var(--chakra-colors-black-400)]"
+                                  onClick={() => {
+                                    if (row.original.is_admin) {
+                                      onReset?.(row.original.id);
+                                    }
+                                  }}
+                                  isDisabled={
+                                    !row.original.is_admin ||
+                                    row.original.reset_approve === true
+                                  }
+                                >
+                                  {row.original.is_admin
+                                    ? row.original.reset_approve
+                                      ? "Approved"
+                                      : "Reset Access"
+                                    : "Not Admin"}
+                                </Button>
+
+                                <Link
+                                  href={`${path || ""}/reset/${row.original.id}`}
+                                  fontWeight="700"
+                                  mr="40%"
+                                  data-no-row-toggle
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Button
+                                    bg="blue.200"
+                                    color="blackAlpha.300"
+                                    ml={4}
+                                    className="!text-[#3B68DB]"
+                                  >
+                                    Reset Password
+                                  </Button>
+                                </Link>
+                              </Flex>
+                            )}
                           </Flex>
                         </Td>
                       );
@@ -973,5 +760,3 @@ const PaginationTable = <T extends object>({
 };
 
 export default PaginationTable;
-
-
