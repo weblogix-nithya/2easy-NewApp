@@ -29,7 +29,6 @@ import {
   formatCurrency,
   formatDate,
   formatToTimeDate,
-  getTimeDifferenceInMinutes,
 } from "@/lib/helpers/helper";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef } from "react";
@@ -70,6 +69,9 @@ const getStatusStyle = (status: string) => {
   return {};
 };
 
+// ----------- helpers: accept old v7 columns OR new v8 ColumnDef -----------
+
+// v7 sortBy shape expected by your parent: [{ id, desc }]
 export const getTimeslotBgColor = (time: string | null | undefined) => {
   const diffMinutes = getTimeDifferenceInMinutes(time);
 
@@ -95,14 +97,16 @@ type PaginationTableProps<T extends object> = {
   isChecked?: boolean;
   onSortingChange?: any;
   restyleTable?: boolean;
-  editingDriverId: number | null;
-  setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
+  // editingDriverId: number | null;
+  // setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
   freeTextValue?: string;
   savingDriverId?: number | null;
   setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
   setFreeTextValue?: React.Dispatch<React.SetStateAction<string>>;
-  // onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
   onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
+  onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
+  refetchJobs?: () => void;
+  onAssignClick?: (driver: any) => void;
 } & (
     | {
       isServerSide?: false;
@@ -143,8 +147,9 @@ const PaginationTable = <T extends object>({
   onSortingChange,
   restyleTable = false,
   onContextMenu,
-  editingDriverId,
-  setEditingDriverId,
+  onAssignClick,
+  // editingDriverId,
+  // setEditingDriverId,
   // setFreeTextValue,
   savingDriverId,
   setSavingDriverId,
@@ -166,6 +171,7 @@ const PaginationTable = <T extends object>({
     { value: 200, label: "200 / page" },
   ];
 
+
   // initial state from your v7-style options.initialState
   const initialPageIndex = options?.initialState?.pageIndex ?? 0;
   const initialPageSize = options?.initialState?.pageSize ?? 10;
@@ -184,9 +190,38 @@ const PaginationTable = <T extends object>({
     pageSize: initialPageSize,
   });
 
+  // Normalize v7 columns → v8 format
+  const v8Columns = React.useMemo(() =>
+    columns.map((col: any) => ({
+      ...col,
+      // header: use lowercase 'header' if exists, else map from 'Header'
+      header: col.header ?? (
+        typeof col.Header === "string"
+          ? col.Header
+          : col.Header
+            ? (props: any) => col.Header(props)
+            : col.id
+      ),
+      // cell: use lowercase 'cell' if exists, else map from 'Cell'
+      cell: col.cell ?? (
+        col.Cell
+          ? (props: any) => col.Cell({ row: props.row, getValue: props.getValue })
+          : undefined
+      ),
+      // accessorFn: map from accessor if needed
+      accessorFn: col.accessorFn ?? (
+        typeof col.accessor === "function"
+          ? col.accessor
+          : col.accessor
+            ? (row: any) => row[col.accessor]
+            : undefined
+      ),
+    }))
+    , [columns]);
+
   const table = useReactTable({
     data,
-    // columns: v8Columns,
+    // columns: v8Columns,  // ← v8Columns use pannurom
     columns,
     state: {
       sorting,
@@ -305,7 +340,7 @@ const PaginationTable = <T extends object>({
   const previousPage = () => table.previousPage();
   const nextPage = () => table.nextPage();
   const setPageSize = (size: number) => table.setPageSize(size);
-
+  // console.log(table.getHeaderGroups(), "header groups");
   return (
     <VStack w="full" align="start" spacing={4}>
       {/* <Table colorScheme="white"> */}
@@ -330,12 +365,6 @@ const PaginationTable = <T extends object>({
                 return (
                   <Th
                     key={header.id}
-                    // bg="gray.300"
-                    // color="gray.900"
-                    // fontSize="11px"
-                    // fontWeight="700"
-                    // textTransform="uppercase"
-                    // letterSpacing="0.5px"
                     onClick={
                       canSort
                         ? header.column.getToggleSortingHandler()
@@ -383,7 +412,9 @@ const PaginationTable = <T extends object>({
 
             const shouldShowDriverHeader =
               !!driver?.full_name &&
-              (!prevDriver?.full_name || driver?.id !== prevDriver?.id);
+              (!prevDriver?.full_name ||
+                driver?.id !== prevDriver?.id ||
+                driver?.bgcolor !== prevDriver?.bgcolor);
 
             return (
               <React.Fragment key={`driver-header-${row.id}`}>
@@ -391,13 +422,21 @@ const PaginationTable = <T extends object>({
                   <Tr>
                     <Td fontSize="md" colSpan={columns.length} p={0}>
                       <Box
-                        bg="#1d2d53"
-                        color="#fff"
+                        bg={
+                          driver.bgcolor === "blue"
+                            ? "rgb(29, 45, 83)"
+                            : "rgb(250, 220, 82)"
+                        } // ✅ Use bgcolor from backend
+                        color={driver.bgcolor === "yellow" ? "#000" : "#fff"}
                         px={6}
                         py={3}
                         borderTop="4px solid"
                         borderLeft="4px solid"
-                        borderColor="#2F80ED"
+                        borderColor={
+                          driver.bgcolor === "yellow"
+                            ? "#2F80ED" // Orange border for yellow (pre-allocated) #F59E0B
+                            : "#2F80ED" // Blue border for blue (assigned)
+                        }
                         borderRadius="md"
                         w="100%"
                       >
@@ -446,30 +485,28 @@ const PaginationTable = <T extends object>({
                                     driver?.last_job_drop_at_today,
                                   )}
                                 </Badge>
-                                {driver?.no_max_length != null && (
-                                  <Badge
+                                {driver.bgcolor === "yellow" && (
+                                  <Button
+                                    type="button"
+                                    px={5}
+                                    py={1}
                                     colorScheme="blue"
-                                    variant="subtle"
-                                    fontSize="md"
+                                    fontSize="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onAssignClick && onAssignClick(driver);
+                                    }}
                                   >
-                                    L: {driver.no_max_length} M
-                                  </Badge>
+                                    Assign Jobs
+                                  </Button>
                                 )}
-                                {driver?.no_max_height != null && (
-                                  <Badge
-                                    colorScheme="blue"
-                                    variant="subtle"
-                                    fontSize="md"
-                                  >
-                                    H: {driver.no_max_height} M
-                                  </Badge>
-                                )}
+
                               </HStack>
                             </VStack>
                           </Box>
 
                           {/* CENTER — FIXED START POSITION */}
-                          <Box w="550px" flexShrink={0}>
+                          {/* <Box w="550px" flexShrink={0}>
                             {editingDriverId === driver?.id ? (
                               <HStack align="flex-start" spacing={2}>
                                 <Textarea
@@ -546,30 +583,32 @@ const PaginationTable = <T extends object>({
                                 )}
                               </Box>
                             )}
-                          </Box>
+                          </Box> */}
 
                           {/* RIGHT — PRICE */}
                           <Box minW="150px" textAlign="right">
-                            <>
-                              <Badge
-                                colorScheme="red"
-                                variant="subtle"
-                                fontSize="sm"
-                                mr={"4px"}
-                              >
-                                Today Price:{" "}
-                                {driver?.total_jobs_today_price ?? 0}
-                              </Badge>
+                            {driver.bgcolor === "blue" && (
+                              <>
+                                <Badge
+                                  colorScheme="red"
+                                  variant="subtle"
+                                  fontSize="sm"
+                                  mr={"4px"}
+                                >
+                                  Today Price:{" "}
+                                  {driver?.total_jobs_today_price ?? 0}
+                                </Badge>
 
-                              <Badge
-                                colorScheme="red"
-                                variant="subtle"
-                                fontSize="sm"
-                              >
-                                Weekly Price:{" "}
-                                {driver?.total_jobs_weekly_price ?? 0}
-                              </Badge>
-                            </>
+                                <Badge
+                                  colorScheme="red"
+                                  variant="subtle"
+                                  fontSize="sm"
+                                >
+                                  Weekly Price:{" "}
+                                  {driver?.total_jobs_weekly_price ?? 0}
+                                </Badge>
+                              </>
+                            )}
                           </Box>
                         </Flex>
 
@@ -638,12 +677,7 @@ const PaginationTable = <T extends object>({
                   </Tr>
                 )}
                 <Tr
-                  key={`data-row-${row.id || index}`}
-                  // key={`data-row-${row.id}`}
-                  // sx={{
-                  //   borderbottom: "2px solid",
-                  //   borderColor: "#020e1e !important",
-                  // }}
+                  key={`data-row-${row.id}`}
                   style={getStatusStyle(status)}
                   cursor={showRowSelection ? "pointer" : "default"}
                   onContextMenu={(e) => {
@@ -885,16 +919,6 @@ const PaginationTable = <T extends object>({
                         paddingRight={restyleTable && 2}
                         paddingInlineEnd={restyleTable && 2}
                         pr="20px"
-                        bg={
-                          cell.column.id === "timeslot" &&
-                          !["6", "7", "8", "9", "10"].includes(
-                            row?.original?.job?.job_status?.id,
-                          )
-                            ? (getTimeslotBgColor(
-                                row?.original?.job?.timeslot,
-                              ) ?? "transparent")
-                            : "transparent"
-                        }
                       >
                         {meta.type === "date" ? (
                           <Text>

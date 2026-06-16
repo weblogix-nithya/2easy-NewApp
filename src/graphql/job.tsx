@@ -1420,6 +1420,156 @@ export interface GroupedPaginatedJobsData {
   };
 }
 
+export interface PreAllocationPaginatedJobsData {
+  preAllocationJobs: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+    data: Array<{
+      driver: {
+        id: string;
+        full_name: string;
+        driver_no: string;
+        phone_no: string;
+        registration_no: string;
+        is_tailgated: boolean;
+        first_job_start_at_today: string | null;
+        last_job_drop_at_today: string | null;
+        no_max_volume: boolean;
+        no_max_capacity: boolean;
+        no_max_pallets: boolean;
+        bgcolor: string;
+        current_suburb: string;
+        total_jobs_today_price: number;
+        total_jobs_weekly_price: number;
+        cbm_summary_today: number;
+        weight_summary_today: number;
+      } | null;
+
+      job: {
+        id: string;
+        reference_no: string;
+        name: string;
+        driver_id: string | null;
+        preallocation_driver_id: string | null;
+
+        suburb_area: string | null;
+        pickup_quad: string | null;
+        delivery_quad: string | null;
+
+        weight_color: string | null;
+        volume_color: string | null;
+        area_color: string | null;
+
+        total_quantity: number;
+        total_weight: number;
+        total_volume: number;
+
+        is_inbound_connect: boolean;
+        is_hand_unloading: boolean;
+        is_dangerous_goods: boolean;
+        is_tailgate_required: boolean;
+        is_paperwork_required: boolean;
+
+        ready_at: string | null;
+        start_at: string | null;
+        drop_at: string | null;
+
+        pick_up_address: string;
+        last_free_at: string | null;
+        timeslot: string | null;
+
+        extras: string | null;
+        admin_notes: string | null;
+        customer_notes: string | null;
+
+        driver_pay: number | null;
+
+        job_type?: {
+          id: string;
+          name: string;
+        } | null;
+
+        job_status?: {
+          id: string;
+          name: string;
+        } | null;
+
+        driver?: {
+          id: string;
+          full_name: string;
+        } | null;
+
+        company?: {
+          id: string;
+          name: string;
+        } | null;
+
+        job_category?: {
+          id: string;
+          name: string;
+        } | null;
+
+        customer?: {
+          id: string;
+          full_name: string;
+        } | null;
+
+        meta: Array<{
+          id: string;
+          type: string;
+          name: string;
+          color: string;
+        }>;
+
+        job_items: Array<{
+          id: string;
+          quantity: number;
+          weight: number;
+          volume: number;
+          dimension_height: number | null;
+          dimension_depth: number | null;
+          dimension_width: number | null;
+          item_type?: {
+            id: string;
+            name: string;
+          } | null;
+        }>;
+
+        job_destinations: Array<{
+          id: string;
+          is_pickup: boolean;
+          is_saved_address: boolean;
+          address_line_1: string;
+          address_city: string;
+          address_state: string;
+          address_postal_code: string;
+          address_business_name: string | null;
+          updated_at: string;
+          arrived_at: string | null;
+
+          media: Array<{
+            name: string;
+            collection_name: string;
+            downloadable_url: string;
+          }>;
+        }>;
+
+        price_summary?: {
+          sub_total: number;
+          tax: number;
+          total: number;
+          charges: Array<{
+            name: string;
+            total: number;
+          }>;
+        } | null;
+      };
+    }>;
+  };
+}
+
 export interface GroupedPaginatedJobsVars {
   query?: string;
   page: number;
