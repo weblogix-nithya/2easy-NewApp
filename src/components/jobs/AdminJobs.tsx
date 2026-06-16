@@ -523,7 +523,6 @@ export default function JobIndex({}: // initialLoadOnly = false,
 
   useEffect(() => {
     if (is_filter_ticked == "1") {
-      let _jobFilter = jobFilter;
       const updatedValues: any = {};
       for (const key in defaultSelectedFilter) {
         if (
@@ -540,7 +539,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
         ...mainJobFilter,
       };
       setJobFilter(mergedJobFilter);
-      _jobFilter = mergedJobFilter;
+      // jobFilter = mergedJobFilter;
       if (displayName) setMainFilterDisplayNames(displayName);
       updateTags(updatedValues, mergedJobFilter);
     }

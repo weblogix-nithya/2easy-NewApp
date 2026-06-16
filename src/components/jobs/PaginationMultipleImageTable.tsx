@@ -65,7 +65,7 @@ const PaginationMultipleImageTable = <T extends object>({
   columns,
   data,
   isServerSide = false,
-  options,
+  // options,
   setQueryPageIndex,
   setQueryPageSize,
   onDelete,

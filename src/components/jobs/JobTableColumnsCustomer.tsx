@@ -1,5 +1,5 @@
 import { Flex, Link, Text } from "@chakra-ui/react";
-import IndeterminateCheckbox from "@/components/table/IndeterminateCheckbox";
+// import IndeterminateCheckbox from "@/components/table/IndeterminateCheckbox";
 import { formatAddress, formatDate } from "@/lib/helpers/helper";
 import Image from "next/image";
 import React from "react";

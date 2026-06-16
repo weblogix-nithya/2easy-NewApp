@@ -1,6 +1,6 @@
 "use client";
 
-import { useLazyQuery, useQuery } from "@apollo/client";
+// import { useLazyQuery, useQuery } from "@apollo/client";
 import {
   Avatar,
   Badge,
@@ -32,6 +32,8 @@ import { useParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
 import AdminLayout from "@/layouts/admin";
+import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
+import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
 export default function TrackingJob() {
   const params = useParams();
@@ -97,12 +99,12 @@ export default function TrackingJob() {
   const {
     loading: jobLoading,
     data: jobData,
-  } = useQuery(GET_JOB_QUERY, {
+  } = useApolloQueryWithEffect(GET_JOB_QUERY, {
     variables: {
       id: jobId,
     },
     skip: !jobId,
-    onCompleted: (data) => {
+    onCompleted: (data: any) => {
       const localDate = formatDate(data?.job?.ready_at);
       getDriverCurrentRoutes({
         variables: {
@@ -123,10 +125,10 @@ export default function TrackingJob() {
   const [
     getDriverCurrentRoutes,
     { data: driverCurrentRoutesData, loading: loadingDriverCurrentRoutes },
-  ] = useLazyQuery(GET_DRIVER_CURRENT_ROUTE_QUERY, {
+  ] = useApolloLazyQueryWithEffect(GET_DRIVER_CURRENT_ROUTE_QUERY, {
     pollInterval: pollingSpeed,
     notifyOnNetworkStatusChange: true,
-    onCompleted: (data) => {
+    onCompleted: (data: any) => {
       if (data.routes.data.length > 0) {
         const route = data.routes.data[0];
         const routePoints = route.route_points.filter(
