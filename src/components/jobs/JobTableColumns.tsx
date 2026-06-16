@@ -39,6 +39,7 @@ import { MdMenu } from "react-icons/md";
 import { RootState } from "@/lib/store/store";
 import { useRouter } from "next/navigation";
 import { EditIcon } from "@chakra-ui/icons";
+import { useSelector } from "react-redux";
 
 export const isAdmin = (state: RootState) => state.user.isAdmin;
 export const isCustomer = (state: RootState) => state.user.isCustomer;
@@ -100,6 +101,138 @@ export const JobDestinationsCell = ({ row }: any) => {
   );
 };
 
+export function formatAddressLines(dest: any) {
+  // console.log(dest);
+  if (!dest) {
+    return {
+      firstLine: "-",
+      secondLine: "-",
+    };
+  }
+  const firstLine = dest.address_business_name || dest.address_line_1 || "-";
+
+  const addressParts = [
+    dest?.address_line_1 || null,
+    dest?.address_city || null,
+    dest?.address_postal_code || null,
+  ].filter(Boolean);
+
+  const secondLine = dest.address_business_name
+    ? `${dest.address_business_name}\n${addressParts.join(", ")}`
+    : addressParts.join(", ");
+
+  return { firstLine, secondLine };
+}
+export const PickupAddressWithTimewithoutMediacustomerCell = ({ row }: any) => {
+  const companyId = useSelector((state: RootState) => state.user.companyId);
+
+  console.log(row, "rows p");
+  const pickupDest = row?.original?.job_destinations?.find(
+    (dest: any) => dest.is_pickup === true,
+  );
+  const showPickupTime =
+    row?.original?.job_status?.id == 4 ||
+    row?.original?.job_status?.id == 5 ||
+    row?.original?.job_status?.id == 6 ||
+    row?.original?.job_status?.id == 7;
+  const showfullAddress =
+    Number(row?.original?.company_id) === Number(companyId);
+  return (
+    <>
+      {pickupDest?.pickup_at && showPickupTime && (
+        <>
+          <Text fontSize="md" color="blue.600" mb={1}>
+            Arrival time:{" "}
+            {formatDate(pickupDest.arrived_at, "HH:mm, DD/MM/YYYY")}
+          </Text>
+          <Text fontSize="md" color="red.600" mb={1}>
+            Collection time:{" "}
+            {formatDate(pickupDest.pickup_at, "HH:mm, DD/MM/YYYY")}
+          </Text>
+        </>
+      )}
+      {showfullAddress ? (
+        <Text
+          whiteSpace="pre-wrap"
+          mb="2"
+          minWidth={"300px"}
+          flexWrap={"nowrap"}
+        >
+          {pickupDest?.is_saved_address
+            ? formatAddressLines(pickupDest).firstLine
+            : formatAddressLines(pickupDest).secondLine}
+        </Text>
+      ) : (
+        <Text
+          whiteSpace="pre-wrap"
+          mb="2"
+          minWidth={"300px"}
+          flexWrap={"nowrap"}
+        >
+          {pickupDest?.address_city}, {pickupDest?.address_postal_code}
+        </Text>
+      )}
+    </>
+  );
+};
+export const TimeslotCustomerCell = ({ row }: any) => {
+  return (
+    <Flex gap={2}>
+      <Text minW="150px">{row?.original?.timeslot || "-"}</Text>
+    </Flex>
+  );
+};
+export const DeliveryAddressWithTimebulkCustomerCell = ({ row }: any) => {
+  const companyId = useSelector((state: RootState) => state.user.companyId);
+
+  const pickupDest = row?.original?.job_destinations?.find(
+    (dest: any) => dest.is_pickup === false,
+  );
+  const showPickupTime =
+    row?.original?.job_status?.id == 4 ||
+    row?.original?.job_status?.id == 5 ||
+    row?.original?.job_status?.id == 6 ||
+    row?.original?.job_status?.id == 7;
+  const showfullAddress =
+    Number(row?.original?.company_id) === Number(companyId);
+  return (
+    <>
+      {pickupDest?.pickup_at && showPickupTime && (
+        <>
+          <Text fontSize="md" color="blue.600" mb={1}>
+            Arrival time:{" "}
+            {formatDate(pickupDest.arrived_at, "HH:mm, DD/MM/YYYY")}
+          </Text>
+          <Text fontSize="md" color="red.600" mb={1}>
+            Collection time:{" "}
+            {formatDate(pickupDest.pickup_at, "HH:mm, DD/MM/YYYY")}
+          </Text>
+        </>
+      )}
+      {showfullAddress ? (
+        <Text
+          whiteSpace="pre-wrap"
+          mb="2"
+          minWidth={"300px"}
+          flexWrap={"nowrap"}
+        >
+          {pickupDest?.is_saved_address
+            ? formatAddressLines(pickupDest).firstLine
+            : formatAddressLines(pickupDest).secondLine}
+        </Text>
+      ) : (
+        <Text
+          whiteSpace="pre-wrap"
+          mb="2"
+          minWidth={"300px"}
+          flexWrap={"nowrap"}
+        >
+          {pickupDest?.address_city}, {pickupDest?.address_postal_code}
+        </Text>
+      )}
+    </>
+  );
+};
 export const JobDestinationsCellExport = ({ row }: any) => {
   const filteredDestinations = row?.original?.job?.job_destinations.filter(
     (destination: any) => destination.is_pickup === false,
@@ -116,7 +249,7 @@ export const JobDestinationBusinessNameCell = ({ row }: any) => {
 
   return (
     <>
-      <Text minW="130px" maxW="170px">
+      <Text minW="180px" maxW="190px">
         {filteredDestinations[0]?.address_business_name || "-"}
       </Text>
     </>
@@ -319,10 +452,10 @@ export const PickupAddressWithTimewithoutMediaCell = ({ row }: any) => {
           </Text>
         </>
       )}
+      <Text>{pickupDest?.address_business_name || "-"}</Text>
       <Text mb="2" minWidth={"300px"} flexWrap={"nowrap"}>
         {`${pickupDest?.address_line_1}, ${pickupDest?.address_city}, ${pickupDest?.address_postal_code}`}
       </Text>
-      <Text>{pickupDest?.address_business_name || "-"}</Text>
     </>
   );
 };
@@ -357,12 +490,12 @@ export const JobDestinationWithBusinessNamewithoutMediaCell = ({
           </Text>
         </>
       )}
+      <Text>{filteredDestinations[0]?.address_business_name || "-"}</Text>
       <Text isTruncated w={"fit-content"}>
         {filteredDestinations.length > 0
           ? `${filteredDestinations[0].address_line_1}, ${filteredDestinations[0].address_city}, ${filteredDestinations[0].address_postal_code}`
           : "-"}
       </Text>
-      <Text>{filteredDestinations[0]?.address_business_name || "-"}</Text>
     </>
   );
 };
@@ -388,7 +521,7 @@ export const ReadyDropByCellExport = ({ row }: any) =>
     R: ${formatTime(row?.original?.job?.ready_at)}\n
     D: ${formatTime(row?.original?.job?.drop_at)}`;
 
-export const NotesCell = ({ row }: any) => {
+export const NotesCell = ({ row, refetchJobs }: any) => {
   const current = row?.original?.job?.customer_notes ?? "";
   const [display, setDisplay] = React.useState(current);
 
@@ -398,7 +531,7 @@ export const NotesCell = ({ row }: any) => {
 
   return (
     <Flex gap={2} align="center">
-      <Text maxW="200px" noOfLines={3}>
+      <Text minW="150px" noOfLines={3}>
         {display || "-"}
       </Text>
       <EditableFieldPopover
@@ -406,11 +539,34 @@ export const NotesCell = ({ row }: any) => {
         field="customer_notes"
         triggerAriaLabel="Edit customer notes"
         onSaved={setDisplay}
+        refetchJobs={refetchJobs}
       />
     </Flex>
   );
 };
+export const TotalPrice = ({ row }: any) => {
+  const subTotal = Number(row?.original?.job?.price_summary?.sub_total || 0);
+  const tax = Number(row?.original?.job?.price_summary?.tax || 0);
+  const total = Number(row?.original?.job?.price_summary?.total || 0);
+  const driverPay = Number(row?.original?.job?.driver_pay || 0);
+  const driverId = row?.original?.job?.driver_id;
+  const isAllZero = subTotal === 0 && tax === 0 && total === 0;
 
+  return (
+    <>
+      <Text fontSize="md" w="180px">
+        {isAllZero ? "Invoice: 0" : `Invoice: ${subTotal} + ${tax}= $${total}`}
+      </Text>
+
+      {/* {driverId && ( */}
+      {driverId !== null && driverId !== undefined && (
+        <Text fontSize="md" w="180px">
+          Driver Pay: $ {driverPay}
+        </Text>
+      )}
+    </>
+  );
+};
 export const ItemsTypeCell = ({ row }: any) => {
   const items = row?.original?.job?.job_items;
   return (
@@ -502,11 +658,33 @@ export const ItemsCbmCell = ({ row }: any) => {
   );
 };
 export const ItemsExtrasCell = ({ row }: any) => {
-  return <Text maxW="100px">{row?.original?.job?.extras || "-"}</Text>;
+  return (
+    <Text
+      minW="140px"
+      fontSize="26px"
+      whiteSpace="nowrap"
+      fontWeight="800"
+      letterSpacing="1.5px"
+      textAlign="center"
+      color="white"
+      textShadow="
+        2px 2px 0 rgba(0,0,0,0.95),
+        4px 4px 6px rgba(0,0,0,0.65)
+      "
+    >
+      {row?.original?.job?.extras || "-"}
+    </Text>
+  );
+};
+
+export const ItemsExtrasCellExport = ({ row }: any) => {
+  return `${row?.original?.job?.extras ? `${row.original.job.extras}` : "-"}`;
 };
 
 export const DriverCell = ({ row }: any) => {
-  return <Text>{row?.original?.job?.driver?.full_name || "-"}</Text>;
+  return (
+    <Text minW="130px">{row?.original?.job?.driver?.full_name || "-"}</Text>
+  );
 };
 export const ItemsCbmCellExport = ({ row }: any) => {
   const items = row?.original?.job?.job_items;
@@ -517,7 +695,7 @@ export const ItemsCbmCellExport = ({ row }: any) => {
 export const BookedByCell = ({ row }: any) => {
   const name = row?.original?.job?.company?.name || "-";
   return (
-    <Text maxW="150px" minW="100px">
+    <Text maxW="150px" minW="130px">
       {name}
     </Text>
   );
@@ -592,12 +770,22 @@ export const StatusCell = ({ row }: any) => {
 
 export const ReadyAtCell = ({ row }: any) => {
   return (
-    <Text maxW="150px" minW="100px">
-      {row?.original?.job?.drop_at || "-"}
-      {/* it wa ready_at date initially, as client asked for jobdrop_at, changed it to drop_at */}
-    </Text>
+    <Flex direction="column" gap={1} minWidth="210px">
+      <Text fontSize="md" fontWeight="500">
+        Created Date: {formatDate(row?.original?.job?.created_at) || "-"}
+      </Text>
+      <Text fontSize="md">
+        Scheduled Date: {formatDate(row?.original?.job?.drop_at) || "-"}
+        {/* It was ready_at initially, changed to drop_at as per client request,now adding both  */}
+      </Text>
+    </Flex>
   );
 };
+export const ReadyAtCellExport = ({ row }: any) =>
+  `Created Date: ${
+    formatDate(row?.original?.job?.created_at) || "-"
+  } | Scheduled Date: ${formatDate(row?.original?.job?.drop_at) || "-"}`;
+
 export const LastFreeAtCell = ({ row }: any) => {
   // console.log(row.original.job,"sa")
   return (
@@ -606,12 +794,16 @@ export const LastFreeAtCell = ({ row }: any) => {
     </Text>
   );
 };
+export const LastFreeAtCellExport = ({ row }: any) =>
+  `${
+    row?.original?.job?.last_free_at ? `${row.original.job.last_free_at}` : "-"
+  }`;
 export const PickupBusinessNameCell = ({ row }: any) => {
   const pickupDest = row?.original?.job?.job_destinations?.find(
     (dest: any) => dest.is_pickup === true,
   );
   return (
-    <Text maxW="150px" minW="100px">
+    <Text maxW="190px" minW="190px">
       {pickupDest?.address_business_name || "-"}
     </Text>
   );
@@ -637,18 +829,11 @@ export const PickupAddressCell = ({ row }: any) => {
 };
 
 export const CustomerReferenceCell = ({ row }: any) => {
-  return (
-    <Text maxW="100px" noOfLines={2}>
-      {" "}
-      {row?.original?.job?.reference_no || "-"}
-    </Text>
-  );
+  return <Text noOfLines={2}> {row?.original?.job?.reference_no || "-"}</Text>;
 };
 
 export const CategoryCell = ({ row }: any) => {
-  return (
-    <Text maxW="100px">{row?.original?.job?.job_category?.name || "-"}</Text>
-  );
+  return <Text>{row?.original?.job?.job_category?.name || "-"}</Text>;
 };
 type JobLabel = {
   id: number;
@@ -712,8 +897,48 @@ export const DeliveryCell = ({ row }: any) => {
     </>
   );
 };
+type Props = {
+  row: any;
+};
+export const DeliveryTrackingCell = ({ row }: Props) => {
+  const job = row?.original;
 
-export const AdminNotesCell = ({ row }: any) => {
+  console.log(row, "rowss");
+  const labels: JobLabel[] = Array.isArray(job?.meta) ? job.meta : [];
+  const getBadgeStyle = (color?: string) => {
+    if (!color)
+      return { bg: "gray", color: "#fff", boxShadow: `0 0 0 1px ${color}` };
+    if (color.startsWith("#")) {
+      return { bg: `${color}`, color: `#fff`, boxShadow: `0 0 0 1px ${color}` };
+    }
+    return { bg: `${color}`, color: `#fff`, boxShadow: `0 0 0 1px ${color}` };
+  };
+
+  return (
+    <>
+      {labels.length > 0 && (
+        <VStack align="start" spacing="4px" mb="10px">
+          {labels.map((label) => (
+            <Badge
+              key={label.id}
+              fontSize="12px"
+              px="8px"
+              py="2px"
+              borderRadius="4px"
+              whiteSpace="nowrap"
+              {...getBadgeStyle(label.color)}
+            >
+              {label?.name}
+            </Badge>
+          ))}
+        </VStack>
+      )}
+      <Text>{row.original.name} </Text>
+    </>
+  );
+};
+
+export const AdminNotesCell = ({ row, refetchJobs }: any) => {
   const current = row?.original?.job?.admin_notes ?? "";
   const [display, setDisplay] = React.useState(current);
 
@@ -732,6 +957,7 @@ export const AdminNotesCell = ({ row }: any) => {
         multiline
         triggerAriaLabel="Edit admin notes"
         onSaved={setDisplay}
+        refetchJobs={refetchJobs}
       />
     </Flex>
   );
@@ -740,7 +966,18 @@ export const AdminNotesCell = ({ row }: any) => {
 export const TimeslotCell = ({ row, refetchJobs }: any) => {
   return (
     <Flex gap={2} align="center">
-      <Text maxW="140px" noOfLines={1}>
+      <Text
+        minW="150px"
+        fontSize="28px"
+        fontWeight="900"
+        letterSpacing="2px"
+        textAlign="center"
+        color="white"
+        textShadow="
+    2px 2px 0 rgba(0,0,0,0.85),
+    3px 3px 6px rgba(0,0,0,0.6)
+  "
+      >
         {row?.original?.job?.timeslot || "-"}
       </Text>
       <EditableFieldPopover
@@ -788,7 +1025,6 @@ export const tableColumn = (refetchJobs: () => void) => [
     id: "name",
     header: "Delivery ID",
     cell: DeliveryCell,
-    // width: "100px",
   },
   {
     id: "company.name",
@@ -809,25 +1045,25 @@ export const tableColumn = (refetchJobs: () => void) => [
   {
     id: "job_type.name",
     header: "Type",
-    cell: JobTypeCell, // Add this line
+    cell: JobTypeCell,
     // width: "100px",
   },
   {
     id: "job_status.name",
     header: "Status",
-    cell: StatusCell, // Add this line
+    cell: StatusCell,
     // width: "100px",
   },
   {
     id: "ready_at",
     header: "Date",
-    cell: ReadyAtCell, // Add this line
+    cell: ReadyAtCell,
     // type: "date",
   },
   {
     id: "pick_up_destination.address_formatted",
     header: "Pickup From",
-    cell: PickupAddressCell, // Add this line
+    cell: PickupAddressCell,
     // width: "150px",
   },
   // {
@@ -840,12 +1076,12 @@ export const tableColumn = (refetchJobs: () => void) => [
   {
     id: "pick_up_destination.address_business_name",
     header: "Pickup Business Name",
-    cell: PickupBusinessNameCell, // Add this line
+    cell: PickupBusinessNameCell,
   },
   {
     id: "job_destinations.address",
     header: "Delivery Address",
-    width: "100px",
+    // width: "100px",
     cell: JobDestinationsCell,
     CellExport: JobDestinationsCellExport,
   },
@@ -877,7 +1113,7 @@ export const tableColumn = (refetchJobs: () => void) => [
   {
     id: "last_free_at",
     header: "Last Free Day",
-    cell: LastFreeAtCell, // Add this line
+    cell: LastFreeAtCell,
     // type: "date",
   },
   {
@@ -922,6 +1158,11 @@ export const tableColumn = (refetchJobs: () => void) => [
     cell: NotesCell,
   },
   {
+    id: "job_price_calculation_detail.total",
+    header: "Total Price",
+    cell: TotalPrice,
+  },
+  {
     id: "driver.full_name",
     header: "Drivers",
     cell: DriverCell,
@@ -940,7 +1181,7 @@ export const getColumns = (
   isAdmin: boolean,
   isCustomer: boolean,
   withMedia: boolean,
-  refetchJobs?: () => void,
+  refetchGroupedJobs?: () => void,
   dynamicTableUsers?: DynamicTableUser[],
 ) => {
   // 1) Selection checkbox column
@@ -976,7 +1217,7 @@ export const getColumns = (
   if (dynamicTableUsers === undefined) {
     const cols = uniqueById([
       ...base,
-      ...tableColumn(refetchJobs), // your static defaults
+      ...tableColumn(refetchGroupedJobs), // your static defaults
       {
         id: "actions",
         header: "Actions",
@@ -994,7 +1235,7 @@ export const getColumns = (
   // NOTE: outputDynamicTable should only include columns that are active:true.
   let columns = [
     ...base,
-    ...outputDynamicTable(dynamicTableUsers, tableColumn(refetchJobs)),
+    ...outputDynamicTable(dynamicTableUsers, tableColumn(refetchGroupedJobs)),
   ];
 
   // 4) Swap only the Cell for the 2 special fields based on withMedia
@@ -1023,14 +1264,7 @@ export const bulkassigntableColumn = [
     cell: DeliveryCell,
     // width: "100px",
   },
-  // {
-  //   id: "company.name",
-  //   header: "Booked By",
-    
-  //   cell: BookedByCell, // Use the new cell component
-  //   // CellExport: BookedByCellExport,
-  // },
-    {
+  {
     id: "company.name",
     accessorFn: (row) => row.job?.company?.name,
     header: "Booked By",
@@ -1049,25 +1283,24 @@ export const bulkassigntableColumn = [
   {
     id: "job_type.name",
     header: "Type",
-    cell: JobTypeCell, // Add this line
-    // width: "100px",
+    cell: JobTypeCell,
   },
   {
     id: "job_status.name",
     header: "Status",
-    cell: StatusCell, // Add this line
+    cell: StatusCell,
     // width: "100px",
   },
   {
     id: "ready_at",
     header: "Date",
-    cell: ReadyAtCell, // Add this line
+    cell: ReadyAtCell,
     // type: "date",
   },
   {
     id: "pick_up_destination.address_formatted",
     header: "Pickup From",
-    cell: PickupAddressCell, // Add this line
+    cell: PickupAddressCell,
     // width: "150px",
   },
   {
@@ -1086,7 +1319,7 @@ export const bulkassigntableColumn = [
   {
     id: "pick_up_destination.address_business_name",
     header: "Pickup Business Name",
-    cell: PickupBusinessNameCell, // Add this line
+    cell: PickupBusinessNameCell,
   },
   {
     id: "job_destinations.address",
@@ -1110,13 +1343,13 @@ export const bulkassigntableColumn = [
   {
     id: "timeslot",
     header: "Timeslot",
-    cell: TimeslotCell, // Add this line
+    cell: TimeslotCell,
     // width: "50px",
   },
   {
     id: "last_free_at",
     header: "Last Free Day",
-    cell: LastFreeAtCell, // Add this line
+    cell: LastFreeAtCell,
     // type: "date",
   },
   {
@@ -1212,7 +1445,7 @@ export const getBulkAssignColumns = (
     {
       id: "order",
       header: "",
-      cell: ({ }: any) => (
+      cell: ({}: any) => (
         <div>
           <Icon as={MdMenu} h="16px" w="16px" me="8px" />
         </div>

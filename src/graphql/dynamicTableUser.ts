@@ -10,6 +10,7 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
     $orderByColumn: String!
     $orderByOrder: SortOrder!
     $user_id: ID
+    $table_name: String
   ) {
     dynamicTableUsers(
         query: $query
@@ -17,6 +18,7 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
         first: $first
         orderBy: { column: $orderByColumn, order: $orderByOrder }
         user_id: $user_id
+        table_name: $table_name
     ) {
       data {
         id

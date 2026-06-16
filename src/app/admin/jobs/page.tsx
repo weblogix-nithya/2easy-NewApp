@@ -10,9 +10,7 @@ export default function JobsPage() {
     (state: RootState) => state.user
   );
   const isAdminUser = isAdmin || isSubAdmin;
-
-  // if (loading) return <div>Loading...</div>;
-
+  console.log( isAdmin,isSubAdmin, isCustomer,'clg')
   if (isAdminUser) return <AdminJobs />;
   if (isCustomer) return <CustomerJobs />;
 

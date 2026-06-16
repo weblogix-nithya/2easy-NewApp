@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 import { parseCookies } from "nookies";
 import React, { useEffect } from "react";
 
-
-export default async function Page() {
-
+//In Next.js App Router, a client component cannot be async. That is exactly the error:
+// export default async function Page() {
+export default function Page() {
   const cookies = parseCookies();
   const token = cookies.access_token ? cookies.access_token : null;
   console.log("tokentoken",token,cookies)

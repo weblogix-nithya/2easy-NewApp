@@ -12,6 +12,14 @@ export function formatDate(date: any, format: string = "YYYY-MM-DD") {
   return moment.utc(date).local().format(format);
 }
 
+export function jobformatDate(date: Date, isStart: boolean): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const time = isStart ? "00:00:00" : "23:59:59";
+  return `${year}-${month}-${day} ${time}`;
+}
+
 export function formatedDate(date: any, format: string = "YYYY-MM-DD") {
   return moment.utc(date).local().format(format);
 }
@@ -445,3 +453,32 @@ export async function getTimezone(lat: number, lng: number) {
   return data.timeZoneId;
 }
 
+
+export function getTimeDifferenceInMinutes(
+  time: string | null | undefined,
+): number | null {
+  if (!time) return null;
+
+  const match = time.trim().match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+  if (!match) return null; // if not our format → ignore
+
+  let hour = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
+
+  // Convert to 24hr internally for comparison
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+
+  const now = new Date();
+  const target = new Date();
+
+  target.setHours(hour);
+  target.setMinutes(minutes);
+  target.setSeconds(0);
+
+  const diffMs = target.getTime() - now.getTime();
+  if (diffMs <= 0) return null;
+
+  return diffMs / (1000 * 60);
+}
