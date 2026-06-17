@@ -40,6 +40,15 @@ export function TrackingMap({
   const rightSideBarRoute = useSelector(
     (state: RootState) => state.rightSideBar.route,
   );
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(
+    null,
+  );
+
+  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(
+    null,
+  );
+
+  console.log("TrackingMap Render");
 
   useEffect(() => {
     if (window.google && window.google.maps) {
@@ -61,6 +70,7 @@ export function TrackingMap({
           });
         });
       }
+
       console.log("Init Map");
     } else {
       console.error("Google Maps API is not loaded.");
@@ -73,8 +83,8 @@ export function TrackingMap({
       console.error("Google Maps API is not loaded.");
       return;
     }
-    console.log(driversRef.current);
-    console.log(drivers);
+    console.log("DRIVERS EFFECT", drivers?.length);
+
     // Clear existing driver markers
     driversRef.current.forEach((driver) => driver.setMap(null));
     driversRef.current = [];
@@ -103,6 +113,7 @@ export function TrackingMap({
   }, [drivers]);
 
   useEffect(() => {
+    console.log("MARKERS EFFECT", markers?.length);
     if (!window.google || !window.google.maps) {
       console.error("Google Maps API is not loaded.");
       return;
@@ -142,13 +153,24 @@ export function TrackingMap({
       }
     });
 
-    const directionsService = new google.maps.DirectionsService();
-    const directionsDisplay = new google.maps.DirectionsRenderer({
-      map: mapInstance.current,
-      suppressMarkers: true,
-      suppressInfoWindows: true,
-    });
+    // const directionsService = new google.maps.DirectionsService();
+    // const directionsDisplay = new google.maps.DirectionsRenderer({
+    //   map: mapInstance.current,
+    //   suppressMarkers: true,
+    //   suppressInfoWindows: true,
+    // });
+    if (!directionsServiceRef.current) {
+      directionsServiceRef.current = new google.maps.DirectionsService();
+    }
 
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        map: mapInstance.current,
+        suppressMarkers: true,
+        suppressInfoWindows: true,
+      });
+    }
+    // directionsRendererRef.current?.setDirections(response);
     const googleMarkers = markersRef.current;
     // 23 waypoints max
     if (
@@ -156,7 +178,7 @@ export function TrackingMap({
       googleMarkers.length > 1 &&
       (isRouting || rightSideBarJob != null || rightSideBarRoute != null)
     ) {
-      directionsService.route(
+      directionsServiceRef.current.route(
         {
           origin: {
             lat: googleMarkers[0].getPosition().lat(),
@@ -173,8 +195,8 @@ export function TrackingMap({
           travelMode: google.maps.TravelMode.DRIVING,
         },
         function (response, status) {
-          if (status == google.maps.DirectionsStatus.OK) {
-            directionsDisplay.setDirections(response);
+          if (status === google.maps.DirectionsStatus.OK) {
+            directionsRendererRef.current?.setDirections(response);
           } else {
             toast({
               title: "No route or jobs found",
@@ -186,9 +208,15 @@ export function TrackingMap({
         },
       );
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markers]);
 
+  useEffect(() => {
+    return () => {
+      directionsRendererRef.current?.setMap(null);
+    };
+  }, []);
   return (
     <div style={{ height: "100vh", width: "100%" }}>
       <div ref={mapRef} id="map" style={{ height: "100%", width: "100%" }} />

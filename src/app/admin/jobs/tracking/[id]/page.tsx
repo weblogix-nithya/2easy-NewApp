@@ -53,7 +53,6 @@ import moment from "moment";
 import { useParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
-// import AdminLayout from "@/layouts/admin";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 import GoogleMapProvider from "@/components/providers/GoogleMapProvider";
@@ -69,14 +68,6 @@ export default function TrackingJob() {
   const [markers, setMarkers] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [pollingSpeed, setPollingSpeed] = useState(60000);
-
-  // refs to keep previous values for comparison to avoid unnecessary setState
-  const prevCenterRef = React.useRef<any>(null);
-  const prevMarkersRef = React.useRef<any[]>([]);
-  const prevDriversRef = React.useRef<any[]>([]);
-  const prevRoutePointsRef = React.useRef<any[]>([]);
-  const pollingStartedRef = React.useRef<boolean>(false);
-  const renderCountRef = React.useRef<number>(0);
 
   const Columns = useMemo(
     () => [
@@ -168,6 +159,7 @@ export default function TrackingJob() {
     pollInterval: pollingSpeed,
     notifyOnNetworkStatusChange: true,
     onCompleted: (data: any) => {
+        console.log("ROUTES QUERY COMPLETED");
       if (data.routes.data.length > 0) {
         const route = data.routes.data[0];
         const routePoints = route.route_points.filter(
@@ -189,65 +181,21 @@ export default function TrackingJob() {
             data: route.driver,
           },
         ];
-
-        // only update routePoints if ids changed or length differs
-        const routePointsIds = routePoints.map((p: any) => p.id).join(",");
-        const prevRoutePointsIds = prevRoutePointsRef.current.map((p: any) => p.id).join(",");
-        if (routePointsIds !== prevRoutePointsIds) {
-          console.debug("Updating routePoints", { prevRoutePointsIds, routePointsIds });
-          setRoutePoints(routePoints);
-          prevRoutePointsRef.current = routePoints;
-        } else {
-          console.debug("routePoints unchanged");
-        }
-
-        // markers: compare by lat/lng/icon
-        const markersEqual = (a: any[], b: any[]) => {
-          if (a.length !== b.length) return false;
-          for (let i = 0; i < a.length; i++) {
-            if (a[i].lat !== b[i].lat || a[i].lng !== b[i].lng || a[i].icon !== b[i].icon) return false;
-          }
-          return true;
-        };
-
-        if (!markersEqual(markers, prevMarkersRef.current)) {
-          console.debug("Updating markers", { prevCount: prevMarkersRef.current.length, newCount: markers.length });
-          setMarkers(markers);
-          prevMarkersRef.current = markers;
-        } else {
-          console.debug("markers unchanged");
-        }
-
-        // drivers: compare by lat/lng/icon
-        const driversEqual = (a: any[], b: any[]) => {
-          if (a.length !== b.length) return false;
-          for (let i = 0; i < a.length; i++) {
-            if (a[i].lat !== b[i].lat || a[i].lng !== b[i].lng || a[i].icon !== b[i].icon) return false;
-          }
-          return true;
-        };
-
-        if (!driversEqual(drivers, prevDriversRef.current)) {
-          console.debug("Updating drivers", { prev: prevDriversRef.current, new: drivers });
-          setDrivers(drivers);
-          prevDriversRef.current = drivers;
-        } else {
-          console.debug("drivers unchanged");
-        }
-
-        // center: only set if changed
-        const newCenter = {
+console.log("SET ROUTE POINTS");
+        setRoutePoints(routePoints);
+        console.log("SET MARKERS");
+        setMarkers(markers);
+        console.log(
+  "SETTING MARKERS",
+  JSON.stringify(markers)
+);
+        console.log("SET CENTER");
+        setCenter({
           lat: australianStates[1].lat,
           lng: australianStates[1].lng,
-        };
-        const prevCenter = prevCenterRef.current;
-        if (!prevCenter || prevCenter.lat !== newCenter.lat || prevCenter.lng !== newCenter.lng) {
-          console.debug("Updating center", { prevCenter, newCenter });
-          setCenter(newCenter);
-          prevCenterRef.current = newCenter;
-        } else {
-          console.debug("center unchanged");
-        }
+        });
+console.log("SET DRIVERS");
+        setDrivers(drivers);
       } else {
         setRoutePoints([]);
         setMarkers([]);
@@ -256,32 +204,17 @@ export default function TrackingJob() {
   });
 
   useEffect(() => {
-    if (called && startPolling && !pollingStartedRef.current) {
-      startPolling(pollingSpeed);
-      pollingStartedRef.current = true;
-    }
+    console.log("POLLING EFFECT");
 
-    return () => {
-      if (pollingStartedRef.current) {
+    if (called && startPolling) {
+      startPolling(pollingSpeed);
+      return () => {
+        console.log("STOP POLLING");
         stopPolling?.();
-        pollingStartedRef.current = false;
-      }
-    };
-  }, [startPolling, stopPolling, called, pollingSpeed]);
-
-  // when polling speed changes, restart polling with new interval if already started
-  useEffect(() => {
-    if (pollingStartedRef.current && startPolling && stopPolling) {
-      stopPolling();
-      startPolling(pollingSpeed);
+      };
     }
-  }, [pollingSpeed, startPolling, stopPolling]);
-
-  // render counter for debugging re-renders
-  useEffect(() => {
-    renderCountRef.current += 1;
-    console.debug("TrackingJob render#", renderCountRef.current);
-  });
+    return;
+  }, [pollingSpeed, startPolling, stopPolling, called]);
 
   const groupedJobs = useMemo(() => {
     const grouped = Object.values(
@@ -308,216 +241,214 @@ export default function TrackingJob() {
 
   return (
     <GoogleMapProvider>
-        <Box
-          className="mk-customers-id overflow-auto"
-          pt={{ base: "130px", md: "97px", xl: "97px" }}
-          backgroundColor="white"
+      <Box
+        className="mk-customers-id overflow-auto"
+        pt={{ base: "130px", md: "97px", xl: "97px" }}
+        backgroundColor="white"
+      >
+        <Grid
+          pr="24px"
+          className="mk-mainInner"
+          h={{
+            base: "calc(100vh - 130px)",
+            md: "calc(100vh - 97px)",
+            xl: "calc(100vh - 97px)",
+          }}
         >
-          <Grid
-            pr="24px"
-            className="mk-mainInner"
-            h={{
-              base: "calc(100vh - 130px)",
-              md: "calc(100vh - 97px)",
-              xl: "calc(100vh - 97px)",
-            }}
-          >
-            {!jobLoading && jobData && (
-              <Grid backgroundColor="white">
-                <Flex className="my-8 pl-6 justify-between">
-                  <Box>
-                    <h1>Track Delivery</h1>
-                  </Box>
-                  <Box>
-                    <Tooltip
-                      label={`Current polling speed ${pollingSpeed / 1000}s`}
-                    >
-                      <IconButton
-                        m={{ base: "2px" }}
-                        aria-label="Toggle polling speed"
-                        className="text-[var(--chakra-colors-primary-400)] float-right"
-                        icon={<FontAwesomeIcon icon={faBoltLightning} />}
-                        onClick={() => {
-                          setPollingSpeed(
-                            pollingSpeed === 60000 ? 10000 : 60000,
-                          );
-                        }}
-                        colorScheme={pollingSpeed === 10000 ? "blue" : "gray"}
-                      />
-                    </Tooltip>
-                  </Box>
-                </Flex>
-
-                {hasUnsortedJobs && (
-                  <Badge colorScheme="orange" mb={2}>
-                    ⚠ Some jobs have not been sorted yet
-                  </Badge>
-                )}
-                <Grid
-                  templateAreas={`"nav main"`}
-                  gridTemplateRows="1fr 30px"
-                  gridTemplateColumns={{
-                    base: "1fr",
-                    md: "minmax(300px, 50%) 50%",
-                  }}
-                  gap="1px"
-                  color="blackAlpha.700"
-                  fontWeight="bold"
-                  className="mk-job-allocation-wrap overflow-hidden"
-                >
-                  <GridItem
-                    area="nav"
-                    className="job-list-column h-full overflow-auto pt-4 border-t"
-                    sx={{ height: "calc(100vh - 186px)" }}
+          {!jobLoading && jobData && (
+            <Grid backgroundColor="white">
+              <Flex className="my-8 pl-6 justify-between">
+                <Box>
+                  <h1>Track Delivery</h1>
+                </Box>
+                <Box>
+                  <Tooltip
+                    label={`Current polling speed ${pollingSpeed / 1000}s`}
                   >
-                    <Box className="px-6">
-                      <Flex justify="space-between" align="flex-start" gap={6}>
-                        <Box flex="1">
-                          <h2>Job #{jobData.job.name}</h2>
-                          <Divider className="mb-2 mt-3" />
-                          <Flex alignItems="center" mb="16px">
-                            <Text width="200px" fontSize="sm">
-                              Date
-                            </Text>
-                            <Text fontSize="sm">
-                              {formatDate(jobData.job.ready_at, "DD MMM YYYY")}
-                            </Text>
-                          </Flex>
-                          <Flex alignItems="center" mb="16px">
-                            <Text width="200px" fontSize="sm">
-                              Assigned to
-                            </Text>
-                            <Flex align="center">
-                              <Avatar
-                                variant="jobAllocation"
-                                src={
-                                  jobData.job.driver
-                                    ? jobData.job.driver.media_url
-                                    : "/img/avatars/driverIcon.png"
-                                }
-                              />
-                              <Text ml={2}>
-                                {jobData?.job.driver?.full_name ||
-                                  "not yet assigned"}
-                              </Text>
-                            </Flex>
-                          </Flex>
-                        </Box>
+                    <IconButton
+                      m={{ base: "2px" }}
+                      aria-label="Toggle polling speed"
+                      className="text-[var(--chakra-colors-primary-400)] float-right"
+                      icon={<FontAwesomeIcon icon={faBoltLightning} />}
+                      onClick={() => {
+                        setPollingSpeed(pollingSpeed === 60000 ? 10000 : 60000);
+                      }}
+                      colorScheme={pollingSpeed === 10000 ? "blue" : "gray"}
+                    />
+                  </Tooltip>
+                </Box>
+              </Flex>
 
-                        <Box flex="1">
-                          <Flex justify="space-between" mb="12px">
-                            <Box textAlign="center">
-                              <Text fontSize="3xl" color="black">
-                                Collection
-                              </Text>
-                              <Text fontSize="3xl" color="black">
-                                {driverCurrentRoutesData?.routes?.data?.[0]
-                                  ?.pickup_delivery_count?.pickup_count ?? 0}
-                              </Text>
-                            </Box>
-                            <Divider
-                              orientation="vertical"
-                              borderColor="gray.300"
+              {hasUnsortedJobs && (
+                <Badge colorScheme="orange" mb={2}>
+                  ⚠ Some jobs have not been sorted yet
+                </Badge>
+              )}
+              <Grid
+                templateAreas={`"nav main"`}
+                gridTemplateRows="1fr 30px"
+                gridTemplateColumns={{
+                  base: "1fr",
+                  md: "minmax(300px, 50%) 50%",
+                }}
+                gap="1px"
+                color="blackAlpha.700"
+                fontWeight="bold"
+                className="mk-job-allocation-wrap overflow-hidden"
+              >
+                <GridItem
+                  area="nav"
+                  className="job-list-column h-full overflow-auto pt-4 border-t"
+                  sx={{ height: "calc(100vh - 186px)" }}
+                >
+                  <Box className="px-6">
+                    <Flex justify="space-between" align="flex-start" gap={6}>
+                      <Box flex="1">
+                        <h2>Job #{jobData.job.name}</h2>
+                        <Divider className="mb-2 mt-3" />
+                        <Flex alignItems="center" mb="16px">
+                          <Text width="200px" fontSize="sm">
+                            Date
+                          </Text>
+                          <Text fontSize="sm">
+                            {formatDate(jobData.job.ready_at, "DD MMM YYYY")}
+                          </Text>
+                        </Flex>
+                        <Flex alignItems="center" mb="16px">
+                          <Text width="200px" fontSize="sm">
+                            Assigned to
+                          </Text>
+                          <Flex align="center">
+                            <Avatar
+                              variant="jobAllocation"
+                              src={
+                                jobData.job.driver
+                                  ? jobData.job.driver.media_url
+                                  : "/img/avatars/driverIcon.png"
+                              }
                             />
-                            <Box textAlign="center">
-                              <Text fontSize="3xl" color="black">
-                                Delivery
-                              </Text>
-                              <Text fontSize="3xl" color="black">
-                                {driverCurrentRoutesData?.routes?.data?.[0]
-                                  ?.pickup_delivery_count?.delivery_count ?? 0}
-                              </Text>
-                            </Box>
+                            <Text ml={2}>
+                              {jobData?.job.driver?.full_name ||
+                                "not yet assigned"}
+                            </Text>
                           </Flex>
-                        </Box>
-                      </Flex>
+                        </Flex>
+                      </Box>
 
-                      {jobData?.job.driver && (
-                        <Box
-                          bg="#1d2d53"
-                          color="#fff"
-                          px={6}
-                          py={3}
-                          borderTop="4px solid"
-                          borderLeft="4px solid"
-                          borderColor="#2F80ED"
-                          borderRadius="md"
-                          w="100%"
-                        >
-                          <Flex justify="space-between" align="center">
-                            <Badge
-                              colorScheme="red"
-                              variant="subtle"
-                              fontSize="md"
-                            >
-                              Current Suburb:{" "}
-                              {jobData?.job.driver?.current_suburb ?? "-"}
-                            </Badge>
-                            <Badge
-                              colorScheme="red"
-                              variant="subtle"
-                              fontSize="md"
-                            >
-                              TAILGATE:{" "}
-                              {jobData?.job.driver?.is_tailgated ? "Yes" : "No"}
-                            </Badge>
-                          </Flex>
-                        </Box>
-                      )}
-
-                      <Flex className="flex-col mt-4 job-destination-card-wrap">
-                        {!jobLoading && groupedJobs?.length > 0 ? (
-                          <PaginationTable
-                            columns={Columns}
-                            data={groupedJobs ?? []}
-                            total={groupedJobs.length}
-                            options={{
-                              initialState: {
-                                pageIndex: 0,
-                                pageSize: 100,
-                              },
-                              manualPagination: false,
-                              pageCount: groupedJobs.length,
-                            }}
-                            isServerSide={false}
+                      <Box flex="1">
+                        <Flex justify="space-between" mb="12px">
+                          <Box textAlign="center">
+                            <Text fontSize="3xl" color="black">
+                              Collection
+                            </Text>
+                            <Text fontSize="3xl" color="black">
+                              {driverCurrentRoutesData?.routes?.data?.[0]
+                                ?.pickup_delivery_count?.pickup_count ?? 0}
+                            </Text>
+                          </Box>
+                          <Divider
+                            orientation="vertical"
+                            borderColor="gray.300"
                           />
-                        ) : (
-                          <div className="text-center mt-20 text-gray-500">
-                            No data yet
-                          </div>
-                        )}
-                      </Flex>
-                    </Box>
-                  </GridItem>
+                          <Box textAlign="center">
+                            <Text fontSize="3xl" color="black">
+                              Delivery
+                            </Text>
+                            <Text fontSize="3xl" color="black">
+                              {driverCurrentRoutesData?.routes?.data?.[0]
+                                ?.pickup_delivery_count?.delivery_count ?? 0}
+                            </Text>
+                          </Box>
+                        </Flex>
+                      </Box>
+                    </Flex>
 
-                  {!loadingDriverCurrentRoutes &&
-                    routePoints &&
-                    markers.length > 0 && (
-                      <GridItem
-                        bg="green.300"
-                        area="main"
-                        sx={{ height: "calc(100vh - 200px)" }}
+                    {jobData?.job.driver && (
+                      <Box
+                        bg="#1d2d53"
+                        color="#fff"
+                        px={6}
+                        py={3}
+                        borderTop="4px solid"
+                        borderLeft="4px solid"
+                        borderColor="#2F80ED"
+                        borderRadius="md"
+                        w="100%"
                       >
-                        <TrackingMap
-                          center={center}
-                          zoom={zoom}
-                          markers={markers}
-                          onCenterChanged={(data: any) =>
-                            debouncedCenterChangeHandler(data)
-                          }
-                          onZoomChanged={(data: any) => {
-                            setZoom(data);
-                          }}
-                          isRouting
-                          drivers={drivers}
-                        />
-                      </GridItem>
+                        <Flex justify="space-between" align="center">
+                          <Badge
+                            colorScheme="red"
+                            variant="subtle"
+                            fontSize="md"
+                          >
+                            Current Suburb:{" "}
+                            {jobData?.job.driver?.current_suburb ?? "-"}
+                          </Badge>
+                          <Badge
+                            colorScheme="red"
+                            variant="subtle"
+                            fontSize="md"
+                          >
+                            TAILGATE:{" "}
+                            {jobData?.job.driver?.is_tailgated ? "Yes" : "No"}
+                          </Badge>
+                        </Flex>
+                      </Box>
                     )}
-                </Grid>
+
+                    <Flex className="flex-col mt-4 job-destination-card-wrap">
+                      {!jobLoading && groupedJobs?.length > 0 ? (
+                        <PaginationTable
+                          columns={Columns}
+                          data={groupedJobs ?? []}
+                          total={groupedJobs.length}
+                          options={{
+                            initialState: {
+                              pageIndex: 0,
+                              pageSize: 100,
+                            },
+                            manualPagination: false,
+                            pageCount: groupedJobs.length,
+                          }}
+                          isServerSide={false}
+                        />
+                      ) : (
+                        <div className="text-center mt-20 text-gray-500">
+                          No data yet
+                        </div>
+                      )}
+                    </Flex>
+                  </Box>
+                </GridItem>
+
+                {!loadingDriverCurrentRoutes &&
+                  routePoints &&
+                  markers.length > 0 && (
+                    <GridItem
+                      bg="green.300"
+                      area="main"
+                      sx={{ height: "calc(100vh - 200px)" }}
+                    >
+                      <TrackingMap
+                        center={center}
+                        zoom={zoom}
+                        markers={markers}
+                        onCenterChanged={(data: any) =>
+                          debouncedCenterChangeHandler(data)
+                        }
+                        onZoomChanged={(data: any) => {
+                          setZoom(data);
+                        }}
+                        isRouting
+                        drivers={drivers}
+                      />
+                    </GridItem>
+                  )}
               </Grid>
-            )}
-          </Grid>
-        </Box>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
     </GoogleMapProvider>
   );
 }
