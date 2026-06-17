@@ -31,7 +31,7 @@ import moment from "moment";
 import { useParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
-import AdminLayout from "@/layouts/admin";
+// import AdminLayout from "@/layouts/admin";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
@@ -186,7 +186,7 @@ export default function TrackingJob() {
   const hasUnsortedJobs = groupedJobs.some((job: any) => job.d_sort_id === null);
 
   return (
-    <AdminLayout>
+    // <AdminLayout>
       <Box
         className="mk-customers-id overflow-auto"
         pt={{ base: "130px", md: "97px", xl: "97px" }}
@@ -375,6 +375,6 @@ export default function TrackingJob() {
           )}
         </Grid>
       </Box>
-    </AdminLayout>
+    // </AdminLayout>
   );
 }
