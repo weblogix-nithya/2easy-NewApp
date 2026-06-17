@@ -69,6 +69,12 @@ export default function TrackingJob() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [pollingSpeed, setPollingSpeed] = useState(60000);
 
+  // refs to keep previous values for comparison to avoid unnecessary setState
+  const prevCenterRef = React.useRef<any>(null);
+  const prevMarkersRef = React.useRef<any[]>([]);
+  const prevDriversRef = React.useRef<any[]>([]);
+  const prevRoutePointsRef = React.useRef<any[]>([]);
+
   const Columns = useMemo(
     () => [
       {
@@ -171,13 +177,52 @@ export default function TrackingJob() {
           },
         ];
 
-        setRoutePoints(routePoints);
-        setMarkers(markers);
-        setCenter({
+        // only update routePoints if ids changed or length differs
+        const routePointsIds = routePoints.map((p: any) => p.id).join(",");
+        const prevRoutePointsIds = prevRoutePointsRef.current.map((p: any) => p.id).join(",");
+        if (routePointsIds !== prevRoutePointsIds) {
+          setRoutePoints(routePoints);
+          prevRoutePointsRef.current = routePoints;
+        }
+
+        // markers: compare by lat/lng/icon
+        const markersEqual = (a: any[], b: any[]) => {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i++) {
+            if (a[i].lat !== b[i].lat || a[i].lng !== b[i].lng || a[i].icon !== b[i].icon) return false;
+          }
+          return true;
+        };
+
+        if (!markersEqual(markers, prevMarkersRef.current)) {
+          setMarkers(markers);
+          prevMarkersRef.current = markers;
+        }
+
+        // drivers: compare by lat/lng/icon
+        const driversEqual = (a: any[], b: any[]) => {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i++) {
+            if (a[i].lat !== b[i].lat || a[i].lng !== b[i].lng || a[i].icon !== b[i].icon) return false;
+          }
+          return true;
+        };
+
+        if (!driversEqual(drivers, prevDriversRef.current)) {
+          setDrivers(drivers);
+          prevDriversRef.current = drivers;
+        }
+
+        // center: only set if changed
+        const newCenter = {
           lat: australianStates[1].lat,
           lng: australianStates[1].lng,
-        });
-        setDrivers(drivers);
+        };
+        const prevCenter = prevCenterRef.current;
+        if (!prevCenter || prevCenter.lat !== newCenter.lat || prevCenter.lng !== newCenter.lng) {
+          setCenter(newCenter);
+          prevCenterRef.current = newCenter;
+        }
       } else {
         setRoutePoints([]);
         setMarkers([]);
