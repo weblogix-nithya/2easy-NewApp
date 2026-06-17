@@ -75,6 +75,8 @@ export default function TrackingJob() {
   const prevMarkersRef = React.useRef<any[]>([]);
   const prevDriversRef = React.useRef<any[]>([]);
   const prevRoutePointsRef = React.useRef<any[]>([]);
+  const pollingStartedRef = React.useRef<boolean>(false);
+  const renderCountRef = React.useRef<number>(0);
 
   const Columns = useMemo(
     () => [
@@ -192,8 +194,11 @@ export default function TrackingJob() {
         const routePointsIds = routePoints.map((p: any) => p.id).join(",");
         const prevRoutePointsIds = prevRoutePointsRef.current.map((p: any) => p.id).join(",");
         if (routePointsIds !== prevRoutePointsIds) {
+          console.debug("Updating routePoints", { prevRoutePointsIds, routePointsIds });
           setRoutePoints(routePoints);
           prevRoutePointsRef.current = routePoints;
+        } else {
+          console.debug("routePoints unchanged");
         }
 
         // markers: compare by lat/lng/icon
@@ -206,8 +211,11 @@ export default function TrackingJob() {
         };
 
         if (!markersEqual(markers, prevMarkersRef.current)) {
+          console.debug("Updating markers", { prevCount: prevMarkersRef.current.length, newCount: markers.length });
           setMarkers(markers);
           prevMarkersRef.current = markers;
+        } else {
+          console.debug("markers unchanged");
         }
 
         // drivers: compare by lat/lng/icon
@@ -220,8 +228,11 @@ export default function TrackingJob() {
         };
 
         if (!driversEqual(drivers, prevDriversRef.current)) {
+          console.debug("Updating drivers", { prev: prevDriversRef.current, new: drivers });
           setDrivers(drivers);
           prevDriversRef.current = drivers;
+        } else {
+          console.debug("drivers unchanged");
         }
 
         // center: only set if changed
@@ -231,8 +242,11 @@ export default function TrackingJob() {
         };
         const prevCenter = prevCenterRef.current;
         if (!prevCenter || prevCenter.lat !== newCenter.lat || prevCenter.lng !== newCenter.lng) {
+          console.debug("Updating center", { prevCenter, newCenter });
           setCenter(newCenter);
           prevCenterRef.current = newCenter;
+        } else {
+          console.debug("center unchanged");
         }
       } else {
         setRoutePoints([]);
@@ -242,12 +256,32 @@ export default function TrackingJob() {
   });
 
   useEffect(() => {
-    if (called && startPolling) {
+    if (called && startPolling && !pollingStartedRef.current) {
       startPolling(pollingSpeed);
-      return () => stopPolling?.();
+      pollingStartedRef.current = true;
     }
-    return;
-  }, [pollingSpeed, startPolling, stopPolling, called]);
+
+    return () => {
+      if (pollingStartedRef.current) {
+        stopPolling?.();
+        pollingStartedRef.current = false;
+      }
+    };
+  }, [startPolling, stopPolling, called, pollingSpeed]);
+
+  // when polling speed changes, restart polling with new interval if already started
+  useEffect(() => {
+    if (pollingStartedRef.current && startPolling && stopPolling) {
+      stopPolling();
+      startPolling(pollingSpeed);
+    }
+  }, [pollingSpeed, startPolling, stopPolling]);
+
+  // render counter for debugging re-renders
+  useEffect(() => {
+    renderCountRef.current += 1;
+    console.debug("TrackingJob render#", renderCountRef.current);
+  });
 
   const groupedJobs = useMemo(() => {
     const grouped = Object.values(
