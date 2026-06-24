@@ -38,7 +38,7 @@ type InvoicesResponse = {
   };
 };
 
-const TABS = [
+const ALL_TABS = [
   { id: 1, tabName: "Pending", hash: "pending" },
   { id: 6, tabName: "Processed", hash: "processed" },
 ];
@@ -46,6 +46,10 @@ const TABS = [
 export default function RCTIIndex() {
   const menuBg = useColorModeValue("white", "navy.800");
   const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
+  const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
+
+  // SubAdmin-க்கு Pending tab வேண்டாம் — Processed மட்டும்
+  const TABS = isSubAdmin ? ALL_TABS.filter((t) => t.id !== 1) : ALL_TABS;
 
   const [queryPageIndex, setQueryPageIndex] = useState(0);
   const [queryPageSize, setQueryPageSize] = useState(50);
@@ -108,16 +112,15 @@ export default function RCTIIndex() {
         accessorKey: "id" as const,
         cell: (tableProps: any) => {
           const id = tableProps.row.original.id;
-          const href = id ? `/admin/rctis/${id}` : undefined;
-          return href ? (
-            <Link href={href}>
+          return id ? (
+            <Link href={`/admin/invoices/${id}`}>
               <Button variant="outline" size="sm">
-                Edit test
+                View
               </Button>
             </Link>
           ) : (
-            <Button variant="outline" size="sm" disabled>
-              Edit esttest
+            <Button variant="outline" size="sm" isDisabled>
+              View
             </Button>
           );
         },
@@ -190,7 +193,6 @@ export default function RCTIIndex() {
             columns={columns}
             data={invoices.invoices.data ?? []}
             total={invoices.invoices.paginatorInfo?.total ?? 0}
-            path="/admin/rctis"
             options={{
               initialState: {
                 pageIndex: queryPageIndex,
