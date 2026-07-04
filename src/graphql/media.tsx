@@ -29,3 +29,18 @@ export interface CreateMediaInput {
   entity_id: Number;
   collection_name: String;
 }
+
+export interface CreateMediaResponse {
+  createMedia: {
+    id?: number | string;
+    name?: string;
+    downloadable_url?: string;
+    collection_name?: string;
+    file_name?: string;
+    mime_type?: string;
+    size?: number;
+    uuid?: string;
+    uploaded_by?: string;
+    created_at?: string;
+  };
+}

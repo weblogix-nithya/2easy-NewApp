@@ -42,6 +42,10 @@ export const GET_DRIVERS_QUERY = gql`
         license_no
         license_state
         license_expire_at
+        insurance_name
+        insurance_number
+        insurance_expire_at
+        earning_toggle
         is_inducted
         is_vehicle_roadworthy
         is_tailgated
@@ -84,6 +88,29 @@ export const GET_DRIVERS_QUERY = gql`
         lat
         lng
         media_url
+        insurances {
+            id
+            insurance_type_id
+            insurance_name
+            insurance_number
+            insurance_expire_at
+
+            insuranceType {
+              id
+              name
+            }
+
+            insurance_media {
+              id
+              uuid
+              name
+              collection_name
+              file_name
+              size
+              mime_type
+              downloadable_url
+            }
+          }
       }
       paginatorInfo {
         count
@@ -219,6 +246,10 @@ export const GET_DRIVER_QUERY = gql`
       license_no
       license_state
       license_expire_at
+      insurance_name
+      insurance_number
+      insurance_expire_at
+      earning_toggle
       is_inducted
       is_vehicle_roadworthy
       is_tailgated
@@ -262,12 +293,42 @@ export const GET_DRIVER_QUERY = gql`
         collection_name
         file_name
       }
+      insurance_media {
+        id
+        name
+        downloadable_url
+        collection_name
+        file_name
+      }
       vehicle_media {
         id
         name
         downloadable_url
         collection_name
         file_name
+      }
+      insurances {
+        id
+        insurance_type_id
+        insurance_name
+        insurance_number
+        insurance_expire_at
+
+        insuranceType {
+          id
+          name
+        }
+
+        insurance_media {
+          id
+          uuid
+          name
+          collection_name
+          file_name
+          size
+          mime_type
+          downloadable_url
+        }
       }
     }
   }
@@ -297,6 +358,10 @@ export const CREATE_DRIVER_MUTATION = gql`
       license_no
       license_state
       license_expire_at
+      insurance_name
+      insurance_number
+      insurance_expire_at
+      earning_toggle
       is_inducted
       is_vehicle_roadworthy
       is_tailgated
@@ -333,6 +398,18 @@ export const CREATE_DRIVER_MUTATION = gql`
       lat
       lng
       media_url
+      insurances {
+        id
+        insurance_type_id
+        insurance_name
+        insurance_number
+        insurance_expire_at
+
+        insuranceType {
+          id
+          name
+        }
+      }
     }
   }
 `;
@@ -361,6 +438,10 @@ export const UPDATE_DRIVER_MUTATION = gql`
       license_no
       license_state
       license_expire_at
+      insurance_name
+      insurance_number
+      insurance_expire_at
+      earning_toggle
       is_inducted
       is_vehicle_roadworthy
       is_tailgated
@@ -396,6 +477,29 @@ export const UPDATE_DRIVER_MUTATION = gql`
       address_country
       lat
       lng
+      insurances {
+        id
+        insurance_type_id
+        insurance_name
+        insurance_number
+        insurance_expire_at
+
+        insuranceType {
+          id
+          name
+        }
+
+        insurance_media {
+          id
+          uuid
+          name
+          collection_name
+          file_name
+          size
+          mime_type
+          downloadable_url
+        }
+      }
     }
   }
 `;
@@ -465,6 +569,17 @@ export interface UpdateDriverInput {
   address_country: string;
   lat: number;
   lng: number;
+  insurance_name: string;
+  insurance_number: string;
+  insurance_expire_at: Date;
+  earning_toggle: boolean;
+  insurances: {
+    id?: number;
+    insurance_type_id: number | null;
+    insurance_name: string;
+    insurance_number: string;
+    insurance_expire_at: string;
+  }[];
 }
 
 export interface CreateDriverInput {
@@ -523,7 +638,18 @@ export interface CreateDriverInput {
   address_country: string;
   lat: number;
   lng: number;
-}
+  insurance_name: string;
+  insurance_number: string;
+  insurance_expire_at: string;
+  earning_toggle: boolean;
+  insurances: {
+    id?: number;
+    insurance_type_id: number | null;
+    insurance_name: string;
+    insurance_number: string;
+    insurance_expire_at: string;
+  }[];
+};
 
 export type Driver = {
   id: number | null;
@@ -584,9 +710,15 @@ export type Driver = {
   lng: number | null;
   media_url: string | null;
   license_media: any[] | null;
+  insurance_media: any[] | null;
   vehicle_media: any[] | null;
   remaining_time: string | null;
   current_occupied_capacity: string | null;
+  insurance_name: string | null;
+  insurance_number: string | null;
+  insurance_expire_at: string | null;
+  earning_toggle: boolean | null;
+  insurances: DriverInsurance[];
 };
 
 export const defaultDriver: Driver = {
@@ -649,6 +781,95 @@ export const defaultDriver: Driver = {
   media_url: "",
   license_media: [],
   vehicle_media: [],
+  insurance_media: [],
   remaining_time: "",
   current_occupied_capacity: "",
+  insurance_name: "",
+  insurance_number: "",
+  insurance_expire_at: "",
+  earning_toggle: false,
+  insurances: [],
 };
+
+
+export interface TransmissionTypesResponse {
+  transmissionTypes: {
+    data: Array<{ id: string; name: string }>;
+    paginatorInfo?: any;
+  };
+}
+
+export interface DriverStatusesResponse {
+  driverStatuses: {
+    data: Array<{ id: string; name: string }>;
+    paginatorInfo?: any;
+  };
+}
+
+export interface AvailableDriversResponse {
+  drivers: {
+    data: Driver[];
+    paginatorInfo: PaginatorInfo;
+  };
+}
+
+export interface PaginatorInfo {
+  total: number;
+  currentPage?: number;
+  lastPage?: number;
+}
+
+export interface DriversResponse {
+  drivers: {
+    data: Driver[];
+    paginatorInfo: PaginatorInfo;
+  };
+}
+export interface VehicleClassesResponse {
+  vehicleClasses: {
+    data: Array<{ id: string; name: string }>;
+    paginatorInfo?: any;
+  };
+}
+
+export interface VehicleTypesResponse {
+  vehicleTypes: {
+    data: Array<{ id: string; name: string }>;
+    paginatorInfo?: any;
+  };
+}
+
+export interface DriverResponse {
+  driver: Driver;
+}
+
+export const GET_INSURANCE_TYPES_QUERY = gql`
+  query insuranceTypes {
+    insuranceTypes {
+      id
+      name
+    }
+  }
+`;
+
+export interface InsuranceTypesResponse {
+  insuranceTypes: {
+    id: string;
+    name: string;
+  }[];
+}
+
+export interface DriverInsurance {
+  id?: number;
+  insurance_type_id: number | null;
+  insurance_name: string;
+  insurance_number: string;
+  insurance_expire_at: string | null;
+
+  insuranceType?: {
+    id: number;
+    name: string;
+  };
+
+  insurance_media?: any[];
+}
