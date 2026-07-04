@@ -428,7 +428,7 @@ const PaginationTableCustomer = <T extends object>({
                                 href={
                                   rowId
                                     ? `${basePath}/tracking/${rowId}`
-                                    : `${basePath}/tracking`
+                                    : `${basePath}`
                                 }
                                 fontWeight="700"
                               >

@@ -53,13 +53,13 @@ import { getTimeslotBgColor } from "./JobPaginationTable";
 type PaginationTableProps<T extends object> = {
   columns: any[]; // accept v7 or v8
   data: T[];
-  total: number;
+  total?: number;
   options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
   path?: string;
   // showDelete?: boolean; // changed: unused in current v8 implementation
-    onReset?: (data: any) => void;
+  onReset?: (data: any) => void;
   onDelete?: (data: any) => void;
-   isapprove?: boolean; // changed: unused in current v8 implementation
+  isapprove?: boolean; // changed: unused in current v8 implementation
   isRestore?: boolean;
   onRestore?: (data: any) => void;
   onApprove?: (data: any) => void;
