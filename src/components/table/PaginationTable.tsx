@@ -458,7 +458,7 @@ const PaginationTable = <T extends object>({
 
                             {meta.isView && (
                               <Link
-                                href={`${path || ""}/${row.original?.job?.id}`}
+                                href={`${path || ""}/${id}`}
                                 fontWeight="700"
                                 data-no-row-toggle
                                 onClick={(e) => e.stopPropagation()}
@@ -493,14 +493,13 @@ const PaginationTable = <T extends object>({
                                 </Button>
                               </Link>
                             )}
-
                             {meta.isDelete && (
                               <Button
                                 bg="white"
                                 fontSize="sm"
                                 className="!text-[var(--chakra-colors-black-400)]"
                                 onClick={() =>
-                                  onDelete?.(row.original?.job?.id)
+                                  onDelete?.(row.original?.job?.id ?? row.original.id)
                                 }
                               >
                                 <FontAwesomeIcon

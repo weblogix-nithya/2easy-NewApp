@@ -17,6 +17,9 @@ export const GET_COMPANYS_QUERY = gql`
       data {
         id
         name
+        payment_term
+        toll_enabled
+        waiting_enabled
       }
       paginatorInfo {
         count
@@ -58,8 +61,13 @@ export const GET_COMPANY_QUERY = gql`
       rate_card_url
       logo_url
       payment_term
+      toll_enabled
+      waiting_enabled
       weight_per_cubic
       standard_static
+      fuel_levy_percentage
+      qld_toll_levy_percentage
+      vic_toll_levy_percentage
     }
   }
 `;
@@ -79,7 +87,11 @@ export const CREATE_COMPANY_MUTATION = gql`
       payment_term
       weight_per_cubic
       standard_static
-      
+      toll_enabled
+      waiting_enabled
+      fuel_levy_percentage
+      qld_toll_levy_percentage
+      vic_toll_levy_percentage
     }
   }
 `;
@@ -101,6 +113,11 @@ export const UPDATE_COMPANY_MUTATION = gql`
       payment_term
       weight_per_cubic
       standard_static
+      toll_enabled
+      waiting_enabled
+      fuel_levy_percentage
+      qld_toll_levy_percentage
+      vic_toll_levy_percentage
     }
   }
 `;
@@ -138,6 +155,11 @@ export interface UpdateCompanyInput {
   payment_term: String;
   weight_per_cubic: Number;
   standard_static: Boolean;
+  toll_enabled: Boolean;
+  waiting_enabled: Boolean;
+  fuel_levy_percentage: number;
+  qld_toll_levy_percentage: number;
+  vic_toll_levy_percentage: number;
 }
 
 export interface CreateCompanyInput {
@@ -165,6 +187,11 @@ export interface CreateCompanyInput {
   payment_term: String;
   weight_per_cubic: Number;
   standard_static: Boolean;
+  toll_enabled: Boolean;
+  waiting_enabled: Boolean;
+  fuel_levy_percentage: number;
+  qld_toll_levy_percentage: number;
+  vic_toll_levy_percentage: number;
 }
 
 type Company = {
@@ -193,8 +220,13 @@ type Company = {
   rate_card_url: string | null;
   logo_url: string | null;
   payment_term: string | null;
+  toll_enabled: boolean | null;
+  waiting_enabled: boolean | null;
   weight_per_cubic: number | null;
   standard_static: boolean | null;
+  fuel_levy_percentage: number | null;
+  qld_toll_levy_percentage: number | null;
+  vic_toll_levy_percentage: number | null;
 };
 
 export const defaultCompany: Company = {
@@ -223,22 +255,14 @@ export const defaultCompany: Company = {
   rate_card_url: null,
   logo_url: null,
   payment_term: "7_days",
+  toll_enabled: false,
+  waiting_enabled: false,
   weight_per_cubic: 500, // default weight per cubic meter
-  standard_static: false,
+  standard_static: false, // default to standard
+  fuel_levy_percentage: 22,
+  qld_toll_levy_percentage: 8,
+  vic_toll_levy_percentage: 12,
 };
-
-export interface GetCompaniesResponse {
-  companys: {
-    data: Pick<Company, "id" | "name">[];
-    paginatorInfo: {
-      total: number;
-      currentPage: number;
-      lastPage: number;
-      perPage: number;
-      count: number;
-    };
-  };
-}
 
 export const paymentTerms = [
   { label: "EOD", value: "EOD" },

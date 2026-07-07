@@ -14,7 +14,7 @@ import {
   ModalOverlay,
   Text,
 } from "@chakra-ui/react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 type PrivateAccessModalProps = {

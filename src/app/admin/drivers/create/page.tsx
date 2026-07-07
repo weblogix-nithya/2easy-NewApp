@@ -24,7 +24,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Select } from "chakra-react-select";
 import AddressesModal from "@/components/addresses/AddressesModal";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
-import InsuranceSection from "@/components/drivers/InsuranceSection";
+import InsuranceSection from "@/components/tabs/InsuranceSectionTab";
 import {
   CREATE_DRIVER_MUTATION,
   defaultDriver,
