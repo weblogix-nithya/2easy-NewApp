@@ -54,13 +54,13 @@ import { GET_VEHICLE_TYPES_QUERY } from "@/graphql/vehicleType";
 import { GET_INVOICES_QUERY } from "@/graphql/invoice";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import debounce from "lodash.debounce";
+// import debounce from "lodash.debounce";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const buildInsuranceInput = (ins: DriverInsurance) => ({
   id: ins.id,
-  insurance_type_id: ins.insuranceType?.id ?? ins.insurance_type_id ?? null,
+  insurance_type_id: Number(ins.insuranceType?.id ?? ins.insurance_type_id ?? 0) || null,
   insurance_name: ins.insurance_name,
   insurance_number: ins.insurance_number,
   insurance_expire_at: ins.insurance_expire_at ?? "",
@@ -73,6 +73,7 @@ const buildUpdateInput = (driver: any) => ({
   full_name: undefined,
   license_media: undefined,
   vehicle_media: undefined,
+  insurance_media: undefined,
   remaining_time: undefined,
   current_occupied_capacity: undefined,
   insurances: (driver.insurances ?? []).map(buildInsuranceInput),
@@ -502,9 +503,10 @@ function DriverEdit() {
 
                   {[
                     { label: "Max load capacity", name: "no_max_capacity", unit: "kg" },
-                    { label: "Max volume", name: "no_max_volume", unit: "m³" },
-                    { label: "Max length", name: "no_max_length", unit: "m" },
-                    { label: "Max height", name: "no_max_height", unit: "m" },
+                    { label: "Max volume", name: "no_max_volume", unit: "cbm" },
+                    { label: "Max length (Internal)", name: "no_max_length", unit: "m" },
+                    { label: "Max height (Internal)", name: "no_max_height", unit: "m" },
+                    { label: "Vehicle height (External)", name: "external_height", unit: "m" },
                   ].map(({ label, name, unit }) => (
                     <FormControl key={name}>
                       <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">{label}</FormLabel>
