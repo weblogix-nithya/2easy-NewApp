@@ -567,63 +567,100 @@ function DriverEdit() {
             {/* ══════════════ TAB 3 : RCTIs ══════════════ */}
             {tabId === 3 && (
               <>
-                <FormControl>
-                  <Flex justifyContent="space-between" alignItems="center" mb="24px" className="mt-8">
-                    <h2 className="mb-0">Recipient Created Tax Invoices (RCTI)</h2>
-                    <Button fontSize="sm" variant="brand" fontWeight="500" mb="0" ms="10px"
-                      onClick={submitUpdate} isLoading={updating}>Update</Button>
-                  </Flex>
-                  <Divider />
-                  <h3 className="mt-6 mb-4">Payment Details</h3>
+                {tabId === 3 && (
+                  <>
+                    <FormControl>
+                      <Flex justifyContent="space-between" alignItems="center" mb="24px" className="mt-8">
+                        <h2 className="mb-0">Recipient Created Tax Invoices (RCTI)</h2>
+                        <Button fontSize="sm" variant="brand" fontWeight="500" mb="0" ms="10px"
+                          onClick={submitUpdate} isLoading={updating}>Update</Button>
+                      </Flex>
+                      <Divider />
+                      <h3 className="mt-6 mb-4">Payment Details</h3>
 
-                  {[
-                    { label: "Account name", name: "bank_account_name" },
-                    { label: "BSB", name: "bank_bsb" },
-                    { label: "Account Number", name: "bank_account_number" },
-                  ].map(({ label, name }) => (
-                    <Flex key={name} alignItems="center" mb="16px">
-                      <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
-                      <Input variant="main" fontSize="sm" type="text" name={name}
-                        value={(driver as any)[name] ?? ""} onChange={handleChange} mb="0" size="lg" />
+                      <Grid templateColumns="repeat(2, 1fr)" gap="6" mb="16px">
+                        {[
+                          { label: "Account name", name: "bank_account_name" },
+                          { label: "BSB", name: "bank_bsb" },
+                          { label: "Account Number", name: "bank_account_number" },
+                        ].map(({ label, name }) => (
+                          <FormControl key={name}>
+                            <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                              {label}
+                            </FormLabel>
+                            <Input
+                              variant="main"
+                              fontSize="sm"
+                              type="text"
+                              name={name}
+                              value={(driver as any)[name] ?? ""}
+                              onChange={handleChange}
+                              size="lg"
+                            />
+                          </FormControl>
+                        ))}
+
+                        <FormControl>
+                          <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                            Pay rate (%)
+                          </FormLabel>
+                          <Input
+                            variant="main"
+                            fontSize="sm"
+                            type="number"
+                            value={driverPayRatePercentage}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setDriverPayRatePercentage(val);
+                              setDriver((prev) => ({ ...prev, pay_rate: val / 100 }));
+                            }}
+                            size="lg"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                            Fuel/Toll rate (%)
+                          </FormLabel>
+                          <Input
+                            variant="main"
+                            fontSize="sm"
+                            type="number"
+                            value={driverLevyRatePercentage}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setDriverLevyRatePercentage(val);
+                              setDriver((prev) => ({ ...prev, levy_rate: val }));
+                            }}
+                            size="lg"
+                          />
+                        </FormControl>
+                      </Grid>
+                    </FormControl>
+                    <Divider my="48px" />
+                    <Flex alignItems="center" mb="16px">
+                      {!loading && invoices?.invoices?.data && (
+                        <PaginationTable
+                          columns={columns}
+                          data={invoices.invoices.data}
+                          total={invoices.invoices.paginatorInfo?.total ?? 0}
+                          options={{
+                            initialState: {
+                              pageIndex: queryPageIndex,
+                              pageSize: queryPageSize,
+                            },
+                            manualPagination: true,
+                            pageCount: invoices.invoices.paginatorInfo?.lastPage,
+                          }}
+                          setQueryPageIndex={setQueryPageIndex}
+                          setQueryPageSize={setQueryPageSize}
+                          isServerSide
+                          path="/admin/invoices"
+                        />
+                      )}
                     </Flex>
-                  ))}
-
-                  <Flex alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Pay rate (%)</FormLabel>
-                    <Input variant="main" fontSize="sm" type="number" value={driverPayRatePercentage}
-                      onChange={(e) => { const val = parseFloat(e.target.value); setDriverPayRatePercentage(val); setDriver((prev) => ({ ...prev, pay_rate: val / 100 })); }}
-                      mb="0" size="lg" />
-                  </Flex>
-
-                  <Flex alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Fuel/Toll rate (%)</FormLabel>
-                    <Input variant="main" fontSize="sm" type="number" value={driverLevyRatePercentage}
-                      onChange={(e) => { const val = parseFloat(e.target.value); setDriverLevyRatePercentage(val); setDriver((prev) => ({ ...prev, levy_rate: val })); }}
-                      mb="0" size="lg" />
-                  </Flex>
-                </FormControl>
-                <Divider my="48px" />
-                <Flex alignItems="center" mb="16px">
-                  {!loading && invoices?.invoices?.data && (
-                    <PaginationTable
-                      columns={columns}
-                      data={invoices.invoices.data}
-                      total={invoices.invoices.paginatorInfo?.total ?? 0}
-                      options={{
-                        initialState: {
-                          pageIndex: queryPageIndex,
-                          pageSize: queryPageSize,
-                        },
-                        manualPagination: true,
-                        pageCount: invoices.invoices.paginatorInfo?.lastPage,
-                      }}
-                      setQueryPageIndex={setQueryPageIndex}
-                      setQueryPageSize={setQueryPageSize}
-                      isServerSide
-                      path="/admin/invoices"
-                    />
-                  )}
-                </Flex>
+                  </>
+                )}
               </>
             )}
           </GridItem>
