@@ -61,7 +61,7 @@ function InsuranceSection({
       const list = data?.insuranceTypes;
       if (!Array.isArray(list)) return;
       setInsuranceTypes(
-        list.map((t) => ({ value: parseInt(t.id), label: t.name })),
+        list.map((t) => ({ value: Number(t.id), label: t.name })),
       );
     },
   });
@@ -84,10 +84,14 @@ function InsuranceSection({
    * the flat scalar `insurance_type_id` may not be back-filled from it.
    * We therefore check both so the Select always shows the right option
    * whether the row came from the server or was just picked in the UI.
+   *
+   * ✅ FIX: Number() wrap — insuranceType.id / insurance_type_id can come
+   * back as a string from GraphQL while insuranceTypes options use
+   * numeric values, so a strict === comparison silently failed to match.
    */
   const resolveTypeValue = (ins: DriverInsurance): InsuranceTypeOption | null =>
     insuranceTypes.find(
-      (t) => t.value === (ins.insuranceType?.id ?? ins.insurance_type_id),
+      (t) => t.value === Number(ins.insuranceType?.id ?? ins.insurance_type_id),
     ) ?? null;
 
   // ── render ───────────────────────────────────────────────────────────────
@@ -131,15 +135,16 @@ function InsuranceSection({
             </Button>
           </Flex>
 
-          {/* fields */}
+          {/* fields — 2-column grid, Insurance Type now shares a row instead of spanning full width */}
           <Grid templateColumns="repeat(2, 1fr)" gap="6" mb="4">
-            <FormControl gridColumn="span 2">
+            <FormControl>
               <FormLabel mb="0" fontSize="sm" fontWeight="600" color={textColor}>
                 Insurance Type
               </FormLabel>
               {/* KEY FIX: value resolved via resolveTypeValue which checks
                   both insuranceType.id (server data) and insurance_type_id
-                  (locally-set data) so the selected option always renders. */}
+                  (locally-set data), with Number() coercion so string/number
+                  mismatches from GraphQL don't break the match. */}
               <Select
                 placeholder="Select Insurance Type"
                 value={resolveTypeValue(ins)}

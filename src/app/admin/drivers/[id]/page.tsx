@@ -32,6 +32,7 @@ import AddressesModal from "@/components/addresses/AddressesModal";
 import AreYouSureAlert from "@/components/alert/AreYouSureAlert";
 import FileInput from "@/components/fileInput/FileInput";
 import FileInputLink from "@/components/fileInput/FileInputLink";
+import PaginationTable from "@/components/table/PaginationTable";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
 import InsuranceSection from "@/components/tabs/InsuranceSectionTab";
 import {
@@ -50,8 +51,10 @@ import { GET_DRIVER_STATUSES_QUERY } from "@/graphql/driverStatus";
 import { GET_TRANSMISSION_TYPES_QUERY } from "@/graphql/transmissionsType";
 import { GET_VEHICLE_CLASSES_QUERY } from "@/graphql/vehicleClass";
 import { GET_VEHICLE_TYPES_QUERY } from "@/graphql/vehicleType";
+import { GET_INVOICES_QUERY } from "@/graphql/invoice";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import debounce from "lodash.debounce";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -75,8 +78,6 @@ const buildUpdateInput = (driver: any) => ({
   insurances: (driver.insurances ?? []).map(buildInsuranceInput),
 });
 
-// ─── Lookup query options (static — same for all calls) ──────────────────────
-// ✅ FIX: Defined outside component — never recreated on re-render
 const LOOKUP_VARS = {
   query: "",
   page: 1,
@@ -84,8 +85,6 @@ const LOOKUP_VARS = {
   orderByColumn: "id",
   orderByOrder: "ASC",
 };
-
-// ─── component ──────────────────────────────────────────────────────────────
 
 function DriverEdit() {
   const toast = useToast();
@@ -103,6 +102,21 @@ function DriverEdit() {
   const params = useParams();
   const id = Array.isArray(params?.id) ? params?.id[0] : params?.id;
 
+  // ── RCTI invoices tab state ─────────────────────────────────────────────
+  const [queryPageIndex, setQueryPageIndex] = useState(0);
+  const [queryPageSize, setQueryPageSize] = useState(50);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const columns = useMemo(
+    () => [
+      { id: "name", header: "Invoice", accessorKey: "name" as const },
+      { id: "issued_at", header: "Date", accessorKey: "issued_at" as const, meta: { type: "date" } },
+      { id: "total", header: "Amount", accessorKey: "total" as const, meta: { type: "money" } },
+      { id: "actions", header: "Actions", accessorKey: "id" as const, meta: { isEdit: true } },
+    ],
+    [],
+  );
+
   // ── data queries ────────────────────────────────────────────────────────
 
   const { loading: driverLoading, refetch: getDriver } =
@@ -117,8 +131,6 @@ function DriverEdit() {
       onError: (error) => console.error(error),
     });
 
-  // ✅ FIX: cache-first for lookup lists — they rarely change
-  // This means after first load, switching tabs won't re-fetch these
   useApolloQueryWithEffect<DriverStatusesResponse>(GET_DRIVER_STATUSES_QUERY, {
     variables: LOOKUP_VARS,
     fetchPolicy: "cache-first",
@@ -159,6 +171,28 @@ function DriverEdit() {
     },
   });
 
+  // ✅ RCTI invoices — moved to top level, before any conditional return
+  const {
+    loading,
+    data: invoices,
+  } = useApolloQueryWithEffect<{
+    invoices: {
+      data: any[];
+      paginatorInfo: { total: number; lastPage?: number };
+    };
+  }>(GET_INVOICES_QUERY, {
+    variables: {
+      query: searchQuery,
+      page: queryPageIndex + 1,
+      first: queryPageSize,
+      is_rcti: false,
+      driver_id: id,
+      orderByColumn: "id",
+      orderByOrder: "ASC",
+    },
+    skip: !id,
+  });
+
   // ── mutations ────────────────────────────────────────────────────────────
 
   const [handleUpdateDriver, { loading: updating }] = useMutation(UPDATE_DRIVER_MUTATION, {
@@ -178,9 +212,6 @@ function DriverEdit() {
     handleUpdateDriver({ variables: { input: buildUpdateInput(driver) } });
   }, [driver, handleUpdateDriver]);
 
-  // ── field helpers ────────────────────────────────────────────────────────
-
-  // ✅ FIX: useCallback — prevents re-creating on every render
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDriver((prev) => ({ ...prev, [e.target.name]: e.target.value })),
@@ -193,7 +224,6 @@ function DriverEdit() {
     []
   );
 
-  // ✅ FIX: useMemo for select values — prevents recalc on every render
   const selectedDriverStatus = useMemo(
     () => driverStatuses.find((s) => s.value === driver.driver_status_id) ?? null,
     [driverStatuses, driver.driver_status_id]
@@ -214,9 +244,6 @@ function DriverEdit() {
     [transmissionTypes, driver.transmission_type_id]
   );
 
-  // ── nav button ───────────────────────────────────────────────────────────
-
-  // ✅ FIX: Defined outside render — stable reference
   const NavBtn = useCallback(({ id: btnId, icon, label }: { id: number; icon: any; label: string }) => (
     <Button
       onClick={() => setTabId(btnId)}
@@ -421,88 +448,90 @@ function DriverEdit() {
                 </Flex>
                 <Divider />
 
-                <Flex alignItems="center" mb="16px" mt="18px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Is Vehicle Roadworthy</FormLabel>
-                  <RadioGroup value={driver.is_vehicle_roadworthy ? "1" : "0"}
-                    onChange={(e) => setDriver((prev) => ({ ...prev, is_vehicle_roadworthy: e === "1" }))}>
-                    <Stack direction="row"><Radio value="1">Yes</Radio><Radio value="0">No</Radio></Stack>
-                  </RadioGroup>
-                </Flex>
-
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Vehicle Class</FormLabel>
-                  <Box width="100%">
-                    <Select placeholder="Select Vehicle Class" value={selectedVehicleClass} options={vehicleClasses}
-                      onChange={(e) => setDriver((prev) => ({ ...prev, vehicle_class_id: e?.value ?? null }))} />
-                  </Box>
-                </Flex>
-
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Vehicle Type</FormLabel>
-                  <Box width="100%">
-                    <Select placeholder="Select Vehicle Type" value={selectedVehicleType} options={vehicleTypes}
-                      onChange={(e) => setDriver((prev) => ({ ...prev, vehicle_type_id: e?.value ?? null }))} />
-                  </Box>
-                </Flex>
-
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Transmission Type</FormLabel>
-                  <Box width="100%">
-                    <Select placeholder="Select Transmission Type" value={selectedTransmissionType} options={transmissionTypes}
-                      onChange={(e) => setDriver((prev) => ({ ...prev, transmission_type_id: e?.value ?? null }))} />
-                  </Box>
-                </Flex>
-
-                {[
-                  { label: "Does it have a tailgate?", key: "is_tailgated" },
-                  { label: "Does it have sidegates?", key: "is_sidegated" },
-                ].map(({ label, key }) => (
-                  <Flex key={key} alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
-                    <RadioGroup value={(driver as any)[key] ? "1" : "0"}
-                      onChange={(e) => setDriver((prev) => ({ ...prev, [key]: e === "1" }))}>
+                <Grid templateColumns="repeat(2, 1fr)" gap="6" mt="18px" mb="16px">
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Is Vehicle Roadworthy</FormLabel>
+                    <RadioGroup value={driver.is_vehicle_roadworthy ? "1" : "0"}
+                      onChange={(e) => setDriver((prev) => ({ ...prev, is_vehicle_roadworthy: e === "1" }))}>
                       <Stack direction="row"><Radio value="1">Yes</Radio><Radio value="0">No</Radio></Stack>
                     </RadioGroup>
-                  </Flex>
-                ))}
+                  </FormControl>
 
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Max pallets</FormLabel>
-                  <Input variant="main" fontSize="sm" type="number" name="no_max_pallets"
-                    value={driver.no_max_pallets ?? 0} onChange={handleNumericChange} mb="0" size="lg" />
-                </Flex>
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Vehicle Class</FormLabel>
+                    <Select placeholder="Select Vehicle Class" value={selectedVehicleClass} options={vehicleClasses}
+                      onChange={(e) => setDriver((prev) => ({ ...prev, vehicle_class_id: e?.value ?? null }))}
+                      menuPosition="fixed"
+                      menuPortalTarget={typeof window !== "undefined" ? document.body : undefined} />
+                  </FormControl>
 
-                {[
-                  { label: "Max load capacity", name: "no_max_capacity", unit: "kg" },
-                  { label: "Max volume", name: "no_max_volume", unit: "m³" },
-                  { label: "Max length", name: "no_max_length", unit: "m" },
-                  { label: "Max height", name: "no_max_height", unit: "m" },
-                ].map(({ label, name, unit }) => (
-                  <Flex key={name} alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
-                    <Flex width="100%">
-                      <Input variant="main" fontSize="sm" step="any" type="number" name={name}
-                        value={(driver as any)[name] ?? 0} onChange={handleNumericChange} mb="0" size="lg" width="40%" />
-                      <FormLabel display="flex" mb="0" mt="3" pl="10px" fontSize="sm" fontWeight="500" color={textColor}>{unit}</FormLabel>
-                    </Flex>
-                  </Flex>
-                ))}
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Vehicle Type</FormLabel>
+                    <Select placeholder="Select Vehicle Type" value={selectedVehicleType} options={vehicleTypes}
+                      onChange={(e) => setDriver((prev) => ({ ...prev, vehicle_type_id: e?.value ?? null }))}
+                      menuPosition="fixed"
+                      menuPortalTarget={typeof window !== "undefined" ? document.body : undefined} />
+                  </FormControl>
 
-                {[
-                  { label: "Registration number", name: "registration_no" },
-                  { label: "Year of manufacture", name: "vehicle_year" },
-                  { label: "Make", name: "vehicle_make" },
-                  { label: "Model", name: "vehicle_model" },
-                ].map(({ label, name }) => (
-                  <Flex key={name} alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
-                    <Input variant="main" fontSize="sm" type="text" name={name}
-                      value={(driver as any)[name] ?? ""} onChange={handleChange} mb="0" size="lg" />
-                  </Flex>
-                ))}
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Transmission Type</FormLabel>
+                    <Select placeholder="Select Transmission Type" value={selectedTransmissionType} options={transmissionTypes}
+                      onChange={(e) => setDriver((prev) => ({ ...prev, transmission_type_id: e?.value ?? null }))}
+                      menuPosition="fixed"
+                      menuPortalTarget={typeof window !== "undefined" ? document.body : undefined} />
+                  </FormControl>
 
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Photos of vehicle</FormLabel>
+                  {[
+                    { label: "Does it have a tailgate?", key: "is_tailgated" },
+                    { label: "Does it have sidegates?", key: "is_sidegated" },
+                  ].map(({ label, key }) => (
+                    <FormControl key={key}>
+                      <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">{label}</FormLabel>
+                      <RadioGroup value={(driver as any)[key] ? "1" : "0"}
+                        onChange={(e) => setDriver((prev) => ({ ...prev, [key]: e === "1" }))}>
+                        <Stack direction="row"><Radio value="1">Yes</Radio><Radio value="0">No</Radio></Stack>
+                      </RadioGroup>
+                    </FormControl>
+                  ))}
+
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Max pallets</FormLabel>
+                    <Input variant="main" fontSize="sm" type="number" name="no_max_pallets"
+                      value={driver.no_max_pallets ?? 0} onChange={handleNumericChange} size="lg" />
+                  </FormControl>
+
+                  {[
+                    { label: "Max load capacity", name: "no_max_capacity", unit: "kg" },
+                    { label: "Max volume", name: "no_max_volume", unit: "m³" },
+                    { label: "Max length", name: "no_max_length", unit: "m" },
+                    { label: "Max height", name: "no_max_height", unit: "m" },
+                  ].map(({ label, name, unit }) => (
+                    <FormControl key={name}>
+                      <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">{label}</FormLabel>
+                      <Flex alignItems="center">
+                        <Input variant="main" fontSize="sm" step="any" type="number" name={name}
+                          value={(driver as any)[name] ?? 0} onChange={handleNumericChange} size="lg" width="70%" />
+                        <FormLabel mb="0" pl="10px" fontSize="sm" fontWeight="500" color={textColor}>{unit}</FormLabel>
+                      </Flex>
+                    </FormControl>
+                  ))}
+
+                  {[
+                    { label: "Registration number", name: "registration_no" },
+                    { label: "Year of manufacture", name: "vehicle_year" },
+                    { label: "Make", name: "vehicle_make" },
+                    { label: "Model", name: "vehicle_model" },
+                  ].map(({ label, name }) => (
+                    <FormControl key={name}>
+                      <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">{label}</FormLabel>
+                      <Input variant="main" fontSize="sm" type="text" name={name}
+                        value={(driver as any)[name] ?? ""} onChange={handleChange} size="lg" />
+                    </FormControl>
+                  ))}
+                </Grid>
+
+                <FormControl mb="16px">
+                  <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">Photos of vehicle</FormLabel>
                   <Flex width="100%" flexWrap="wrap" gap="4">
                     {driver.vehicle_media?.map((image, index) => (
                       <Flex key={index} alignItems="center" justifyContent="center"
@@ -513,7 +542,7 @@ function DriverEdit() {
                     <FileInput width="130px" height="130px" entity="Driver" description="Upload photo"
                       entityId={driver.id} onUpload={() => getDriver()} collection_name="vehicle" />
                   </Flex>
-                </Flex>
+                </FormControl>
               </FormControl>
             )}
 
@@ -537,41 +566,65 @@ function DriverEdit() {
 
             {/* ══════════════ TAB 3 : RCTIs ══════════════ */}
             {tabId === 3 && (
-              <FormControl>
-                <Flex justifyContent="space-between" alignItems="center" mb="24px" className="mt-8">
-                  <h2 className="mb-0">Recipient Created Tax Invoices (RCTI)</h2>
-                  <Button fontSize="sm" variant="brand" fontWeight="500" mb="0" ms="10px"
-                    onClick={submitUpdate} isLoading={updating}>Update</Button>
-                </Flex>
-                <Divider />
-                <h3 className="mt-6 mb-4">Payment Details</h3>
-
-                {[
-                  { label: "Account name", name: "bank_account_name" },
-                  { label: "BSB", name: "bank_bsb" },
-                  { label: "Account Number", name: "bank_account_number" },
-                ].map(({ label, name }) => (
-                  <Flex key={name} alignItems="center" mb="16px">
-                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
-                    <Input variant="main" fontSize="sm" type="text" name={name}
-                      value={(driver as any)[name] ?? ""} onChange={handleChange} mb="0" size="lg" />
+              <>
+                <FormControl>
+                  <Flex justifyContent="space-between" alignItems="center" mb="24px" className="mt-8">
+                    <h2 className="mb-0">Recipient Created Tax Invoices (RCTI)</h2>
+                    <Button fontSize="sm" variant="brand" fontWeight="500" mb="0" ms="10px"
+                      onClick={submitUpdate} isLoading={updating}>Update</Button>
                   </Flex>
-                ))}
+                  <Divider />
+                  <h3 className="mt-6 mb-4">Payment Details</h3>
 
-                <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Pay rate (%)</FormLabel>
-                  <Input variant="main" fontSize="sm" type="number" value={driverPayRatePercentage}
-                    onChange={(e) => { const val = parseFloat(e.target.value); setDriverPayRatePercentage(val); setDriver((prev) => ({ ...prev, pay_rate: val / 100 })); }}
-                    mb="0" size="lg" />
-                </Flex>
+                  {[
+                    { label: "Account name", name: "bank_account_name" },
+                    { label: "BSB", name: "bank_bsb" },
+                    { label: "Account Number", name: "bank_account_number" },
+                  ].map(({ label, name }) => (
+                    <Flex key={name} alignItems="center" mb="16px">
+                      <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>{label}</FormLabel>
+                      <Input variant="main" fontSize="sm" type="text" name={name}
+                        value={(driver as any)[name] ?? ""} onChange={handleChange} mb="0" size="lg" />
+                    </Flex>
+                  ))}
 
+                  <Flex alignItems="center" mb="16px">
+                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Pay rate (%)</FormLabel>
+                    <Input variant="main" fontSize="sm" type="number" value={driverPayRatePercentage}
+                      onChange={(e) => { const val = parseFloat(e.target.value); setDriverPayRatePercentage(val); setDriver((prev) => ({ ...prev, pay_rate: val / 100 })); }}
+                      mb="0" size="lg" />
+                  </Flex>
+
+                  <Flex alignItems="center" mb="16px">
+                    <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Fuel/Toll rate (%)</FormLabel>
+                    <Input variant="main" fontSize="sm" type="number" value={driverLevyRatePercentage}
+                      onChange={(e) => { const val = parseFloat(e.target.value); setDriverLevyRatePercentage(val); setDriver((prev) => ({ ...prev, levy_rate: val })); }}
+                      mb="0" size="lg" />
+                  </Flex>
+                </FormControl>
+                <Divider my="48px" />
                 <Flex alignItems="center" mb="16px">
-                  <FormLabel display="flex" mb="0" width="200px" fontSize="sm" fontWeight="500" color={textColor}>Fuel/Toll rate (%)</FormLabel>
-                  <Input variant="main" fontSize="sm" type="number" value={driverLevyRatePercentage}
-                    onChange={(e) => { const val = parseFloat(e.target.value); setDriverLevyRatePercentage(val); setDriver((prev) => ({ ...prev, levy_rate: val })); }}
-                    mb="0" size="lg" />
+                  {!loading && invoices?.invoices?.data && (
+                    <PaginationTable
+                      columns={columns}
+                      data={invoices.invoices.data}
+                      total={invoices.invoices.paginatorInfo?.total ?? 0}
+                      options={{
+                        initialState: {
+                          pageIndex: queryPageIndex,
+                          pageSize: queryPageSize,
+                        },
+                        manualPagination: true,
+                        pageCount: invoices.invoices.paginatorInfo?.lastPage,
+                      }}
+                      setQueryPageIndex={setQueryPageIndex}
+                      setQueryPageSize={setQueryPageSize}
+                      isServerSide
+                      path="/admin/invoices"
+                    />
+                  )}
                 </Flex>
-              </FormControl>
+              </>
             )}
           </GridItem>
         </Grid>
