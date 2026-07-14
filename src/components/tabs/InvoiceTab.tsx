@@ -4,9 +4,14 @@ import { Select } from "chakra-react-select";
 import { SearchBar } from "@/components/navbar/searchBar/SearchBar";
 import PaginationTable from "@/components/table/PaginationTable";
 import { TabsComponent } from "@/components/tabs/TabsComponet";
-import { GET_CUSTOMERS_QUERY } from "@/graphql/customer";
-import { GET_INVOICE_TOTALS_QUERY, GET_INVOICES_QUERY } from "@/graphql/invoice";
-import { GET_INVOICE_STATUSES_QUERY } from "@/graphql/invoiceStatus";
+import { GET_CUSTOMERS_QUERY, CustomersQueryResult } from "@/graphql/customer";
+import {
+  GET_INVOICE_TOTALS_QUERY,
+  GET_INVOICES_QUERY,
+  InvoicesResponse,
+  InvoiceTotalsResponse,
+} from "@/graphql/invoice";
+import { GET_INVOICE_STATUSES_QUERY, InvoiceStatusesResponse } from "@/graphql/invoiceStatus";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
 import {
   Box,
@@ -22,55 +27,6 @@ import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
-
-// ---------- Types ----------
-type Customer = {
-  id: string;
-  full_name: string;
-};
-
-type CustomersResponse = {
-  customers: {
-    data: Customer[];
-    paginatorInfo: { total: number; lastPage?: number };
-  };
-};
-
-type InvoiceStatus = {
-  id: number;
-  name: string;
-};
-
-type InvoiceStatusesResponse = {
-  invoiceStatuses: {
-    data: InvoiceStatus[];
-    paginatorInfo: { total: number; lastPage?: number };
-  };
-};
-
-type Invoice = {
-  id: string;
-  name: string;
-  issued_at: string;
-  total: number;
-  invoice_status?: { name?: string };
-  job?: { name?: string };
-  customer?: { full_name?: string };
-};
-
-type InvoicesResponse = {
-  invoices: {
-    data: Invoice[];
-    paginatorInfo: { total: number; lastPage?: number };
-  };
-};
-
-type InvoiceTotalsResponse = {
-  invoices: {
-    data: Invoice[];
-    paginatorInfo: { total: number; lastPage?: number };
-  };
-};
 
 // ---------- Component ----------
 export default function InvoiceTab(props: any) {
@@ -130,7 +86,7 @@ export default function InvoiceTab(props: any) {
 
   // ---------- Customers ----------
   const [getCustomers, { data: customersData }] =
-    useApolloLazyQueryWithEffect<CustomersResponse>(GET_CUSTOMERS_QUERY, {
+    useApolloLazyQueryWithEffect<CustomersQueryResult>(GET_CUSTOMERS_QUERY, {
       onError: (error) => console.error("Failed to load customers", error),
     });
 
@@ -187,7 +143,7 @@ export default function InvoiceTab(props: any) {
           id: invoiceStatus.id,
           name: invoiceStatus.name,
           tabName: invoiceStatus.name,
-          hash: invoiceStatus.name?.replace(/\s+/g, "_").toLowerCase(),
+          hash: String(invoiceStatus.name ?? "").replace(/\s+/g, "_").toLowerCase(),
         });
       });
       setInvoiceStatuses(statuses);
@@ -198,7 +154,7 @@ export default function InvoiceTab(props: any) {
   const columns = useMemo(
     () => [
       {
-        header: "ID",
+        header: "id",
         accessor: "name" as const,
       },
       {
@@ -215,10 +171,6 @@ export default function InvoiceTab(props: any) {
         accessor: "issued_at" as const,
         type: "date",
       },
-      //{
-      //  Header: "category",
-      //  accessor: "category" as const,
-      //},
       {
         header: "status",
         accessor: "invoice_status.name" as const,
@@ -229,7 +181,7 @@ export default function InvoiceTab(props: any) {
         type: "money",
       },
       {
-        header: "Actions",
+        header: "actions",
         accessor: "id" as const,
       },
     ],
@@ -278,7 +230,7 @@ export default function InvoiceTab(props: any) {
   }, [getInvoices]);
 
   // ---------- Invoice Totals ----------
-  const [getInvoiceTotalsQuery, { data: _invoiceTotals }] =
+  const [getInvoiceTotalsQuery, { data: invoiceTotals }] =
     useApolloLazyQueryWithEffect<InvoiceTotalsResponse>(GET_INVOICE_TOTALS_QUERY, {
       onError: (error) => console.error("Failed to load invoice totals", error),
     });
@@ -432,32 +384,15 @@ export default function InvoiceTab(props: any) {
 
           <Divider className="!my-0 !py-0" />
 
-          {isAdmin && !loading && (invoices?.invoices?.data?.length ?? 0) >= 0 && (
+          {isAdmin && !loading && invoices?.invoices?.data && (
             <PaginationTable
               columns={columns}
-              data={invoices?.invoices?.data ?? []}
+              data={invoices.invoices.data}
+              total={invoices.invoices.paginatorInfo?.total ?? 0}
               options={{
                 initialState: { pageIndex: queryPageIndex, pageSize: queryPageSize },
                 manualPagination: true,
-                pageCount: invoices?.invoices?.paginatorInfo?.lastPage,
-              }}
-              total={invoices?.invoices?.paginatorInfo?.total ?? 0}
-              setQueryPageIndex={setQueryPageIndex}
-              setQueryPageSize={setQueryPageSize}
-              isServerSide
-              path="/admin/invoices"
-            />
-          )}
-
-          {isCompanyAdmin && !companyInvoiceLoading && (companyInvoices?.invoices?.data?.length ?? 0) >= 0 && (
-            <PaginationTable
-              columns={columns}
-              data={companyInvoices?.invoices?.data ?? []}
-              total={companyInvoices?.invoices?.paginatorInfo?.total ?? 0}
-              options={{
-                initialState: { pageIndex: queryPageIndex, pageSize: queryPageSize },
-                manualPagination: true,
-                pageCount: companyInvoices?.invoices?.paginatorInfo?.lastPage,
+                pageCount: invoices.invoices.paginatorInfo?.lastPage,
               }}
               setQueryPageIndex={setQueryPageIndex}
               setQueryPageSize={setQueryPageSize}
@@ -466,15 +401,32 @@ export default function InvoiceTab(props: any) {
             />
           )}
 
-          {isCustomer && !customerInvoiceLoading && (customerInvoices?.invoices?.data?.length ?? 0) >= 0 && (
+          {isCompanyAdmin && !companyInvoiceLoading && companyInvoices?.invoices?.data && (
             <PaginationTable
               columns={columns}
-              data={customerInvoices?.invoices?.data ?? []}
-              total={customerInvoices?.invoices?.paginatorInfo?.total ?? 0}
+              data={companyInvoices.invoices.data}
+              total={companyInvoices.invoices.paginatorInfo?.total ?? 0}
               options={{
                 initialState: { pageIndex: queryPageIndex, pageSize: queryPageSize },
                 manualPagination: true,
-                pageCount: customerInvoices?.invoices?.paginatorInfo?.lastPage,
+                pageCount: companyInvoices.invoices.paginatorInfo?.lastPage,
+              }}
+              setQueryPageIndex={setQueryPageIndex}
+              setQueryPageSize={setQueryPageSize}
+              isServerSide
+              path="/admin/invoices"
+            />
+          )}
+
+          {isCustomer && !customerInvoiceLoading && customerInvoices?.invoices?.data && (
+            <PaginationTable
+              columns={columns}
+              data={customerInvoices.invoices.data}
+              total={customerInvoices.invoices.paginatorInfo?.total ?? 0}
+              options={{
+                initialState: { pageIndex: queryPageIndex, pageSize: queryPageSize },
+                manualPagination: true,
+                pageCount: customerInvoices.invoices.paginatorInfo?.lastPage,
               }}
               setQueryPageIndex={setQueryPageIndex}
               setQueryPageSize={setQueryPageSize}
@@ -484,7 +436,6 @@ export default function InvoiceTab(props: any) {
           )}
         </SimpleGrid>
       </Box>
-
     </>
   );
 }

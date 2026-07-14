@@ -127,6 +127,142 @@ export const GET_DRIVERS_QUERY = gql`
   }
 `;
 
+export const GET_LIST_DRIVERS_QUERY = gql`
+  query listOfDrivers(
+    $query: String
+    $page: Int!
+    $first: Int!
+    $orderByColumn: String!
+    $orderByOrder: SortOrder!
+    $driverStatusId: Int
+    $vehicleClassId: Int
+    $truckTypeId: Int
+    $isTailgated: Boolean
+    $isSidegated: Boolean
+    $addressState: String
+    $minMaxCapacity: Float
+    $maxMaxCapacity: Float
+    $noAvailability: Int
+  ) {
+    listOfDrivers(
+      query: $query
+      page: $page
+      first: $first
+      orderBy: {
+        column: $orderByColumn
+        order: $orderByOrder
+      }
+      driverStatusId: $driverStatusId
+      vehicleClassId: $vehicleClassId
+      truckTypeId: $truckTypeId
+      isTailgated: $isTailgated
+      isSidegated: $isSidegated
+      addressState: $addressState
+      minMaxCapacity: $minMaxCapacity
+      maxMaxCapacity: $maxMaxCapacity
+      noAvailability: $noAvailability
+    ) {
+
+      data {
+        id
+        user_id
+        first_name
+        last_name
+        full_name
+        driver_no
+        phone_no
+        email
+        rcti_email_id
+        trading_name
+        abn
+        color
+        admin_notes
+        base_notes
+
+        driver_status_id
+        online_status_id
+
+        operation_year
+        no_availability
+
+        license_no
+        license_state
+        license_expire_at
+
+        insurance_name
+        insurance_number
+        insurance_expire_at
+
+        earning_toggle
+
+        is_inducted
+        is_vehicle_roadworthy
+        is_tailgated
+        is_sidegated
+
+        no_max_pallets
+        no_max_capacity
+        no_max_volume
+        no_max_length
+        no_max_height
+
+        external_height
+
+        registration_no
+        vehicle_make
+        vehicle_model
+        vehicle_year
+
+        vehicle_class_id
+        vehicle_class {
+          name
+        }
+
+        vehicle_type_id
+        vehicle_type {
+          name
+        }
+
+        truck_type_id
+
+        address
+        address_line_1
+        address_line_2
+        address_postal_code
+        address_city
+        address_state
+        address_country
+
+        lat
+        lng
+
+        media_url
+
+        insurances {
+          id
+          insurance_type_id
+          insurance_name
+          insurance_number
+          insurance_expire_at
+
+          insuranceType {
+            id
+            name
+          }
+        }
+      }
+
+      paginatorInfo {
+        total
+        currentPage
+        lastPage
+        perPage
+        hasMorePages
+      }
+    }
+  }
+`;
+
 export const GET_AVAILABLE_DRIVERS_QUERY = gql`
   query drivers(
     $query: String
@@ -224,6 +360,7 @@ export const GET_AVAILABLE_DRIVERS_QUERY = gql`
     }
   }
 `;
+
 export const GET_DRIVER_QUERY = gql`
   query driver($id: ID!) {
     driver(id: $id) {
@@ -316,12 +453,10 @@ export const GET_DRIVER_QUERY = gql`
         insurance_name
         insurance_number
         insurance_expire_at
-
         insuranceType {
           id
           name
         }
-
         insurance_media {
           id
           uuid
@@ -408,7 +543,6 @@ export const CREATE_DRIVER_MUTATION = gql`
         insurance_name
         insurance_number
         insurance_expire_at
-
         insuranceType {
           id
           name
@@ -488,12 +622,10 @@ export const UPDATE_DRIVER_MUTATION = gql`
         insurance_name
         insurance_number
         insurance_expire_at
-
         insuranceType {
           id
           name
         }
-
         insurance_media {
           id
           uuid
@@ -834,6 +966,7 @@ export interface DriversResponse {
     paginatorInfo: PaginatorInfo;
   };
 }
+
 export interface VehicleClassesResponse {
   vehicleClasses: {
     data: Array<{ id: string; name: string }>;
@@ -843,6 +976,13 @@ export interface VehicleClassesResponse {
 
 export interface VehicleTypesResponse {
   vehicleTypes: {
+    data: Array<{ id: string; name: string }>;
+    paginatorInfo?: any;
+  };
+}
+
+export interface TruckTypesResponse {
+  truckTypes: {
     data: Array<{ id: string; name: string }>;
     paginatorInfo?: any;
   };
@@ -874,11 +1014,9 @@ export interface DriverInsurance {
   insurance_name: string;
   insurance_number: string;
   insurance_expire_at: string | null;
-
   insuranceType?: {
     id: number;
     name: string;
   };
-
   insurance_media?: any[];
 }

@@ -131,6 +131,7 @@ export const GET_INVOICE_TOTALS_QUERY = gql`
         id
         name
         job {
+          name
           job_category_id
           job_category {
             name
@@ -162,7 +163,11 @@ export const GET_INVOICE_QUERY = gql`
       job_id
       rcti_url
       job {
-        name
+          name
+          job_category_id
+          job_category {
+            name
+          }
         invoice_url
       }
       vehicle_hire_id
@@ -340,6 +345,8 @@ type Invoice = {
   vehicle_hire: any;
   invoice_status: any;
   payment_terms: string;
+  manual_inv_url: string;
+  invoice_no: string;
 };
 
 export const defaultInvoice: Invoice = {
@@ -371,8 +378,25 @@ export const defaultInvoice: Invoice = {
   vehicle_hire: null,
   invoice_status: null,
   payment_terms: "",
+  manual_inv_url: null,
+  invoice_no: "",
 };
 export interface InvoiceBetweenInput {
   from_at: string;
   to_at: string;
 }
+
+
+export type InvoicesResponse = {
+  invoices: {
+    data: Invoice[];
+    paginatorInfo: { total: number; lastPage?: number };
+  };
+};
+
+export type InvoiceTotalsResponse = {
+  invoices: {
+    data: Invoice[];
+    paginatorInfo: { total: number; lastPage?: number };
+  };
+};
