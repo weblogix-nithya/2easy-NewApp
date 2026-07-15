@@ -1,3 +1,4 @@
+"use client";
 import {
   Avatar,
   Badge,
@@ -20,21 +21,21 @@ import {
 } from "@/components/jobs/JobTableColumns";
 import { TrackingMap } from "@/components/map/TrackingMap";
 import PaginationTable from "@/components/table/PaginationTable";
-import { GET_JOB_QUERY } from "@/graphql/job";
+import { GET_JOB_TRACKING_QUERY } from "@/graphql/job";
 import { GET_DRIVER_CURRENT_ROUTE_QUERY } from "@/graphql/route";
 import { australianStates, formatDate, getMapIcon } from "@/lib/helpers/helper";
 import debounce from "lodash.debounce";
 import moment from "moment";
-import { useRouter } from "next/router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
-import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
+import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffectCopy";
+import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffectCopy";
 import GoogleMapProvider from "@/components/providers/GoogleMapProvider";
 
 export default function TrackingJob() {
-  const router = useRouter();
-  const { id: jobId } = router.query;
+  const params = useParams();
+  const jobId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
   const [routePoints, setRoutePoints] = useState([]);
 
   // Google Maps data.
@@ -48,8 +49,8 @@ export default function TrackingJob() {
     () => [
       {
         id: "sort_order",
-        Header: "Sort Order",
-        Cell: ({ row }: any) => {
+        header: "Sort Order",
+        cell: ({ row }: any) => {
           const dSortId = row.original?.d_sort_id;
           return dSortId !== null && dSortId !== undefined ? (
             <Badge colorScheme="green">#{dSortId}</Badge>
@@ -60,23 +61,23 @@ export default function TrackingJob() {
       },
       {
         id: "name",
-        Header: "Delivery ID",
-        Cell: ({ row }: any) => <DeliveryTrackingCell row={row} />,
+        header: "Delivery ID",
+        cell: ({ row }: any) => <DeliveryTrackingCell row={row} />,
       },
       {
         id: "timeslot",
-        Header: "Timeslot",
-        Cell: ({ row }: any) => <TimeslotCustomerCell row={row} />,
+        header: "Timeslot",
+        cell: ({ row }: any) => <TimeslotCustomerCell row={row} />,
       },
       {
         id: "pick_up_destination.address_formatted,pick_up_destination.address_business_name",
-        Header: "Pickup Address and Name ",
-        Cell: PickupAddressWithTimewithoutMediacustomerCell,
+        header: "Pickup Address and Name ",
+        cell: PickupAddressWithTimewithoutMediacustomerCell,
       },
       {
         id: "job_destinations.address,job_destinations.address_business_name",
-        Header: "Delivery Address and Name",
-        Cell: DeliveryAddressWithTimebulkCustomerCell,
+        header: "Delivery Address and Name",
+        cell: DeliveryAddressWithTimebulkCustomerCell,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,47 +102,70 @@ export default function TrackingJob() {
     };
   }, [debouncedCenterChangeHandler]);
 
+  const jobQueryVariables = useMemo(() => ({ id: jobId }), [jobId]);
+
+  const handleJobCompleted = useCallback((data: any) => {
+
+    const localDate = formatDate(data?.job?.ready_at);
+    getDriverCurrentRoutes({
+      variables: {
+        page: 1,
+        first: 20,
+        orderByColumn: "id",
+        orderByOrder: "ASC",
+        today: moment(localDate).utc().format("YYYY-MM-DD") + " 14:00:00",
+        driver_id: Number(data?.job?.driver_id),
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleJobError = useCallback((error: any) => {
+    console.log("onError", error);
+  }, []);
+
   const {
     loading: jobLoading,
     data: jobData,
-    refetch: _getJob,
-  } = useApolloQueryWithEffect(GET_JOB_QUERY, {
-    variables: {
-      id: jobId,
-    },
+    // refetch: _getJob,
+  } = useApolloQueryWithEffect(GET_JOB_TRACKING_QUERY, {
+    variables: jobQueryVariables,
     skip: !jobId,
-    onCompleted: (data: any) => {
-      const localDate = formatDate(data?.job?.ready_at);
-      getDriverCurrentRoutes({
-        variables: {
-          page: 1,
-          first: 20,
-          orderByColumn: "id",
-          orderByOrder: "ASC",
-          // today: moment(localDate).utc().format("YYYY-MM-DD HH:mm:ss"),
-          today: moment(localDate).utc().format("YYYY-MM-DD") + " 14:00:00",
-          driver_id: Number(data?.job?.driver_id),
-        },
-      });
-      // getJobs({
-      //   variables: {
-      //     page: 1,
-      //     first: 50,
-      //     // today: moment(localDate).utc().format("YYYY-MM-DD HH:mm:ss"),
-      //     orderBy: [{ column: "id", order: "DESC" }],
-      //     between_at: {
-      //       from_at: `${currentDate} 00:00:00`,
-      //       to_at: `${currentDate} 23:59:59`,
-      //     },
-      //     driver_id: driverId,
-      //   },
-      // });
-    },
-    onError(error) {
-      console.log("onError");
-      console.log(error);
-    },
+    onCompleted: handleJobCompleted,
+    onError: handleJobError,
   });
+
+  const handleDriverRoutesCompleted = useCallback((data: any) => {
+
+    if (data.routes.data.length > 0) {
+      const route = data.routes.data[0];
+      const routePoints = route.route_points.filter(
+        (point: any) =>
+          Number(point.route_point_status_id) <= 3 && point.job_destination,
+      );
+      const markers = routePoints.map((point: any) => ({
+        lat: point.lat,
+        lng: point.lng,
+        icon: getMapIcon(point),
+        data: point,
+      }));
+      const drivers = [
+        {
+          lat: route.driver.lat,
+          lng: route.driver.lng,
+          icon: route.driver.media_url,
+          data: route.driver,
+        },
+      ];
+      setRoutePoints(routePoints);
+      setMarkers(markers);
+      setCenter({ lat: australianStates[1].lat, lng: australianStates[1].lng });
+      setDrivers(drivers);
+    } else {
+      setRoutePoints([]);
+      setMarkers([]);
+    }
+  }, []);
 
   const [
     getDriverCurrentRoutes,
@@ -149,73 +173,42 @@ export default function TrackingJob() {
   ] = useApolloLazyQueryWithEffect(GET_DRIVER_CURRENT_ROUTE_QUERY, {
     pollInterval: pollingSpeed,
     notifyOnNetworkStatusChange: true,
-    onCompleted: (data: any) => {
-      if (data.routes.data.length > 0) {
-        const route = data.routes.data[0];
-        // Filter out Completed Stops.
-        const routePoints = route.route_points.filter(
-          (point: any) =>
-            Number(point.route_point_status_id) <= 3 && point.job_destination,
-        );
-        console.log(routePoints, "routep");
-        const markers = routePoints.map((point: any) => {
-          return {
-            lat: point.lat,
-            lng: point.lng,
-            icon: getMapIcon(point),
-            data: point,
-          };
-        });
-
-        const drivers = [
-          {
-            lat: route.driver.lat,
-            lng: route.driver.lng,
-            icon: route.driver.media_url,
-            data: route.driver,
-          },
-        ];
-
-        setRoutePoints(routePoints);
-        console.log(routePoints, "routep");
-        setMarkers(markers);
-        setCenter({
-          lat: australianStates[1].lat,
-          lng: australianStates[1].lng,
-        });
-        setDrivers(drivers);
-      } else {
-        setRoutePoints([]);
-        setMarkers([]);
-      }
-    },
+    onCompleted: handleDriverRoutesCompleted,
   });
 
-  const groupedJobs = Object.values(
-    routePoints.reduce((acc: Record<string, any>, point: any) => {
-      const jobId = point?.job?.id;
-      if (!jobId) return acc;
+  const groupedJobs = useMemo(() => {
+    return Object.values(
+      routePoints.reduce((acc: Record<string, any>, point: any) => {
+        const jobId = point?.job?.id;
+        if (!jobId) return acc;
+        if (!acc[jobId]) {
+          acc[jobId] = { ...point.job };
+        }
+        return acc;
+      }, {}),
+    ).sort((a: any, b: any) => {
+      const aSort = (a as any).d_sort_id ?? Infinity;
+      const bSort = (b as any).d_sort_id ?? Infinity;
+      return aSort - bSort;
+    });
+  }, [routePoints]);
 
-      if (!acc[jobId]) {
-        acc[jobId] = {
-          ...point.job,
-        };
-      }
-      console.log(acc, "Grped acc");
-      return acc;
-    }, {}),
-  ).sort((a: any, b: any) => {
-    const aSort = (a as any).d_sort_id ?? Infinity;
-    const bSort = (b as any).d_sort_id ?? Infinity;
-    return aSort - bSort;
-  });
-
-  // ✅ Single flag — true if ANY job has no sort order
-  const hasUnsortedJobs = groupedJobs.some(
-    (job: any) => job.d_sort_id === null,
+  const hasUnsortedJobs = useMemo(
+    () => groupedJobs.some((job: any) => job.d_sort_id === null),
+    [groupedJobs],
   );
 
-  console.log(groupedJobs, "gr");
+  const tableOptions = useMemo(
+    () => ({
+      initialState: {
+        pageIndex: 0,
+        pageSize: 100,
+      },
+      manualPagination: false,
+      pageCount: groupedJobs.length,
+    }),
+    [groupedJobs.length],
+  );
   return (
     <Box
       className="mk-customers-id overflow-auto"
@@ -380,14 +373,7 @@ export default function TrackingJob() {
                       <PaginationTable
                         columns={Columns}
                         data={groupedJobs ?? []}
-                        options={{
-                          initialState: {
-                            pageIndex: 0,
-                            pageSize: 100,
-                          },
-                          manualPagination: false,
-                          pageCount: groupedJobs.length,
-                        }}
+                        options={tableOptions}
                         isServerSide={false}
                       />
                     ) : (
@@ -395,6 +381,17 @@ export default function TrackingJob() {
                         No data yet
                       </div>
                     )}
+                    {/* <Flex className="flex-col mt-4 job-destination-card-wrap">
+                      {!jobLoading && groupedJobs?.length > 0 ? (
+                        <div>
+                          TABLE DISABLED FOR TEST — {groupedJobs.length} rows
+                        </div>
+                      ) : (
+                        <div className="text-center mt-20 text-gray-500">
+                          No data yet
+                        </div>
+                      )}
+                    </Flex> */}
                   </Flex>
                   {/* // )}  */}
                 </Box>
@@ -402,6 +399,7 @@ export default function TrackingJob() {
 
               {/* Job map */}
               <GoogleMapProvider>
+                {/* <h3>no map now</h3> */}
                 {!loadingDriverCurrentRoutes &&
                   routePoints &&
                   markers.length > 0 && (

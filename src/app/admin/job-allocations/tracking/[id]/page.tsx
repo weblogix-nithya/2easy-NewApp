@@ -99,7 +99,7 @@ export default function TrackingJob() {
   const {
     loading: jobLoading,
     data: jobData,
-  } = useApolloQueryWithEffect(GET_JOB_QUERY, {
+  } = useApolloQueryWithEffect<{ job: any }>(GET_JOB_QUERY, {
     variables: {
       id: jobId,
     },

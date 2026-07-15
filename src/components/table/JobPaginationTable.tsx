@@ -87,7 +87,6 @@ type PaginationTableProps<T extends object> = {
   data: T[];
   total: number;
   options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
-  path?: string;
   showDelete?: boolean;
   onDelete?: (data: any) => void;
   showPageSizeSelect?: boolean;
@@ -104,28 +103,28 @@ type PaginationTableProps<T extends object> = {
   // onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
   onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
 } & (
-    | {
+  | {
       isServerSide?: false;
       setQueryPageIndex?: never;
       setQueryPageSize?: never;
     }
-    | {
+  | {
       isServerSide: true;
       setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
       setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
     }
-  ) &
+) &
   (
     | {
-      showRowSelection?: false;
-      setSelectedRow?: never;
-      isFilterRowSelected?: never;
-    }
+        showRowSelection?: false;
+        setSelectedRow?: never;
+        isFilterRowSelected?: never;
+      }
     | {
-      showRowSelection: true;
-      setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
-      isFilterRowSelected: boolean;
-    }
+        showRowSelection: true;
+        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
+        isFilterRowSelected: boolean;
+      }
   );
 
 const PaginationTable = <T extends object>({
@@ -134,7 +133,6 @@ const PaginationTable = <T extends object>({
   total,
   isServerSide = false,
   options,
-  path,
   showPageSizeSelect = false,
   showRowSelection = false,
   isFilterRowSelected = false,
@@ -222,7 +220,7 @@ const PaginationTable = <T extends object>({
     manualPagination: !!options?.manualPagination || isServerSide,
     pageCount:
       (!!options?.manualPagination || isServerSide) &&
-        options?.pageCount != null
+      options?.pageCount != null
         ? options.pageCount
         : undefined,
     getPaginationRowModel: getPaginationRowModel(),
@@ -716,7 +714,13 @@ const PaginationTable = <T extends object>({
                       cell.column.id === "actions"
                     ) {
                       const cellValue = cell.getValue();
-
+                      const basePath = path || "/admin/jobs";
+                      const rowId =
+                        // many data shapes use row.original as the job
+                        // fall back to nested job.id or the column value
+                        row?.original?.id ??
+                        row?.original?.job?.id ??
+                        cell.getValue();
                       return (
                         <Td
                           key={cell.id}
@@ -724,9 +728,10 @@ const PaginationTable = <T extends object>({
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Flex gap={2} wrap="wrap" align="center">
-                            {meta.isDownload && (
+                            {/* {meta.isDownload && (
                               <Link
-                                href={cellValue}
+                                // href={cellValue}
+                                href={rowId ? `${basePath}/${rowId}` : basePath}
                                 target="_blank"
                                 fontWeight="700"
                                 data-no-row-toggle
@@ -744,11 +749,16 @@ const PaginationTable = <T extends object>({
                                   />
                                 </Button>
                               </Link>
-                            )}
+                            )} */}
 
                             {(meta.isEdit === undefined || meta.isEdit) && (
                               <Link
-                                href={`${path || ""}/${row.original?.job?.id}`}
+                                // href={`${path || ""}/${row.original?.job?.id}`}
+                                 href={
+                                  rowId
+                                    ? `${basePath}/tracking/${rowId}`
+                                    : `${basePath}`
+                                }
                                 fontWeight="700"
                                 data-no-row-toggle
                                 onClick={(e) => e.stopPropagation()}
@@ -765,65 +775,6 @@ const PaginationTable = <T extends object>({
                                   />
                                 </Button>
                               </Link>
-                            )}
-
-                            {meta.isView && (
-                              <Link
-                                href={`${path || ""}/${row.original?.job?.id}`}
-                                fontWeight="700"
-                                data-no-row-toggle
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button
-                                  bg="white"
-                                  fontSize="sm"
-                                  className="!text-[var(--chakra-colors-black-400)]"
-                                >
-                                  <FontAwesomeIcon
-                                    icon={faEye}
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    size="lg"
-                                  />
-                                </Button>
-                              </Link>
-                            )}
-
-                            {meta.isTracking && (
-                              <Link
-                                href={`${path || ""}/tracking/${row.original?.job?.id}`}
-                                fontWeight="700"
-                                data-no-row-toggle
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button
-                                  bg="white"
-                                  fontSize="sm"
-                                  className="!text-[#3B68DB]"
-                                >
-                                  Track
-                                </Button>
-                              </Link>
-                            )}
-
-                            {meta.isDelete && (
-                              <Button
-                                bg="white"
-                                fontSize="sm"
-                                className="!text-[var(--chakra-colors-black-400)]"
-                                onClick={() =>
-                                  onDelete?.(row.original?.job?.id)
-                                }
-                              >
-                                <FontAwesomeIcon
-                                  icon={
-                                    meta.deleteIcon != undefined
-                                      ? meta.deleteIcon
-                                      : faTrashAlt
-                                  }
-                                  className="!text-[var(--chakra-colors-black-400)]"
-                                  size="lg"
-                                />
-                              </Button>
                             )}
                           </Flex>
                         </Td>
@@ -973,5 +924,3 @@ const PaginationTable = <T extends object>({
 };
 
 export default PaginationTable;
-
-
