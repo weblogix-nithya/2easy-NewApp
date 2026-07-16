@@ -366,33 +366,7 @@ const PaginationTableCustomer = <T extends object>({
                             </Link>
                           )
                         }
-                        {
-                          //@ts-expect-error
-                          (meta.isEdit == undefined ||
-                            //@ts-expect-error
-                            meta.isEdit) && (
-                            <Link
-                              href={rowId ? `${basePath}/${rowId}` : basePath}
-                              fontWeight="700"
-                            >
-                              <Button
-                                // bg={boxBg}
-                                bg="white"
-                                fontSize="sm"
-                                // fontWeight="500"
-                                className="!text-[var(--chakra-colors-black-400)]"
-                                // color={textColorSecondary}
-                                // borderRadius="7px"
-                              >
-                                <FontAwesomeIcon
-                                  icon={faPen}
-                                  className="!text-[var(--chakra-colors-black-400)]"
-                                  size="lg"
-                                />
-                              </Button>
-                            </Link>
-                          )
-                        } */}
+                       */}
                         {
                           //@ts-expect-error
                           meta.isView && (
@@ -428,7 +402,7 @@ const PaginationTableCustomer = <T extends object>({
                                 href={
                                   rowId
                                     ? `${basePath}/tracking/${rowId}`
-                                    : `${basePath}/tracking`
+                                    : `${basePath}`
                                 }
                                 fontWeight="700"
                               >

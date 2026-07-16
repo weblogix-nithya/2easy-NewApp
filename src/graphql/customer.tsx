@@ -194,14 +194,14 @@ export interface CreateCustomerInput {
 type Customer = {
   id: number | null;
   [key: string]:
-    | string
-    | number
-    | null
-    | boolean
-    | undefined
-    | Date
-    | any[]
-    | any;
+  | string
+  | number
+  | null
+  | boolean
+  | undefined
+  | Date
+  | any[]
+  | any;
 };
 
 export const defaultCustomer: Customer = {
@@ -219,3 +219,13 @@ export const defaultCustomer: Customer = {
   is_pod_sendable: false,
   is_invoice_sendable: false,
 };
+
+export interface CustomersQueryResult {
+  customers: {
+    data: any[];
+    paginatorInfo: {
+      total: number;
+      lastPage?: number;
+    };
+  };
+}

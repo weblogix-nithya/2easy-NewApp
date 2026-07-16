@@ -31,3 +31,15 @@ export const GET_JOB_CATEGORIES_QUERY = gql`
     }
   }
 `;
+
+export type JobCategory = {
+  id: number;
+  name: string;
+};
+
+export type JobCategoriesResponse = {
+  jobCategorys: {
+    data: JobCategory[];
+    paginatorInfo: { total: number; lastPage?: number };
+  };
+};
