@@ -42,8 +42,9 @@ export default function StatementGenerateModal({
   isOpen,
   onClose,
 }: StatementGenerateModalProps) {
-  const { companyId, isAdmin, isCompanyAdmin, isCustomer } =
-    useSelector((state: RootState) => state.user);
+  const { companyId, isAdmin, isCompanyAdmin, isCustomer } = useSelector(
+    (state: RootState) => state.user,
+  );
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [companiesOptions, setCompaniesOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
@@ -139,27 +140,24 @@ export default function StatementGenerateModal({
   const [generateCompanyStatementPDF] = useMutation<
     { generateCompanyInvoiceStatement: string },
     { companyId?: number; customerIds?: number[]; invoiceDateRange?: any }
-  >(
-    GENERATE_COMPANY_STATEMENT_PDF_MUTATION,
-    {
-      onCompleted: (data) => {
-        setIsLoading(false);
-        if (data.generateCompanyInvoiceStatement === "No data found") {
-          toast({
-            title: "No data found",
-            status: "error",
-            duration: 5000,
-          });
-          return;
-        }
-        window.open(data.generateCompanyInvoiceStatement, "_blank");
-      },
-      onError: (error) => {
-        setIsLoading(false);
-        showGraphQLErrorToast(error);
-      },
+  >(GENERATE_COMPANY_STATEMENT_PDF_MUTATION, {
+    onCompleted: (data: any) => {
+      setIsLoading(false);
+      if (data.generateCompanyInvoiceStatement === "No data found") {
+        toast({
+          title: "No data found",
+          status: "error",
+          duration: 5000,
+        });
+        return;
+      }
+      window.open(data.generateCompanyInvoiceStatement, "_blank");
     },
-  );
+    onError: (error) => {
+      setIsLoading(false);
+      showGraphQLErrorToast(error);
+    },
+  });
 
   const handleGenerateCompanyStatementPDF = () => {
     if (isAdmin) {

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useQuery } from "@apollo/client/react";
 import {
   Box,
@@ -24,7 +24,7 @@ import {
   defaultSelectedFilter,
   filterDisplayNames as defaultFilterDisplayNames,
 } from "@/components/jobs/Filters";
-import { GET_COMPANYS_QUERY, GetCompaniesResponse } from "@/graphql/company";
+import { GET_COMPANYS_QUERY } from "@/graphql/company";
 // import { formatDateTimeToDB } from "helpers/helper";
 import debounce from "lodash.debounce";
 import React, { useEffect, useMemo, useState } from "react";
@@ -130,19 +130,16 @@ export default function FilterJobsModal({
   //   },
   //   skip: !isOpen, // don't fetch while modal is closed
   // });
-  const { data: companiesData } = useQuery<GetCompaniesResponse>(
-    GET_COMPANYS_QUERY,
-    {
-      variables: {
-        query: debouncedSearch,
-        page: 1,
-        first: 100,
-        orderByColumn: "id",
-        orderByOrder: "ASC",
-      },
-      skip: !isOpen,
+  const { data: companiesData } = useQuery(GET_COMPANYS_QUERY, {
+    variables: {
+      query: debouncedSearch,
+      page: 1,
+      first: 100,
+      orderByColumn: "id",
+      orderByOrder: "ASC",
     },
-  );
+    skip: !isOpen,
+  });
 
   // useEffect(() => {
   //   if (!companiesData?.companys?.data) return;
@@ -154,12 +151,14 @@ export default function FilterJobsModal({
   //   );
   // }, [companiesData]);
   useEffect(() => {
-    if (!companiesData?.companys?.data?.length) {
+    const data = companiesData as any;
+
+    if (!data?.companys?.data?.length) {
       setCompaniesOptions([]);
       return;
     }
 
-    const options = companiesData.companys.data.map((company) => ({
+    const options = data.companys.data.map((company) => ({
       value: Number(company.id),
       label: company.name ?? "",
     }));

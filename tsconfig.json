@@ -28,5 +28,12 @@
     }
   },
   "exclude": ["node_modules"],
-  "include": ["**/*.ts", "**/*.tsx", ".next/types/**/*.ts","./src","next-env.d.ts","next.config.js"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "./src",
+    "next-env.d.ts",
+    "next.config.js"
+  ]
 }

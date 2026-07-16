@@ -49,33 +49,34 @@ function FileInput(props: {
   const [temporaryFiles, setTemporaryFiles] = useState([]);
   const [_temporaryTest, _setTemporaryTest] = useState(defaulTemporaryFiles);
 
-
-
-  const [handleCreateMedia, { }] = useMutation<CreateMediaResponse, any>(ADD_MEDIA_MUTATION, {
-    variables: {
-      input: {
-        entity: entity,
-        entity_id: entityId,
-        collection_name: collection_name,
+  const [handleCreateMedia, {}] = useMutation<CreateMediaResponse, any>(
+    ADD_MEDIA_MUTATION,
+    {
+      variables: {
+        input: {
+          entity: entity,
+          entity_id: entityId,
+          collection_name: collection_name,
+        },
+        media: media,
       },
-      media: media,
+      onCompleted: (data: any) => {
+        toast({
+          title: "Media updated",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        const downloadable = data?.createMedia?.downloadable_url;
+        if (onUpload && downloadable) {
+          onUpload(downloadable);
+        }
+      },
+      onError: (error) => {
+        showGraphQLErrorToast(error);
+      },
     },
-    onCompleted: (data) => {
-      toast({
-        title: "Media updated",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      const downloadable = data?.createMedia?.downloadable_url;
-      if (onUpload && downloadable) {
-        onUpload(downloadable);
-      }
-    },
-    onError: (error) => {
-      showGraphQLErrorToast(error);
-    },
-  });
+  );
 
   function isImgUrl(url: string) {
     return /\.(jpg|jpeg|png|webp|avif|gif)$/.test(url);

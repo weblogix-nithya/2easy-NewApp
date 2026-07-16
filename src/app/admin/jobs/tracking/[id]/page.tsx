@@ -105,7 +105,6 @@ export default function TrackingJob() {
   const jobQueryVariables = useMemo(() => ({ id: jobId }), [jobId]);
 
   const handleJobCompleted = useCallback((data: any) => {
-
     const localDate = formatDate(data?.job?.ready_at);
     getDriverCurrentRoutes({
       variables: {
@@ -136,7 +135,6 @@ export default function TrackingJob() {
   });
 
   const handleDriverRoutesCompleted = useCallback((data: any) => {
-
     if (data.routes.data.length > 0) {
       const route = data.routes.data[0];
       const routePoints = route.route_points.filter(
@@ -279,7 +277,7 @@ export default function TrackingJob() {
                   <Flex justify="space-between" align="flex-start" gap={6}>
                     {/* ✅ LEFT COLUMN ONLY */}
                     <Box flex="1">
-                      <h2>Job #{jobData.job.name}</h2>
+                      <h2>Job #{(jobData as any)?.job?.name}</h2>
 
                       <Divider className="mb-2 mt-3" />
 
@@ -288,7 +286,11 @@ export default function TrackingJob() {
                           Date
                         </Text>
                         <Text fontSize="sm">
-                          {formatDate(jobData.job.ready_at, "DD MMM YYYY")}
+                          {/* {formatDate(jobData.job.ready_at, "DD MMM YYYY")} */}
+                          {formatDate(
+                            (jobData as any)?.job?.ready_at,
+                            "DD MMM YYYY",
+                          )}
                         </Text>
                       </Flex>
 
@@ -300,12 +302,14 @@ export default function TrackingJob() {
                           <Avatar
                             variant="jobAllocation"
                             src={
-                              jobData.job.driver
-                                ? jobData.job.driver.media_url
+                              (jobData as any)?.job.driver
+                                ? (jobData as any)?.job.driver.media_url
                                 : "/img/avatars/driverIcon.png"
                             }
                           />
-                          <Text ml={2}>{jobData?.job.driver?.full_name}</Text>
+                          <Text ml={2}>
+                            {(jobData as any)?.job.driver?.full_name}
+                          </Text>
                         </Flex>
                       </Flex>
                     </Box>
@@ -340,7 +344,7 @@ export default function TrackingJob() {
                   </Flex>
                   {/* <Divider className="mb-2 mt-3" /> */}
 
-                  {jobData?.job.driver && (
+                  {(jobData as any)?.job.driver && (
                     <Box
                       bg="#1d2d53"
                       color="#fff"
@@ -355,12 +359,14 @@ export default function TrackingJob() {
                       <Flex justify="space-between" align="center">
                         <Badge colorScheme="red" variant="subtle" fontSize="md">
                           Current Suburb:{" "}
-                          {jobData?.job.driver?.current_suburb ?? "-"}
+                          {(jobData as any)?.job.driver?.current_suburb ?? "-"}
                         </Badge>
 
                         <Badge colorScheme="red" variant="subtle" fontSize="md">
                           TAILGATE:{" "}
-                          {jobData?.job.driver?.is_tailgated ? "Yes" : "No"}
+                          {(jobData as any)?.job.driver?.is_tailgated
+                            ? "Yes"
+                            : "No"}
                         </Badge>
                       </Flex>
                     </Box>

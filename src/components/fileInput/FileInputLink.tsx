@@ -33,35 +33,38 @@ function FileInputLink(props: {
   const [media, setMedia] = useState({ raw: null, preview: null });
   // const [isMedia, setIsMedia] = useState(media_url ? true : false);
 
-  const [handleCreateMedia, { }] = useMutation<CreateMediaResponse, any>(ADD_MEDIA_MUTATION, {
-    variables: {
-      input: {
-        entity: entity,
-        entity_id: entityId,
-        collection_name: collection_name,
+  const [handleCreateMedia, {}] = useMutation<CreateMediaResponse, any>(
+    ADD_MEDIA_MUTATION,
+    {
+      variables: {
+        input: {
+          entity: entity,
+          entity_id: entityId,
+          collection_name: collection_name,
+        },
+        media: media,
       },
-      media: media,
+      onCompleted: (data: any) => {
+        toast({
+          title: "Media updated",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        const downloadable = data?.createMedia?.downloadable_url;
+        if (onUpload && downloadable) {
+          onUpload(downloadable);
+        }
+      },
+      onError: (error) => {
+        showGraphQLErrorToast(error);
+      },
     },
-    onCompleted: (data) => {
-      toast({
-        title: "Media updated",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      const downloadable = data?.createMedia?.downloadable_url;
-      if (onUpload && downloadable) {
-        onUpload(downloadable);
-      }
-    },
-    onError: (error) => {
-      showGraphQLErrorToast(error);
-    },
-  });
+  );
 
-  function _isImgUrl(url: string) {
-    return /\.(jpg|jpeg|png|webp|avif|gif)$/.test(url);
-  }
+  // function _isImgUrl(url: string) {
+  //   return /\.(jpg|jpeg|png|webp|avif|gif)$/.test(url);
+  // }
 
   const onDrop = useCallback(
     (acceptedFiles: any) => {
@@ -83,7 +86,8 @@ function FileInputLink(props: {
   );
 
   // react-dropzone expects an `Accept` map; allow string shortcuts like "image/*"
-  const acceptOption: any = typeof accept === "string" ? { [accept]: [] } : accept;
+  const acceptOption: any =
+    typeof accept === "string" ? { [accept]: [] } : accept;
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,

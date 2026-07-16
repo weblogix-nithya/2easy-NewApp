@@ -62,7 +62,7 @@ function CompanyCreate() {
     useState<GroupedSeafreights>({});
   const [stateOptions, setStateOptions] = useState([]);
   const [selectedState, setSelectedState] = useState("");
-  const [regionOption, setRegionOption] = useState([]);
+  const [_regionOption, setRegionOption] = useState([]);
   const [companyRates, setCompanyRates] = useState<CompanyRate[]>([
     {
       id: undefined,
@@ -78,7 +78,7 @@ function CompanyCreate() {
   ]);
   const [createCompanyRate] = useMutation(CREATE_COMPANY_RATE_MUTATION);
 
-  const [handleCreateCompany, { }] = useMutation<{
+  const [handleCreateCompany, {}] = useMutation<{
     createCompany: { id: string | number };
   }>(CREATE_COMPANY_MUTATION, {
     variables: {
@@ -195,10 +195,17 @@ function CompanyCreate() {
   const handleSaveRow = (index: number) => {
     const currentRate = companyRates[index];
 
-    if (!currentRate.state || !currentRate.area || !currentRate.seafreight_id || !currentRate.cbm_rate || !currentRate.minimum_charge) {
+    if (
+      !currentRate.state ||
+      !currentRate.area ||
+      !currentRate.seafreight_id ||
+      !currentRate.cbm_rate ||
+      !currentRate.minimum_charge
+    ) {
       toast({
         title: "Validation Error",
-        description: "Please select State and Location, minimum charge and CBM rate before saving",
+        description:
+          "Please select State and Location, minimum charge and CBM rate before saving",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -287,19 +294,37 @@ function CompanyCreate() {
 
           <Divider className="my-6" />
 
-          <Box p="4" mb="2" bg={useColorModeValue("white", "navy.800")} borderRadius="16px">
-
+          <Box
+            p="4"
+            mb="2"
+            bg={useColorModeValue("white", "navy.800")}
+            borderRadius="16px"
+          >
             <h3 className="mb-4">Details</h3>
 
             <SimpleGrid columns={2} spacing={4} mb="16px">
               {[
                 { label: "Company Name", name: "name", type: "text" },
                 { label: "ABN", name: "abn", type: "text" },
-                { label: "Main contact number", name: "contact_phone", type: "text", placeholder: "+61" },
-                { label: "Main contact email", name: "contact_email", type: "text" },
+                {
+                  label: "Main contact number",
+                  name: "contact_phone",
+                  type: "text",
+                  placeholder: "+61",
+                },
+                {
+                  label: "Main contact email",
+                  name: "contact_email",
+                  type: "text",
+                },
               ].map(({ label, name, type, placeholder }) => (
                 <Box key={name}>
-                  <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="500"
+                    color={textColor}
+                    mb="4px"
+                  >
                     {label}
                   </FormLabel>
                   <Input
@@ -308,7 +333,10 @@ function CompanyCreate() {
                     name={name}
                     value={(company as any)[name] || ""}
                     onChange={(e) =>
-                      setCompany({ ...company, [e.target.name]: e.target.value })
+                      setCompany({
+                        ...company,
+                        [e.target.name]: e.target.value,
+                      })
                     }
                     placeholder={placeholder || ""}
                     variant="main"
@@ -323,7 +351,12 @@ function CompanyCreate() {
 
             <SimpleGrid columns={2} spacing={4} mb="16px">
               <Box>
-                <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="500"
+                  color={textColor}
+                  mb="4px"
+                >
                   Payment Terms
                 </FormLabel>
                 <Select
@@ -345,7 +378,12 @@ function CompanyCreate() {
               </Box>
 
               <Box>
-                <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="500"
+                  color={textColor}
+                  mb="4px"
+                >
                   Weight(kg/cubic)
                 </FormLabel>
                 <Input
@@ -365,7 +403,12 @@ function CompanyCreate() {
               </Box>
 
               <Box>
-                <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="500"
+                  color={textColor}
+                  mb="4px"
+                >
                   Fuel Levy %
                 </FormLabel>
                 <Input
@@ -388,7 +431,12 @@ function CompanyCreate() {
               </Box>
 
               <Box>
-                <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="500"
+                  color={textColor}
+                  mb="4px"
+                >
                   QLD Toll Levy %
                 </FormLabel>
                 <Input
@@ -411,7 +459,12 @@ function CompanyCreate() {
               </Box>
 
               <Box>
-                <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="500"
+                  color={textColor}
+                  mb="4px"
+                >
                   VIC Toll Levy %
                 </FormLabel>
                 <Input
@@ -443,7 +496,8 @@ function CompanyCreate() {
                 fontWeight="500"
                 color={textColor}
               >
-                Job Type (Would you like to display &apos;Standard&apos; for all dates and times?)
+                Job Type (Would you like to display &apos;Standard&apos; for all
+                dates and times?)
               </FormLabel>
 
               <RadioGroup
@@ -468,7 +522,12 @@ function CompanyCreate() {
             <h3 className="mt-6 mb-4">Billing</h3>
 
             <Box mb="16px" maxW="md">
-              <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+              <FormLabel
+                fontSize="sm"
+                fontWeight="500"
+                color={textColor}
+                mb="4px"
+              >
                 Accounts email
               </FormLabel>
               <Input
@@ -492,7 +551,12 @@ function CompanyCreate() {
 
             <h4 className="mt-6 mb-4">Billing Address</h4>
             <Box mb="16px" maxW="md">
-              <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+              <FormLabel
+                fontSize="sm"
+                fontWeight="500"
+                color={textColor}
+                mb="4px"
+              >
                 Address
               </FormLabel>
               <Input
@@ -528,7 +592,12 @@ function CompanyCreate() {
                 { label: "Address postcode", name: "address_postal_code" },
               ].map(({ label, name }) => (
                 <Box key={name}>
-                  <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="500"
+                    color={textColor}
+                    mb="4px"
+                  >
                     {label}
                   </FormLabel>
                   <Input
@@ -556,7 +625,12 @@ function CompanyCreate() {
 
             <h3 className="mt-6 mb-4">Rates </h3>
             <Box mb="16px" maxW="md">
-              <FormLabel fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+              <FormLabel
+                fontSize="sm"
+                fontWeight="500"
+                color={textColor}
+                mb="4px"
+              >
                 LCL Rate
               </FormLabel>
               <Input
@@ -584,10 +658,22 @@ function CompanyCreate() {
               <h3 className="mt-6 mb-4">Custom rate </h3>
             </Flex>
             <SimpleGrid columns={5} spacing={4} className="mb-4">
-              <Box>                <FormLabel>STATE</FormLabel>              </Box>
-              <Box>                <FormLabel>QUADRANT</FormLabel>              </Box>
-              <Box>                <FormLabel>CBM RATE</FormLabel>              </Box>
-              <Box>                <FormLabel>MIN CHARGE</FormLabel>              </Box>
+              <Box>
+                {" "}
+                <FormLabel>STATE</FormLabel>{" "}
+              </Box>
+              <Box>
+                {" "}
+                <FormLabel>QUADRANT</FormLabel>{" "}
+              </Box>
+              <Box>
+                {" "}
+                <FormLabel>CBM RATE</FormLabel>{" "}
+              </Box>
+              <Box>
+                {" "}
+                <FormLabel>MIN CHARGE</FormLabel>{" "}
+              </Box>
             </SimpleGrid>
             {companyRates.slice(0, -1).map((rate, idx) => (
               <SimpleGrid key={idx} columns={5} spacing={4} className="mb-4">
@@ -666,11 +752,10 @@ function CompanyCreate() {
                 </Button>
               </Box>
             </SimpleGrid>
-
           </Box>
         </FormControl>
       </Grid>
-    </Box >
+    </Box>
   );
 }
 
