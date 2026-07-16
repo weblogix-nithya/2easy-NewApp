@@ -103,28 +103,28 @@ type PaginationTableProps<T extends object> = {
   // onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
   onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
 } & (
-  | {
+    | {
       isServerSide?: false;
       setQueryPageIndex?: never;
       setQueryPageSize?: never;
     }
-  | {
+    | {
       isServerSide: true;
       setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
       setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
     }
-) &
+  ) &
   (
     | {
-        showRowSelection?: false;
-        setSelectedRow?: never;
-        isFilterRowSelected?: never;
-      }
+      showRowSelection?: false;
+      setSelectedRow?: never;
+      isFilterRowSelected?: never;
+    }
     | {
-        showRowSelection: true;
-        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
-        isFilterRowSelected: boolean;
-      }
+      showRowSelection: true;
+      setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
+      isFilterRowSelected: boolean;
+    }
   );
 
 const PaginationTable = <T extends object>({
@@ -220,7 +220,7 @@ const PaginationTable = <T extends object>({
     manualPagination: !!options?.manualPagination || isServerSide,
     pageCount:
       (!!options?.manualPagination || isServerSide) &&
-      options?.pageCount != null
+        options?.pageCount != null
         ? options.pageCount
         : undefined,
     getPaginationRowModel: getPaginationRowModel(),
@@ -714,7 +714,8 @@ const PaginationTable = <T extends object>({
                       cell.column.id === "actions"
                     ) {
                       const cellValue = cell.getValue();
-                      const basePath = path || "/admin/jobs";
+                      // const basePath = path || "/admin/jobs";
+                      const basePath = "/admin/jobs";
                       const rowId =
                         // many data shapes use row.original as the job
                         // fall back to nested job.id or the column value
@@ -754,7 +755,7 @@ const PaginationTable = <T extends object>({
                             {(meta.isEdit === undefined || meta.isEdit) && (
                               <Link
                                 // href={`${path || ""}/${row.original?.job?.id}`}
-                                 href={
+                                href={
                                   rowId
                                     ? `${basePath}/tracking/${rowId}`
                                     : `${basePath}`
@@ -838,12 +839,12 @@ const PaginationTable = <T extends object>({
                         pr="20px"
                         bg={
                           cell.column.id === "timeslot" &&
-                          !["6", "7", "8", "9", "10"].includes(
-                            row?.original?.job?.job_status?.id,
-                          )
+                            !["6", "7", "8", "9", "10"].includes(
+                              row?.original?.job?.job_status?.id,
+                            )
                             ? (getTimeslotBgColor(
-                                row?.original?.job?.timeslot,
-                              ) ?? "transparent")
+                              row?.original?.job?.timeslot,
+                            ) ?? "transparent")
                             : "transparent"
                         }
                       >
