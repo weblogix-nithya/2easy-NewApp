@@ -203,6 +203,7 @@ export default function RCTIIndex() {
             setQueryPageIndex={setQueryPageIndex}
             setQueryPageSize={setQueryPageSize}
             isServerSide
+            path="/admin/rctis"
           />
         ) : loading ? (
           <Box>Loading invoices...</Box>
