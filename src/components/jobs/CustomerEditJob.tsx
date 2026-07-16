@@ -1,6 +1,6 @@
 "use client";
 
-import { GET_JOB_QUERY } from "@/graphql/job";
+import { GET_JOB_QUERY, ReportJob, defaultReportJob } from "@/graphql/job";
 import {
   GET_JOB_PRICE_CALCULATION_DETAIL_QUERY,
   type JobPriceCalculationDetail,
@@ -25,10 +25,12 @@ import {
   Th,
   Thead,
   Tr,
+  useToast,
 } from "@chakra-ui/react";
 import { useParams } from "next/navigation";
-import React from "react";
-
+import React, { useCallback, useRef, useState } from "react";
+import { TabsComponent } from "../tabs/TabsComponet";
+import ReportsTab from '@/components/jobs/ReportsTab';
 const emptyValue = "-";
 
 const formatDate = (value?: string | null) => {
@@ -118,15 +120,34 @@ const AddressBlock = ({
 function CustomerEditJob() {
   const params = useParams();
   const jobId = params?.id as string | undefined;
-
-  const { data, loading, error } = useApolloQueryWithEffect<{ job: any }>(
-    GET_JOB_QUERY,
+  const toast = useToast();
+  const [reportJob, setReportJob] = useState<ReportJob>(defaultReportJob);
+  const [tabId, setActiveTab] = useState(1);
+  const refetchingRef = useRef(false);
+  const tabs = [
     {
-      variables: { id: jobId },
-      skip: !jobId,
-      fetchPolicy: "network-only",
+      id: 1,
+      tabName: "Job Details",
+      hash: "job_details",
+      isVisible: true,
     },
-  );
+    {
+      id: 2,
+      tabName: "Reports",
+      hash: "reports",
+      isVisible: true,
+    },
+  ];
+  const {
+    data,
+    loading,
+    error,
+    refetch: getJob,
+  } = useApolloQueryWithEffect<{ job: any }>(GET_JOB_QUERY, {
+    variables: { id: jobId },
+    skip: !jobId,
+    fetchPolicy: "network-only",
+  });
 
   const job = data?.job;
   const deliveryDestinations =
@@ -134,9 +155,8 @@ function CustomerEditJob() {
       (destination: any) => !destination?.is_pickup,
     ) ?? [];
 
-  const [priceCalculationDetail, setPriceCalculationDetail] = React.useState<
-    JobPriceCalculationDetail | null
-  >(null);
+  const [priceCalculationDetail, setPriceCalculationDetail] =
+    React.useState<JobPriceCalculationDetail | null>(null);
 
   const priceDetailQuery = useApolloQueryWithEffect<{
     jobPriceCalculationDetail: JobPriceCalculationDetail | null;
@@ -161,13 +181,57 @@ function CustomerEditJob() {
     const seen = new Set<string>();
 
     return allFiles.filter((file: any) => {
-      const key = file.id || file.downloadable_url || file.url || file.file_name || file.name;
+      const key =
+        file.id ||
+        file.downloadable_url ||
+        file.url ||
+        file.file_name ||
+        file.name;
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   }, [job?.attachments, job?.media, job?.media_admin]);
 
+  const handleTabChange = useCallback(
+    async (nextTabId: number) => {
+      // A) If it’s the same tab, do nothing
+      if (nextTabId === tabId) return;
+
+      // B) Switch tab immediately to avoid re-firing from TabsComponent
+      setActiveTab(nextTabId);
+
+      // C) Only these tabs need a refresh
+      const needsRefresh =
+        nextTabId === 2 || nextTabId === 3 || nextTabId === 4;
+      if (!needsRefresh) return;
+
+      // D) Prevent concurrent / repeated refetches
+      if (refetchingRef.current) return;
+      refetchingRef.current = true;
+
+      try {
+        const { data } = await getJob(); // Apollo refetch from useQuery
+        if (data?.job) {
+          // wherever you store the fresh copy for reports
+          setReportJob((prev) => ({ ...prev, ...data.job }));
+          // or if you kept defaultReportJob:
+          // setReportJob({ ...defaultReportJob, ...data.job });
+        } 
+      } catch (e) {
+        console.error("Refetch failed:", e);
+        toast({
+          title: "Could not refresh data",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        refetchingRef.current = false;
+      }
+    },
+    [tabId, getJob, toast],
+  );
   return (
     <Box pt={{ base: "130px", md: "97px", xl: "97px" }} bg="white" minH="100vh">
       <SimpleGrid
@@ -195,8 +259,14 @@ function CustomerEditJob() {
             Job not found.
           </Box>
         )}
+        <TabsComponent
+          tabs={tabs}
+          onChange={handleTabChange}
 
-        {!loading && job && (
+          // onChange={(tabId) => setActiveTab(tabId)}
+        />
+
+        {tabId == 1 && !loading && job && (
           <Stack spacing={8}>
             <Flex
               justify="space-between"
@@ -372,15 +442,26 @@ function CustomerEditJob() {
                     <Tbody>
                       {attachmentList.map((file: any) => {
                         const downloadUrl = file.downloadable_url || file.url;
-                        const actionLabel = file.downloadable_url ? "Download" : file.url ? "Open" : "No file";
+                        const actionLabel = file.downloadable_url
+                          ? "Download"
+                          : file.url
+                            ? "Open"
+                            : "No file";
 
                         return (
-                          <Tr key={file.id || file.downloadable_url || file.url}>
+                          <Tr
+                            key={file.id || file.downloadable_url || file.url}
+                          >
                             <Td>{file.file_name || file.name || emptyValue}</Td>
                             <Td>
-                              {file.uploaded_by?.full_name || file.created_by?.full_name || file.uploaded_by || emptyValue}
+                              {file.uploaded_by?.full_name ||
+                                file.created_by?.full_name ||
+                                file.uploaded_by ||
+                                emptyValue}
                             </Td>
-                            <Td>{formatDate(file.created_at || file.uploaded_at)}</Td>
+                            <Td>
+                              {formatDate(file.created_at || file.uploaded_at)}
+                            </Td>
                             <Td>
                               {downloadUrl ? (
                                 <Button
@@ -404,16 +485,15 @@ function CustomerEditJob() {
                   </Table>
                 </Box>
               ) : (
-                <Text fontSize="sm" color="gray.600">No attachments available.</Text>
+                <Text fontSize="sm" color="gray.600">
+                  No attachments available.
+                </Text>
               )}
             </Box>
 
             <Box>
               <SectionTitle>Additional Info</SectionTitle>
-              <Grid
-                templateColumns={{ base: "0.5fr", lg: "1fr  1fr" }}
-                gap={2}
-              >
+              <Grid templateColumns={{ base: "0.5fr", lg: "1fr  1fr" }} gap={2}>
                 <GridItem>
                   <DetailRow label="Pickup notes" value={job.pick_up_notes} />
                   <DetailRow
@@ -461,7 +541,10 @@ function CustomerEditJob() {
                     Loading calculation details...
                   </Text>
                 ) : priceCalculationDetail ? (
-                  <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+                  <Grid
+                    templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                    gap={4}
+                  >
                     <DetailRow
                       label="Total price"
                       value={priceCalculationDetail.total ?? emptyValue}
@@ -496,7 +579,9 @@ function CustomerEditJob() {
                     />
                     <DetailRow
                       label="Dangerous goods"
-                      value={priceCalculationDetail.dangerous_goods ?? emptyValue}
+                      value={
+                        priceCalculationDetail.dangerous_goods ?? emptyValue
+                      }
                     />
                     <DetailRow
                       label="Stackable"
@@ -512,8 +597,14 @@ function CustomerEditJob() {
             )}
           </Stack>
         )}
+        {
+          tabId ==2 && (
+            <ReportsTab 
+            jobObject={reportJob}/>
+          )
+        }
       </SimpleGrid>
-    </Box>  
+    </Box>
   );
 }
 

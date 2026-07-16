@@ -1,23 +1,24 @@
 "use client";
- 
+
 import { useEffect, useRef } from "react";
 import { useQuery } from "@apollo/client/react";
 import type { DocumentNode, ErrorLike, OperationVariables } from "@apollo/client";
 
-type UseApolloQueryOptions<
+export type UseApolloQueryOptions<
     TData,
     TVariables extends OperationVariables,
-    > = useQuery.Options<TData, TVariables> & {
-        onCompleted?: (data: TData) => void;
-        onError?: (error: ErrorLike) => void;
-    };
+> = useQuery.Options<TData, TVariables> & {
+    onCompleted?: (data: TData) => void;
+    onError?: (error: ErrorLike) => void;
+};
 
 export function useApolloQueryWithEffect<
     TData = unknown,
     TVariables extends OperationVariables = OperationVariables,
-    >(
-        query: DocumentNode,
-        options?: UseApolloQueryOptions<TData, TVariables>,
+>(
+    query: DocumentNode,
+    // Allow excess properties (onCompleted/onError) without excess-property errors
+    options?: UseApolloQueryOptions<TData, TVariables> | any,
     // onCompleted?: (data: TData) => void,
 ) {
 
@@ -41,11 +42,11 @@ export function useApolloQueryWithEffect<
     }, [onError]);
 
     // const hasCalledRef = useRef(false);
- 
+
     // useEffect(() => {
     //     hasCalledRef.current = false;
     // }, [options?.variables]);
- 
+
     useEffect(() => {
         if (!result.loading && !result.error && result.data && onDataRef.current) {
             // hasCalledRef.current = true;

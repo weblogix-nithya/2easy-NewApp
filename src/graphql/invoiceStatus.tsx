@@ -85,3 +85,13 @@ export const defaultInvoiceStatus: InvoiceStatus = {
   id: null,
   name: "",
 };
+
+export type InvoiceStatusesResponse = {
+  invoiceStatuses: {
+    data: InvoiceStatus[];
+    paginatorInfo: {
+      total: number;
+      lastPage?: number;
+    };
+  };
+};

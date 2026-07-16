@@ -53,13 +53,13 @@ import { getTimeslotBgColor } from "./JobPaginationTable";
 type PaginationTableProps<T extends object> = {
   columns: any[]; // accept v7 or v8
   data: T[];
-  total: number;
+  total?: number;
   options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
   path?: string;
   // showDelete?: boolean; // changed: unused in current v8 implementation
-    onReset?: (data: any) => void;
+  onReset?: (data: any) => void;
   onDelete?: (data: any) => void;
-   isapprove?: boolean; // changed: unused in current v8 implementation
+  isapprove?: boolean; // changed: unused in current v8 implementation
   isRestore?: boolean;
   onRestore?: (data: any) => void;
   onApprove?: (data: any) => void;
@@ -69,28 +69,28 @@ type PaginationTableProps<T extends object> = {
   onSortingChange?: any;
   restyleTable?: boolean;
 } & (
-  | {
+    | {
       isServerSide?: false;
       setQueryPageIndex?: never;
       setQueryPageSize?: never;
     }
-  | {
+    | {
       isServerSide: true;
       setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
       setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
     }
-) &
+  ) &
   (
     | {
-        showRowSelection?: false;
-        setSelectedRow?: never;
-        isFilterRowSelected?: never;
-      }
+      showRowSelection?: false;
+      setSelectedRow?: never;
+      isFilterRowSelected?: never;
+    }
     | {
-        showRowSelection: true;
-        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
-        isFilterRowSelected: boolean;
-      }
+      showRowSelection: true;
+      setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
+      isFilterRowSelected: boolean;
+    }
   );
 
 const PaginationTable = <T extends object>({
@@ -109,7 +109,7 @@ const PaginationTable = <T extends object>({
   restyleTable = false,
   setQueryPageIndex,
   setQueryPageSize,
-   onDelete,
+  onDelete,
   onApprove,
   onRestore,
   onReset,
@@ -174,7 +174,7 @@ const PaginationTable = <T extends object>({
     manualPagination: !!options?.manualPagination || isServerSide,
     pageCount:
       (!!options?.manualPagination || isServerSide) &&
-      options?.pageCount != null
+        options?.pageCount != null
         ? options.pageCount
         : undefined,
     autoResetAll: false,
@@ -339,7 +339,7 @@ const PaginationTable = <T extends object>({
                   // }}
                   // style={getStatusStyle(status)}
                   cursor={showRowSelection ? "pointer" : "default"}
-                 
+
                   onClick={(e) => {
                     if (!showRowSelection) return;
                     const target = e.target as HTMLElement;
@@ -404,7 +404,7 @@ const PaginationTable = <T extends object>({
                       cell.column.id === "actions"
                     ) {
                       const cellValue = cell.getValue();
-
+                      const id = row.original?.job?.id ?? row.original.id ?? undefined;
                       return (
                         <Td
                           key={cell.id}
@@ -435,8 +435,9 @@ const PaginationTable = <T extends object>({
                             )}
 
                             {(meta.isEdit === undefined || meta.isEdit) && (
+
                               <Link
-                                href={`${path || ""}/${row.original?.job?.id}`}
+                                href={`${path || ""}/${id}`}
                                 fontWeight="700"
                                 data-no-row-toggle
                                 onClick={(e) => e.stopPropagation()}
@@ -457,7 +458,7 @@ const PaginationTable = <T extends object>({
 
                             {meta.isView && (
                               <Link
-                                href={`${path || ""}/${row.original?.job?.id}`}
+                                href={`${path || ""}/${id}`}
                                 fontWeight="700"
                                 data-no-row-toggle
                                 onClick={(e) => e.stopPropagation()}
@@ -492,14 +493,13 @@ const PaginationTable = <T extends object>({
                                 </Button>
                               </Link>
                             )}
-
                             {meta.isDelete && (
                               <Button
                                 bg="white"
                                 fontSize="sm"
                                 className="!text-[var(--chakra-colors-black-400)]"
                                 onClick={() =>
-                                  onDelete?.(row.original?.job?.id)
+                                  onDelete?.(row.original?.job?.id ?? row.original.id)
                                 }
                               >
                                 <FontAwesomeIcon
@@ -516,22 +516,22 @@ const PaginationTable = <T extends object>({
                             {
                               //@ts-expect-error
                               meta.isApprove &&
-                                (row.original.is_approve === false ||
-                                  row.original.is_approve === "false" ||
-                                  row.original.is_approve === 0 ||
-                                  row.original.is_approve === "0") && (
-                                  <Button
-                                    bg="blue.100"
-                                    color="white"
-                                    fontSize="sm"
-                                    _hover={{ bg: "blue.300" }}
-                                    className="!text-[var(--chakra-colors-black-400)]"
-                                    // onClick={() => {onApprove(cell.row.original.id)}}
-                                    onClick={() => onApprove?.(row.original.id)}
-                                  >
-                                    Approve
-                                  </Button>
-                                )
+                              (row.original.is_approve === false ||
+                                row.original.is_approve === "false" ||
+                                row.original.is_approve === 0 ||
+                                row.original.is_approve === "0") && (
+                                <Button
+                                  bg="blue.100"
+                                  color="white"
+                                  fontSize="sm"
+                                  _hover={{ bg: "blue.300" }}
+                                  className="!text-[var(--chakra-colors-black-400)]"
+                                  // onClick={() => {onApprove(cell.row.original.id)}}
+                                  onClick={() => onApprove?.(row.original.id)}
+                                >
+                                  Approve
+                                </Button>
+                              )
                             }
                             {
                               //@ts-expect-error
@@ -674,12 +674,12 @@ const PaginationTable = <T extends object>({
                         pr="20px"
                         bg={
                           cell.column.id === "timeslot" &&
-                          !["6", "7", "8", "9", "10"].includes(
-                            row?.original?.job?.job_status?.id,
-                          )
+                            !["6", "7", "8", "9", "10"].includes(
+                              row?.original?.job?.job_status?.id,
+                            )
                             ? (getTimeslotBgColor(
-                                row?.original?.job?.timeslot,
-                              ) ?? "transparent")
+                              row?.original?.job?.timeslot,
+                            ) ?? "transparent")
                             : "transparent"
                         }
                       >

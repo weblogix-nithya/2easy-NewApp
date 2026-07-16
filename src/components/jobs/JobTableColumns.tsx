@@ -695,7 +695,7 @@ export const ItemsCbmCellExport = ({ row }: any) => {
 export const BookedByCell = ({ row }: any) => {
   const name = row?.original?.job?.company?.name || "-";
   return (
-    <Text maxW="150px" minW="130px">
+    <Text minW="160px">
       {name}
     </Text>
   );
@@ -829,7 +829,7 @@ export const PickupAddressCell = ({ row }: any) => {
 };
 
 export const CustomerReferenceCell = ({ row }: any) => {
-  return <Text noOfLines={2}> {row?.original?.job?.reference_no || "-"}</Text>;
+  return <Text noOfLines={2} minWidth={"170px"}> {row?.original?.job?.reference_no || "-"}</Text>;
 };
 
 export const CategoryCell = ({ row }: any) => {

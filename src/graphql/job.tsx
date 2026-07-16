@@ -862,6 +862,23 @@ export const GET_JOB_QUERY = gql`
   }
 `;
 
+export const GET_JOB_TRACKING_QUERY = gql`
+  query jobTracking($id: ID!) {
+    job(id: $id) {
+      id
+      name
+      driver_id
+      ready_at
+      driver {
+        full_name
+        current_suburb
+        is_tailgated
+        media_url
+      }
+    }
+  }
+`;
+
 export const CREATE_JOB_MUTATION = gql`
   mutation createJob($input: CreateJobInput!) {
     createJob(input: $input) {
