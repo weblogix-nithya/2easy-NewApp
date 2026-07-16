@@ -57,7 +57,7 @@ export default function StatementGenerateModal({
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const toast = useToast();
 
-  // Company auto-selected
+  // Company auto-selected. console
   useEffect(() => {
     if (!isAdmin && (isCompanyAdmin || isCustomer)) {
       setSelectedCompany({ value: companyId, label: "" });
