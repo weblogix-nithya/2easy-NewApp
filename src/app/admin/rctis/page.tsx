@@ -48,7 +48,6 @@ export default function RCTIIndex() {
   const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
   const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
 
-  // SubAdmin-க்கு Pending tab வேண்டாம் — Processed மட்டும்
   const TABS = isSubAdmin ? ALL_TABS.filter((t) => t.id !== 1) : ALL_TABS;
 
   const [queryPageIndex, setQueryPageIndex] = useState(0);
