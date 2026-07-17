@@ -72,7 +72,7 @@ export default function Default(props: {
   } = props;
   // Chakra Color Mode
   const textColorPrimary = useColorModeValue("navy.700", "white");
-  const textColorSecodary = useColorModeValue("#888888", "#888888");
+  const textColorSecodary = useColorModeValue("#333333", "#333333");
   // RandomId
   const [randomIdSection, _setRandomIdSection] = useState(
     (id ? id : name) + Math.random().toString(36).substring(7),
@@ -97,7 +97,7 @@ export default function Default(props: {
             <GridItem>
               <Text
                 fontSize="small"
-                fontWeight="400"
+                fontWeight="500"
                 ms="2px"
                 textColor={textColorSecodary}
               >
@@ -142,9 +142,9 @@ export default function Default(props: {
               onClick={
                 type === "date"
                   ? (e) => {
-                      e.preventDefault();
-                      e.currentTarget.showPicker?.();
-                    }
+                    e.preventDefault();
+                    e.currentTarget.showPicker?.();
+                  }
                   : onClick
               }
               ms={{ base: "0px", md: "0px" }}

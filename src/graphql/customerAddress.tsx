@@ -177,3 +177,44 @@ export const defaultCustomerAddress: CustomerAddress = {
   lng: 0,
   lat: 0,
 };
+
+export type CustomerAddressData = {
+  id: string;
+  name: string;
+  pick_up_name: string;
+  pick_up_notes: string;
+  customer_id: string | number;
+  address: string;
+  address_business_name: string;
+  address_line_1: string;
+  address_line_2: string;
+  address_postal_code: string;
+  address_city: string;
+  address_state: string;
+  address_country: string;
+  lng: number;
+  lat: number;
+};
+
+export type CustomerAddressesResponse = {
+  customerAddresses: {
+    data: CustomerAddressData[];
+    paginatorInfo: { total: number; lastPage?: number };
+  };
+};
+
+export type CustomerAddressResponse = {
+  customerAddress: CustomerAddressData;
+};
+
+export type CreateCustomerAddressResult = {
+  createCustomerAddress: CustomerAddressData;
+};
+
+export type UpdateCustomerAddressResult = {
+  updateCustomerAddress: CustomerAddressData;
+};
+
+export type DeleteCustomerAddressResult = {
+  deleteCustomerAddress: { id: string };
+};
