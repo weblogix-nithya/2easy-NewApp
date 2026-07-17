@@ -1600,3 +1600,7 @@ export interface GroupedPaginatedJobsVars {
   };
 }
 
+export interface CreateJobResult {
+  createJob: { id: string | number };
+}
+
