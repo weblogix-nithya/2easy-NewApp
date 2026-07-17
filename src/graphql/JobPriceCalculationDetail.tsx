@@ -18,6 +18,14 @@ export const GET_JOB_PRICE_CALCULATION_DETAIL_QUERY = gql`
       dangerous_goods
       stackable
       total
+      toll_applied
+      toll_type
+      toll_amount
+      fuel_levy_percentage
+      toll_levy_percentage
+      fuel_levy_amount
+      toll_levy_amount
+      toll_levy_type
     }
   }
 `;
@@ -49,6 +57,14 @@ export const GET_JOB_PRICE_CALCULATION_DETAILS_QUERY = gql`
         tail_lift
         stackable
         total
+        toll_applied
+        toll_type
+        toll_amount
+      fuel_levy_percentage
+      toll_levy_percentage
+      fuel_levy_amount
+      toll_levy_amount
+      toll_levy_type
       }
       paginatorInfo {
         count
@@ -80,6 +96,14 @@ export const CREATE_JOB_PRICE_CALCULATION_DETAIL_MUTATION = gql`
       tail_lift
       stackable
       total
+      toll_applied
+      toll_type
+      toll_amount
+      fuel_levy_percentage
+      toll_levy_percentage
+      fuel_levy_amount
+      toll_levy_amount
+      toll_levy_type
     }
   }
 `;
@@ -103,6 +127,14 @@ export const UPDATE_JOB_PRICE_CALCULATION_DETAIL_MUTATION = gql`
       tail_lift
       stackable
       total
+      toll_applied
+      toll_type
+      toll_amount
+      fuel_levy_percentage
+      toll_levy_percentage
+      fuel_levy_amount
+      toll_levy_amount
+      toll_levy_type
     }
   }
 `;
@@ -116,6 +148,26 @@ export const DELETE_JOB_PRICE_CALCULATION_DETAIL_MUTATION = gql`
   }
 `;
 
+export const CALCULATE_SEA_FREIGHT_QUERY = gql`
+  query CalculateSeaFreight(
+    $input: SeafreightPriceCalculationDetailInput!
+  ) {
+    calculateSeaFreight(input: $input) {
+      freight
+      fuel
+      hand_unload
+      dangerous_goods
+      time_slot
+      tail_lift
+      stackable
+      toll_applied
+      toll_type
+      toll_amount
+      total
+      toll_levy_type
+    }
+  }
+`;
 // JobPriceCalculationDetail TypeScript Types and Interfaces
 
 export interface JobPriceCalculationDetail {
@@ -133,6 +185,14 @@ export interface JobPriceCalculationDetail {
   tail_lift: number | null,
   time_slot: number | null,
   total_cbm: number | null,
+  toll_amount: number | null,
+  toll_applied: boolean | null,
+  toll_type: string | null,
+  fuel_levy_percentage: number | null,
+  toll_levy_percentage: number | null,
+  fuel_levy_amount: number | null,
+  toll_levy_amount: number | null,
+  toll_levy_type: string | null;
 }
 
 
@@ -149,6 +209,14 @@ export interface CreateJobPriceCalculationDetailInput {
   time_slot: number,
   stackable: number;
   total: number;
+  toll_applied: boolean;
+  toll_type: string;
+  toll_amount: number;
+  fuel_levy_percentage: number;
+  toll_levy_percentage: number;
+  fuel_levy_amount: number;
+  toll_levy_amount: number;
+  toll_levy_type: string;
 }
 
 export interface UpdateJobPriceCalculationDetailInput {
@@ -164,6 +232,14 @@ export interface UpdateJobPriceCalculationDetailInput {
   time_slot?: number,
   stackable?: number;
   total?: number;
+  toll_applied?: boolean;
+  toll_type?: string;
+  toll_amount?: number;
+  fuel_levy_percentage?: number;
+  toll_levy_percentage?: number;
+  fuel_levy_amount?: number;
+  toll_levy_amount?: number;
+  toll_levy_type?: string;
 }
 
 // Default JobPriceCalculationDetail
@@ -182,4 +258,12 @@ export const defaultJobPriceCalculationDetail: JobPriceCalculationDetail = {
   stackable: null,
   total: null,
   total_cbm: null,
+  toll_applied: false,
+  toll_type: null,
+  toll_amount: 0,
+  fuel_levy_percentage: null,
+  toll_levy_percentage: null,
+  fuel_levy_amount: null,
+  toll_levy_amount: null,
+  toll_levy_type: null,
 };

@@ -123,6 +123,14 @@ export const DELETE_COMPANY_RATE_MUTATION = gql`
   }
 `;
 
+export const GET_TIMEZONE_QUERY = gql`
+  query GetTimezone($state: String!) {
+    getTimezone(state: $state) {
+      timeZoneId
+    }
+  }
+`;
+
 export const regionOption = [
   { value: "gc_north", label: "GC North" },
   { value: "gc_south", label: "GC South" },
