@@ -24,7 +24,7 @@ export function DropdownItem({ item, level = 1 }: { item: INavItem; level?: numb
 
     const canRenderRoute = (route: INavItem) =>  (isAdmin || (isSubAdmin && route.key !== "pendingrcti") || (isCustomer && !["draft", "create"].includes(route.key)));
 
-    console.log("Role",isAdmin,isSubAdmin,isCustomer)
+    // console.log("Role",isAdmin,isSubAdmin,isCustomer)
     // Smooth Hover
     const handleMouseEnter = () => {
         if (closeTimeout.current) {

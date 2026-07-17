@@ -60,11 +60,11 @@ export const GET_JOB_PRICE_CALCULATION_DETAILS_QUERY = gql`
         toll_applied
         toll_type
         toll_amount
-      fuel_levy_percentage
-      toll_levy_percentage
-      fuel_levy_amount
-      toll_levy_amount
-      toll_levy_type
+        fuel_levy_percentage
+        toll_levy_percentage
+        fuel_levy_amount
+        toll_levy_amount
+        toll_levy_type
       }
       paginatorInfo {
         count

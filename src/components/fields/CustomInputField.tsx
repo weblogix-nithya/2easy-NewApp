@@ -25,6 +25,7 @@ export default function Default(props: {
   type?: string;
   name?: string;
   min?: string;
+  step?: number;
   showLabel?: boolean;
   value?: string | number | any;
   defaultValue?: string | number | any;
@@ -138,9 +139,10 @@ export default function Default(props: {
               defaultValue={defaultValue}
               onChange={onChange}
               min={min}
+              step={props.step}
               // onClick={type == "date" ? undefined : onClick}
               onClick={
-                type === "date"
+                type === "date" || type === "time"
                   ? (e) => {
                     e.preventDefault();
                     e.currentTarget.showPicker?.();
