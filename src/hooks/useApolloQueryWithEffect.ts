@@ -13,7 +13,7 @@ export type UseApolloQueryOptions<
 };
 
 export function useApolloQueryWithEffect<
-    TData = unknown,
+    TData = any,
     TVariables extends OperationVariables = OperationVariables,
 >(
     query: DocumentNode,

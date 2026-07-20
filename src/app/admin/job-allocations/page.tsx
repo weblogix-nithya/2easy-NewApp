@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useQuery } from "@apollo/client/react";
 import {
   Accordion,
@@ -36,9 +36,17 @@ import { SearchBar } from "@/components/navbar/searchBar/SearchBar";
 import RightSideBar from "@/components/sidebar/RightSideBar";
 import { GET_AVAILABLE_DRIVERS_QUERY } from "@/graphql/driver";
 import { GET_JOB_QUERY, GET_JOBS_QUERY } from "@/graphql/job";
-import { GET_DRIVER_CURRENT_ROUTE_QUERY, GET_ROUTE_QUERY } from "@/graphql/route";
+import {
+  GET_DRIVER_CURRENT_ROUTE_QUERY,
+  GET_ROUTE_QUERY,
+} from "@/graphql/route";
 import { GET_VEHICLE_CLASSES_QUERY } from "@/graphql/vehicleClass";
-import { australianStates, getMapIcon, jobTypes, today } from "@/lib/helpers/helper";
+import {
+  australianStates,
+  getMapIcon,
+  jobTypes,
+  today,
+} from "@/lib/helpers/helper";
 import debounce from "lodash.debounce";
 import moment from "moment";
 import React, { useEffect, useMemo, useState } from "react";
@@ -54,9 +62,8 @@ import {
 import { RootState } from "@/lib/store/store";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import GoogleMapProvider from "@/components/providers/GoogleMapProvider";
-
 
 const stateMap: Record<string, string> = {
   vic: "Victoria",
@@ -70,9 +77,11 @@ export default function JobAllocationIndex() {
   const urlState = searchParams.get("state")?.toLowerCase();
   const state = useSelector((state: RootState) => state.user.state);
   // console.log("user state from store:", state);
+  const { isAdmin } = useSelector((state: RootState) => state.user);
   const rightSideBarJob = useSelector(
     (state: RootState) => state.rightSideBar.job,
   );
+  const router = useRouter();
   const [date, setDate] = useState(today);
   const [queryPageIndex, setQueryPageIndex] = useState(0);
   const [queryPageSize, _setQueryPageSize] = useState(100);
@@ -81,7 +90,9 @@ export default function JobAllocationIndex() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [vehicleClasses, setVehicleClasses] = useState([]);
   const [customerName, setCustomerName] = useState("");
-  const [australianState, setAustralianState] = useState(urlState && stateMap[urlState] ? stateMap[urlState] : state);
+  const [australianState, setAustralianState] = useState(
+    urlState && stateMap[urlState] ? stateMap[urlState] : state,
+  );
   const [_selectedVehicleClasses, setSelectedVehicleClasses] = useState([]);
   const [selectedVehicleClassIds, setSelectedVehicleClassIds] = useState([]);
   const [driverOptions, setDriverOptions] = useState([]);
@@ -123,7 +134,7 @@ export default function JobAllocationIndex() {
           parseInt(vehicleClass.id),
         ]);
       });
-    }
+    },
   });
 
   useApolloQueryWithEffect(GET_AVAILABLE_DRIVERS_QUERY, {
@@ -268,7 +279,7 @@ export default function JobAllocationIndex() {
     return () => debouncedCenterChangeHandler.cancel?.();
   }, [debouncedCenterChangeHandler]);
 
-  const [_getRoute, { }] = useApolloLazyQueryWithEffect<any>(GET_ROUTE_QUERY, {
+  const [_getRoute, {}] = useApolloLazyQueryWithEffect<any>(GET_ROUTE_QUERY, {
     // variables: {
     //   id: selectedRouteId,
     // },
@@ -277,10 +288,10 @@ export default function JobAllocationIndex() {
       if (data.route) {
         dispatch(setRightSideBarRoute(data.route));
       }
-    }
+    },
   });
 
-  const [getJob, { }] = useApolloLazyQueryWithEffect<any>(GET_JOB_QUERY, {
+  const [getJob, {}] = useApolloLazyQueryWithEffect<any>(GET_JOB_QUERY, {
     // variables: {
     //   id: selectedJobId,
     // },
@@ -290,10 +301,10 @@ export default function JobAllocationIndex() {
         dispatch(setRightSideBarJob(data.job));
         dispatch(setIsShowRightSideBar(true));
       }
-    }
+    },
   });
 
-  const [getDriverCurrentRoute, { }] = useApolloLazyQueryWithEffect<any>(
+  const [getDriverCurrentRoute, {}] = useApolloLazyQueryWithEffect<any>(
     GET_DRIVER_CURRENT_ROUTE_QUERY,
     {
       // variables: {
@@ -326,8 +337,9 @@ export default function JobAllocationIndex() {
         } else {
           setMarkers([]);
         }
-      }
-  });
+      },
+    },
+  );
 
   function clearJobFilters() {
     setCustomerName("");
@@ -335,7 +347,6 @@ export default function JobAllocationIndex() {
     setDeliveryAddress("");
     setAustralianState("");
   }
-
 
   function onMarkerClick(data: any) {
     if (data.job_id) {
@@ -409,16 +420,16 @@ export default function JobAllocationIndex() {
       // driver_id: null,
     },
     // onCompleted: (_data) => {
-      // Removed auto route on load for now
-      // if (data.jobs.data[0]) {
-      //   data.jobs.data.every((job: any) => {
-      //     if (job.job_status_id == 1) {
-      //       setSelectedJob(job);
-      //       onJobClick(job);
-      //       return false;
-      //     }
-      //   });
-      // }
+    // Removed auto route on load for now
+    // if (data.jobs.data[0]) {
+    //   data.jobs.data.every((job: any) => {
+    //     if (job.job_status_id == 1) {
+    //       setSelectedJob(job);
+    //       onJobClick(job);
+    //       return false;
+    //     }
+    //   });
+    // }
     // },
   });
 
@@ -426,7 +437,7 @@ export default function JobAllocationIndex() {
   useEffect(() => {
     if (urlState && stateMap[urlState]) {
       setAustralianState(stateMap[urlState]);
-      console.log("useffect state")
+      console.log("useffect state");
     } else if (state) {
       setAustralianState(state);
     }
@@ -439,14 +450,13 @@ export default function JobAllocationIndex() {
     australianStates.forEach((st: any) => {
       if (st.value === australianState) {
         setCenter({ lat: st.lat, lng: st.lng });
-        console.log("center state1")
+        console.log("center state1");
       }
     });
-    console.log("center state2")
+    console.log("center state2");
     // }
     getJobs();
   }, [onChangeSearchQuery, rightSideBarJob, australianState, getJobs]);
-
 
   return (
     // <Wrapper
@@ -455,7 +465,7 @@ export default function JobAllocationIndex() {
     //   libraries={["places", "marker"]}
     // >
     <GoogleMapProvider>
-      <RightSideBar setMarkers={setMarkers}/>
+      <RightSideBar setMarkers={setMarkers} />
       <Box
         pt={{ base: "130px", md: "97px", xl: "97px" }}
         w="full"
@@ -467,7 +477,7 @@ export default function JobAllocationIndex() {
           gridTemplateRows={"auto 1fr"}
           gridTemplateColumns={{ base: "35% 1fr", md: "400px 1fr" }}
           // h="90vh"
-          h="calc(100vh - 110px)" 
+          h="calc(100vh - 110px)"
           gap="1px"
           color="blackAlpha.700"
           fontWeight="bold"
@@ -478,7 +488,7 @@ export default function JobAllocationIndex() {
         >
           {/* Allocation filter row */}
           <GridItem area={"header"} minW={0}>
-            <Flex alignItems="center" className="py-5" w="full">  
+            <Flex alignItems="center" className="py-5" w="full">
               <h1 className="ml-6">Delivery Allocation</h1>
               <Spacer />
               {/* mailto:it@2easyfreight.com */}
@@ -535,6 +545,19 @@ export default function JobAllocationIndex() {
               <Spacer />
               {/* Vehicle and driver selector */}
               <Center>
+                <Box p="2" width="350px" minW={0}>
+                  {isAdmin && (
+                    <Button
+                      onClick={() =>
+                        router.push("/admin/job-allocations/drivertrack")
+                      }
+                      variant="primary"
+                      className="mr-2"
+                    >
+                      Track Driver
+                    </Button>
+                  )}
+                </Box>
                 <Box p="2" width="250px" minW={0}>
                   <Select
                     isMulti={true}
@@ -584,8 +607,8 @@ export default function JobAllocationIndex() {
                     value={
                       hasUserChosenDrivers
                         ? driverOptions.filter((opt) =>
-                          selectedDriverIds.includes(opt.value),
-                        )
+                            selectedDriverIds.includes(opt.value),
+                          )
                         : [] // no chips initially, but map shows all
                     }
                     options={driverOptions
@@ -660,8 +683,8 @@ export default function JobAllocationIndex() {
               overflowY: "auto",
               overflowX: "hidden",
             }}
-          // minW={0}
-          //  height="100vh"
+            // minW={0}
+            //  height="100vh"
           >
             <Flex className=" flex-col" minW={0}>
               <Flex className="relative">
@@ -686,9 +709,9 @@ export default function JobAllocationIndex() {
                 />
               </Flex>
               {customerName ||
-                pickupAddress ||
-                pickupAddress ||
-                australianState ? (
+              pickupAddress ||
+              pickupAddress ||
+              australianState ? (
                 <Flex className="pt-4 flex-wrap align-center">
                   <p className="text-sm mr-1">Filters: </p>
 
@@ -951,9 +974,9 @@ export default function JobAllocationIndex() {
                   ? true
                   : false
               }
-            // options={{
-            //   mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID, // 👈 dynamically load from env
-            // }}
+              // options={{
+              //   mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID, // 👈 dynamically load from env
+              // }}
             />
           </GridItem>
         </Grid>

@@ -322,10 +322,10 @@ export const GROUPED_PAGINATED_JOBS_QUERY = gql`
           current_suburb
           total_jobs_today_price
           total_jobs_weekly_price
-         # today_free_text {
-          #  id
-           # text
-          #}
+          today_free_text {
+            id
+            text
+          }
         }
         job {
           id
