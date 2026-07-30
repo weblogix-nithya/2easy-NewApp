@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useMutation } from "@apollo/client/react";
 import { useApolloLazyQueryWithEffect } from "@/hooks/useApolloLazyQueryWithEffect";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
@@ -11,7 +12,6 @@ import {
     FormControl,
     FormLabel,
     Grid,
-    // GridItem,
     Link,
     Modal,
     ModalBody,
@@ -20,8 +20,6 @@ import {
     ModalFooter,
     ModalHeader,
     ModalOverlay,
-    Radio,
-    RadioGroup,
     SimpleGrid,
     Stack,
     Text,
@@ -29,14 +27,11 @@ import {
 } from "@chakra-ui/react";
 import { faTrashCan } from "@fortawesome/pro-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import ColorSelect from "@/components/fields/ColorSelect";
+// import ColorSelect from "@/components/fields/ColorSelect";
+import JobUrgencyToggle from "@/components/jobs/JobUrgencyToggle";
 import CustomInputField from "@/components/fields/VCustomInputField";
+import TogglePill from "@/components/fields/TogglePill";
 import Time12HourPicker from "@/components/fields/Time12HourPickerCreateJob";
-import FileInput from "@/components/fileInput/FileInput";
-import JobAddressesSection from "@/components/jobs/JobAddressesNewSection";
-import JobInputTable from "@/components/jobs/JobNewInputTable";
-import PaginationTable from "@/components/table/PaginationTable";
-import TagsInput from "@/components/tagsInput";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
 import { GET_COMPANYS_QUERY, GET_COMPANY_QUERY } from "@/graphql/company";
 import { GET_COMPANY_RATE_QUERY, GET_TIMEZONE_QUERY } from "@/graphql/CompanyRate";
@@ -83,6 +78,37 @@ import {
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
 import { calculateFinalWeightCBM } from "@/utils/calculatePalletSpacesOccupied";
+
+// ---------- Dynamically-loaded, below-the-fold components ----------
+// These are split into separate JS chunks so the initial page load (h1 + Details
+// card) doesn't have to wait for Google Places autocomplete, TanStack Table,
+// and file-upload code to download/parse/execute. This is the main lever for
+// reducing LCP — the "New Delivery Job" heading no longer waits on unrelated code.
+const JobAddressesSection = dynamic(
+    () => import("@/components/jobs/JobAddressesNewSection"),
+    {
+        ssr: false,
+        loading: () => (
+            <Box h="180px" bg="gray.50" borderRadius="md" w="full" />
+        ),
+    },
+);
+const JobInputTable = dynamic(
+    () => import("@/components/jobs/JobNewInputTable"),
+    { ssr: false },
+);
+const FileInput = dynamic(
+    () => import("@/components/fileInput/FileInput"),
+    { ssr: false },
+);
+const PaginationTable = dynamic(
+    () => import("@/components/table/PaginationTable"),
+    { ssr: false },
+);
+const TagsInput = dynamic(
+    () => import("@/components/tagsInput"),
+    { ssr: false },
+);
 
 // ---------- URL preset lookup (Booking menu -> ?id=...) ----------
 const JOB_PRESETS: Record<
@@ -200,6 +226,17 @@ function JobPage() {
     const [customerBaseNotes, setCustomerBaseNotes] = useState<string | null>(
         null,
     );
+
+    useEffect(() => {
+        if (!job.transport_location) {
+            setFilteredDepotOptions([]);
+            return;
+        }
+        const filtered = depotOptions.filter(
+            (option) => option.state_code === job.transport_location,
+        );
+        setFilteredDepotOptions(filtered);
+    }, [job.transport_location, depotOptions]);
 
     const onClose = () => setIsJobCreatedOpen(false);
 
@@ -332,6 +369,7 @@ function JobPage() {
 
     useApolloQueryWithEffect(GET_ALL_TIMESLOT_DEPOTS, {
         onCompleted: (data: any) => {
+            console.log("Raw depot API response:", data);
             if (data?.allTimeslotDepots) {
                 const depots = data.allTimeslotDepots
                     .filter((depot: any) => depot.is_active)
@@ -365,7 +403,7 @@ function JobPage() {
 
     // ---------- Consolidated form-options query ----------
     useApolloQueryWithEffect<JobFormOptionsResponse>(GET_JOB_FORM_OPTIONS_QUERY, {
-        fetchPolicy: "no-cache",
+        fetchPolicy: "cache-and-network",
         onCompleted: (data) => {
             const opts = data?.jobFormOptions;
             if (!opts) return;
@@ -452,6 +490,173 @@ function JobPage() {
             }
         },
     });
+
+    const downloadPDFapiUrl = process.env.NEXT_PUBLIC_PRICE_BREAKDOWN_API_URL;
+
+    const downloadQuotePdf = async () => {
+        if (!validateAddresses()) return;
+        if (!validateTimeslotDepot()) return;
+        if (
+            !job.job_type_id ||
+            refinedData.service_choice === ""
+        ) {
+            toast({
+                title: "Job Type Required",
+                description: "Please select the available job type once again.",
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+        if (
+            (job.job_category_id == 1 || job.job_category_id == 2) &&
+            (!job.transport_type || job.transport_type === "")
+        ) {
+            toast({
+                title: "Transport Type Required",
+                description: "Please select Import or Export as the transport type.",
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        if (!downloadPDFapiUrl) {
+            toast({
+                title: "Download unavailable",
+                description: "Price breakdown API URL is not configured.",
+                status: "warning",
+                duration: 4000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        const jobDestination1 =
+            jobDestinations.length > 0
+                ? {
+                    state: jobDestinations[0]?.address_state,
+                    suburb: jobDestinations[0]?.address_city,
+                    postcode: jobDestinations[0]?.address_postal_code,
+                    address: jobDestinations[0]?.address,
+                }
+                : null;
+
+        const filteredCompanyRates = companyRates?.filter(
+            (rate) => rate.state === jobDestination1?.state,
+        );
+        const { totalCBM, totalWeight } = calculateFinalWeightCBM(
+            job.job_category_id,
+            jobItems,
+            companyWeight,
+        );
+        const finalCBM = parseFloat(totalCBM.toFixed(2));
+        const finalWeight = parseFloat(totalWeight.toFixed(2));
+
+        const payload = {
+            company_id: isAdmin ? Number(job.company_id) : Number(companyId),
+            pickup: {
+                state: pickUpDestination?.address_state,
+                suburb: pickUpDestination?.address_city,
+                postcode: pickUpDestination?.address_postal_code,
+                address: pickUpDestination?.address,
+            },
+            destination: jobDestination1
+                ? {
+                    state: jobDestination1.state,
+                    suburb: jobDestination1.suburb,
+                    postcode: jobDestination1.postcode,
+                    address: jobDestination1.address,
+                }
+                : {},
+            items: jobItems.map((item) => ({
+                id: item.id,
+                name: item.name || "",
+                quantity: item.quantity,
+                volume: item.volume,
+                weight: item.weight,
+                dimension_height: item.dimension_height,
+                dimension_depth: item.dimension_depth,
+                dimension_width: item.dimension_width,
+            })),
+            transport_type: job.transport_type,
+            service_choice: refinedData.service_choice,
+            state:
+                refinedData.state ||
+                job.pick_up_state ||
+                pickUpDestination?.address_state,
+            state_code: refinedData.state_code || refinedData.pick_up_stateCode,
+            ready_by: readyAt,
+            drop_by: dropAt,
+            freight_type: refinedData.freight_type,
+            company_rates:
+                ((job.job_category_id == 1 || job.job_category_id == 2) &&
+                    refinedData.pick_up_stateCode === "QLD") ||
+                    refinedData.pick_up_stateCode === "VIC"
+                    ? filteredCompanyRates.map((rate) => ({
+                        company_id: rate.company_id,
+                        area: rate.area,
+                        seafreight_id: rate.seafreight_id,
+                        cbm_rate: rate.cbm_rate,
+                        minimum_charge: rate.minimum_charge,
+                    }))
+                    : [],
+            toll_enabled: refinedData.toll_enabled,
+            surcharges: {
+                hand_unload: job.is_hand_unloading || false,
+                dangerous_goods: job.is_dangerous_goods || false,
+                time_slot: job.is_inbound_connect || false,
+                timeslot_depots: job.is_inbound_connect
+                    ? refinedData.timeslot_depots
+                    : null,
+                tail_lift: job.is_tailgate_required || false,
+                stackable: true,
+            },
+            total_weight: finalWeight,
+            total_cbm: finalCBM,
+        };
+
+        try {
+            const response = await fetch(downloadPDFapiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "Quote_Price_Breakdown.pdf");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast({
+                title: "Download started",
+                description: "Your quote PDF is being downloaded.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            console.error("Error downloading quote PDF:", error);
+            toast({
+                title: "Download failed",
+                description: "Unable to download the quote PDF. Please try again.",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
 
     useEffect(() => {
         if ((!isCompany && !isCompanyAdmin) || !companyId) return;
@@ -906,16 +1111,8 @@ function JobPage() {
         let _jobDestinations = [...jobDestinations];
         _jobDestinations[index] = value;
         setJobDestinations(_jobDestinations);
-        let currentstate =
-            _jobDestinations[0]?.address_state == "Victoria"
-                ? "VIC"
-                : jobDestinations[0]?.address_state == "Queensland"
-                    ? "QLD"
-                    : "";
-        const filtereddepotOption = depotOptions.filter(
-            (option) => option.state_code == currentstate,
-        );
-        setFilteredDepotOptions(filtereddepotOption);
+        // filtereddepotOptions is kept in sync automatically by the
+        // useEffect watching job.transport_location — no manual filtering here.
     };
 
     // ---------- Customer addresses (lazy — depends on selected customer) ----------
@@ -1270,6 +1467,17 @@ function JobPage() {
         if (!validateAddresses()) return;
         if (!validateTimeslotDepot()) return;
 
+        if (!job.job_type_id) {
+            toast({
+                title: "Job Type Required",
+                description: "Please select the urgency/job type before creating the job.",
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
         const selectedJobTypeName = filteredJobTypeOptions.find(
             (opt) => opt.value === job.job_type_id,
         )?.label;
@@ -1330,8 +1538,7 @@ function JobPage() {
         if (!validateAddresses()) return;
         if (!validateTimeslotDepot()) return;
         if (
-            job.job_type_id === null ||
-            job.job_type_id === undefined ||
+            !job.job_type_id ||
             refinedData.service_choice === ""
         ) {
             toast({
@@ -1555,8 +1762,6 @@ function JobPage() {
                                 p="20px"
                                 mb="20px"
                             >
-                                <h3 style={{ marginBottom: "20px" }}>Details</h3>
-
                                 <SimpleGrid columns={{ base: 1, md: 3 }} spacingX="20px" spacingY="0px">
                                     <CustomInputField
                                         isSelect={true}
@@ -1891,76 +2096,191 @@ function JobPage() {
                                 </SimpleGrid>
                             </Box>
 
+                            <Box flex="1">
+                                <Flex justifyContent="space-between" alignItems="flex-start" mb="12px" gap="16px">
+                                    <Text fontSize="sm" fontWeight="600" color="gray.600">
+                                        Job Requirements
+                                    </Text>
+
+                                    {!job?.is_stackable_required && (
+                                        <Alert
+                                            status="warning"
+                                            borderRadius="md"
+                                            bg="white"
+                                            border="1px solid"
+                                            borderColor="orange.300"
+                                            maxW="520px"
+                                            py="6px"
+                                            px="10px"
+                                        >
+                                            <AlertIcon color="orange.400" boxSize="16px" />
+                                            <AlertTitle fontSize="sm" fontWeight="500" color="orange.600">
+                                                Non-stackable freight may be subject to a higher rate on the final invoice
+                                            </AlertTitle>
+                                        </Alert>
+                                    )}
+                                </Flex>
+
+                                <Flex wrap="wrap" gap="12px" align="center">
+                                    <TogglePill
+                                        label="Timeslot Required"
+                                        isActive={job.is_inbound_connect === true}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_inbound_connect: !(prev.is_inbound_connect === true),
+                                            }));
+                                        }}
+                                    />
+
+                                    {(job.job_category_id == 1 || job.job_category_id == 2) &&
+                                        job.is_inbound_connect === true && (
+                                            <Box minW="270px" mt="4px" height="42px">
+                                                <CustomInputField
+                                                    isSelect={true}
+                                                    showLabel={false}
+                                                    optionsArray={filtereddepotOptions}
+                                                    value={
+                                                        filtereddepotOptions.find(
+                                                            (option) => option.value === job.timeslot_depots,
+                                                        ) || null
+                                                    }
+                                                    placeholder="Select a depot"
+                                                    onChange={(e) => {
+                                                        setRefinedData((prev) => ({
+                                                            ...prev,
+                                                            timeslot_depots: e.value,
+                                                        }));
+                                                        setJob((prev) => ({
+                                                            ...prev,
+                                                            timeslot_depots: e.value,
+                                                        }));
+                                                    }}
+                                                />
+                                            </Box>
+                                        )}
+
+                                    <TogglePill
+                                        label="Hand Unloading"
+                                        isActive={job.is_hand_unloading === true}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_hand_unloading: !prev.is_hand_unloading,
+                                            }));
+                                        }}
+                                    />
+
+                                    <TogglePill
+                                        label="DG Dangerous Goods"
+                                        isActive={job.is_dangerous_goods === true}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_dangerous_goods: !prev.is_dangerous_goods,
+                                            }));
+                                        }}
+                                    />
+
+                                    <TogglePill
+                                        label="Tailgate Required"
+                                        isActive={job.is_tailgate_required === true}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_tailgate_required: !prev.is_tailgate_required,
+                                            }));
+                                        }}
+                                    />
+
+                                    <TogglePill
+                                        label="Hard Copy Paperwork"
+                                        isActive={job.is_paperwork_required === true}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_paperwork_required: !prev.is_paperwork_required,
+                                            }));
+                                        }}
+                                    />
+
+                                    <TogglePill
+                                        label="Non Stackable Freight"
+                                        isActive={!job?.is_stackable_required}
+                                        onClick={() => {
+                                            setJob((prev) => ({
+                                                ...prev,
+                                                is_stackable_required: !prev.is_stackable_required,
+                                            }));
+                                        }}
+                                    />
+                                </Flex>
+                            </Box>
+
                             <Box mb="16px">
                                 <h3 className="mb-5 mt-3"> Addresses </h3>
 
 
-                                {/* ---------- Pickup Information card ---------- */}
-                                <Box
-                                    bg="white"
-                                    border="1px solid"
-                                    borderColor="gray.200"
-                                    borderRadius="12px"
-                                    p="20px"
-                                    mb="20px"
-                                >
-                                    <h4 style={{ marginBottom: "20px" }}>Pickup Information</h4>
+                                <SimpleGrid columns={{ base: 1, md: 2 }} spacing="20px">
+                                    {/* ---------- Pickup Information ---------- */}
+                                    <Box
+                                        bg="white"
+                                        border="1px solid"
+                                        borderColor="gray.200"
+                                        borderRadius="12px"
+                                        p="20px"
+                                    >
+                                        <h4 style={{ marginBottom: "20px" }}>Pickup Information</h4>
 
-                                    <JobAddressesSection
-                                        savedAddressesSelect={savedAddressesSelect}
-                                        defaultJobDestination={pickUpDestination}
-                                        entityModel={job}
-                                        onAddressSaved={(_hasChanged) => {
-                                            getCustomerAddresses();
-                                        }}
-                                        jobDestinationChanged={(jobDestination) => {
-                                            const stateCode = getStateCode(jobDestination.address_state);
+                                        <JobAddressesSection
+                                            savedAddressesSelect={savedAddressesSelect}
+                                            defaultJobDestination={pickUpDestination}
+                                            entityModel={job}
+                                            onAddressSaved={(_hasChanged) => {
+                                                getCustomerAddresses();
+                                            }}
+                                            jobDestinationChanged={(jobDestination) => {
+                                                const stateCode = getStateCode(jobDestination.address_state);
 
-                                            setPickUpDestination({
-                                                ...pickUpDestination,
-                                                ...jobDestination,
-                                                ...{ is_pickup: true },
-                                            });
-                                            let currentPickupstate =
-                                                pickUpDestination.address_state == "Victoria"
-                                                    ? "VIC"
-                                                    : pickUpDestination.address_state == "Queensland"
-                                                        ? "QLD"
-                                                        : "";
-                                            const filtereddepotOption = depotOptions.filter(
-                                                (option) => option.state_code == currentPickupstate,
-                                            );
-                                            setFilteredDepotOptions(filtereddepotOption);
-                                            setJob((prev) => ({
-                                                ...prev,
-                                                pick_up_lng: jobDestination.lng,
-                                                pick_up_lat: jobDestination.lat,
-                                                pick_up_address: jobDestination.address,
-                                                pick_up_notes: jobDestination.notes,
-                                                pick_up_name: jobDestination.name,
-                                                pick_up_report: jobDestination.report,
-                                                pick_up_state: jobDestination.state,
-                                            }));
-
-                                            setRefinedData((prev) => ({
-                                                ...prev,
-                                                ...{
+                                                setPickUpDestination({
+                                                    ...pickUpDestination,
+                                                    ...jobDestination,
+                                                    ...{ is_pickup: true },
+                                                });
+                                                // let currentPickupstate =
+                                                //     pickUpDestination.address_state == "Victoria"
+                                                //         ? "VIC"
+                                                //         : pickUpDestination.address_state == "Queensland"
+                                                //             ? "QLD"
+                                                //             : "";
+                                                // const filtereddepotOption = depotOptions.filter(
+                                                //     (option) => option.state_code == job.transport_location,
+                                                // );
+                                                // setFilteredDepotOptions(filtereddepotOption);
+                                                setJob((prev) => ({
+                                                    ...prev,
+                                                    pick_up_lng: jobDestination.lng,
+                                                    pick_up_lat: jobDestination.lat,
+                                                    pick_up_address: jobDestination.address,
+                                                    pick_up_notes: jobDestination.notes,
+                                                    pick_up_name: jobDestination.name,
+                                                    pick_up_report: jobDestination.report,
                                                     pick_up_state: jobDestination.state,
-                                                    pick_up_stateCode: stateCode,
-                                                },
-                                            }));
-                                        }}
-                                    />
-                                </Box>
+                                                }));
 
-                                {/* ---------- Delivery Information cards (one per destination) ---------- */}
-                                <Box mb="16px">
-                                    <Flex justifyContent="space-between" alignItems="center" className="mb-5 mt-3">
-                                        <h3 className="m-0">Delivery Addresses</h3>
-                                        <Button variant="secondary" onClick={() => addToJobDestinations()}>
-                                            + Add delivery location
-                                        </Button>
-                                    </Flex>
+                                                setRefinedData((prev) => ({
+                                                    ...prev,
+                                                    ...{
+                                                        pick_up_state: jobDestination.state,
+                                                        pick_up_stateCode: stateCode,
+                                                    },
+                                                }));
+                                            }}
+                                        />
+                                    </Box>
+
+                                    {/* ---------- Delivery Information cards — first one sits beside
+                                        Pickup, additional ones wrap into new rows, 2 per row ---------- */}
                                     {jobDestinations.map((jobDestination, index) => {
                                         const key = jobDestination?.id ?? `new-${index}`;
 
@@ -1972,9 +2292,8 @@ function JobPage() {
                                                 borderColor="gray.200"
                                                 borderRadius="12px"
                                                 p="20px"
-                                                mb="20px"
                                             >
-                                                <Flex justifyContent="space-between" alignItems="center">
+                                                <Flex justifyContent="space-between" alignItems="center" mb="12px">
                                                     <h4 style={{ margin: 0 }}>Delivery Address {index + 1}</h4>
                                                     {jobDestinations.length > 1 && (
                                                         <Button
@@ -2004,20 +2323,25 @@ function JobPage() {
                                             </Box>
                                         );
                                     })}
+                                </SimpleGrid>
+
+                                <Box mt="16px">
+                                    <Button variant="secondary" onClick={() => addToJobDestinations()}>
+                                        + Add delivery location
+                                    </Button>
                                 </Box>
 
 
                             </Box>
 
                             <Divider className="my-3" />
-                            <ColorSelect
-                                label="Type"
+                            <JobUrgencyToggle
+                                label="Job Type(Urgency)"
                                 optionsArray={
                                     companyStandardStatic
                                         ? jobTypeOptions
                                         : filteredJobTypeOptions
                                 }
-                                selectedJobId={job.job_type_id}
                                 value={
                                     (companyStandardStatic
                                         ? jobTypeOptions
@@ -2025,7 +2349,6 @@ function JobPage() {
                                     )?.find((jobType) => jobType.value === job.job_type_id) ||
                                     null
                                 }
-                                placeholder="Select type"
                                 onChange={(e) => {
                                     setJob((prev) => ({
                                         ...prev,
@@ -2039,7 +2362,7 @@ function JobPage() {
                             />
                             <Divider className="my-3" />
                             <Box mb="16px" mt={4}>
-                                <Flex justify="space-between" align="center" className="mb-6">
+                                <Flex justify="space-between" align="center" className="mb-3">
                                     <h3 className="">Items</h3>
                                     <Button
                                         variant="secondary"
@@ -2107,7 +2430,7 @@ function JobPage() {
                             <Divider className="my-2" />
 
                             <Box mb="16px">
-                                <h3 className="mb-5 mt-3">Attachments</h3>
+                                <h3 className="mb-3 mt-3">Attachments</h3>
                                 <Flex width="100%" className="mb-6">
                                     <FileInput
                                         entity="Job"
@@ -2137,7 +2460,7 @@ function JobPage() {
                             <Divider className="my-4" />
 
                             <Box mb="16px">
-                                <h3 className="mb-5 mt-3">Additional Info</h3>
+                                <h3 className="mb-3 mt-3">Additional Info</h3>
 
                                 {/* Notes row — 3-column, mirrors the reference design's Admin/Base/Company row */}
                                 {isAdmin && (
@@ -2193,240 +2516,31 @@ function JobPage() {
                                 )}
 
                                 <Box mb="16px">
-                                    <Flex alignItems="flex-start" justifyContent="space-between" width="100%" pt={7} gap="40px">
-                                        {/* ---------- Left: radio questions (2-column grid) ---------- */}
-                                        <Box flex="1">
-                                            <SimpleGrid columns={{ base: 1, md: 2 }} spacingX="40px" spacingY="28px">
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                        pr={3}
-                                                    >
-                                                        Does this job require a timeslot booking through Inbound Connect?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        defaultValue={"0"}
-                                                        onChange={(e) => {
-                                                            setJob((prev) => ({
-                                                                ...prev,
-                                                                is_inbound_connect: e === "1",
-                                                            }));
-                                                            let curretstatecode =
-                                                                jobDestinations[0].address_state == "Victoria"
-                                                                    ? "VIC"
-                                                                    : jobDestinations[0].address_state == "Queensland"
-                                                                        ? "QLD"
-                                                                        : "";
-                                                            const filtereddepotOp = depotOptions.filter(
-                                                                (option) => option.state_code == curretstatecode,
-                                                            );
-                                                            setFilteredDepotOptions(filtereddepotOp);
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-
-                                                    {(job.job_category_id == 1 || job.job_category_id == 2) &&
-                                                        job.is_inbound_connect === true && (
-                                                            <Box mt={4}>
-                                                                <CustomInputField
-                                                                    isSelect={true}
-                                                                    optionsArray={filtereddepotOptions}
-                                                                    label="Timeslot depots"
-                                                                    value={
-                                                                        filtereddepotOptions.find(
-                                                                            (option) => option.value === job.timeslot_depots,
-                                                                        ) || null
-                                                                    }
-                                                                    placeholder="Select a depot"
-                                                                    onChange={(e) => {
-                                                                        setRefinedData((prev) => ({
-                                                                            ...prev,
-                                                                            timeslot_depots: e.value,
-                                                                        }));
-                                                                        setJob((prev) => ({
-                                                                            ...prev,
-                                                                            timeslot_depots: e.value,
-                                                                        }));
-                                                                    }}
-                                                                />
-                                                            </Box>
-                                                        )}
-                                                </Box>
-
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        mb={2}
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                    >
-                                                        Is Stackable Freight?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        value={job?.is_stackable_required ? "1" : "0"}
-                                                        onChange={(e) => {
-                                                            setJob((prev) => ({
-                                                                ...prev,
-                                                                is_stackable_required: e === "1",
-                                                            }));
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-
-                                                    {!job?.is_stackable_required && (
-                                                        <Alert
-                                                            status="warning"
-                                                            mt={3}
-                                                            borderRadius="md"
-                                                            bg="white"
-                                                            border="1px solid"
-                                                            borderColor="orange.300"
-                                                        >
-                                                            <AlertIcon color="orange.400" />
-                                                            <AlertTitle fontSize="sm" color="orange.600">
-                                                                Non-stackable freight may be subject to a higher rate on the final
-                                                                invoice
-                                                            </AlertTitle>
-                                                        </Alert>
-                                                    )}
-                                                </Box>
-
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        mb={2}
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                    >
-                                                        Does this job require hand unloading?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        defaultValue={"0"}
-                                                        onChange={(e) => {
-                                                            setJob((prev) => ({
-                                                                ...prev,
-                                                                is_hand_unloading: e === "1",
-                                                            }));
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-                                                </Box>
-
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        mb={2}
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                    >
-                                                        Are there dangerous goods being transported?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        defaultValue={"0"}
-                                                        onChange={(e) => {
-                                                            setJob((prev) => ({
-                                                                ...prev,
-                                                                is_dangerous_goods: e === "1",
-                                                            }));
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-                                                </Box>
-
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        mb={2}
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                    >
-                                                        Is a Tail Lift vehicle required?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        defaultValue={"0"}
-                                                        onChange={(e) => {
-                                                            setJob({
-                                                                ...job,
-                                                                is_tailgate_required: e === "1" ? true : false,
-                                                            });
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-                                                </Box>
-
-                                                <Box>
-                                                    <FormLabel
-                                                        display="flex"
-                                                        mb={2}
-                                                        fontSize="sm"
-                                                        fontWeight="500"
-                                                        _hover={{ cursor: "pointer" }}
-                                                    >
-                                                        Is hard copy paperwork required?
-                                                    </FormLabel>
-                                                    <RadioGroup
-                                                        defaultValue={"0"}
-                                                        onChange={(e) => {
-                                                            setJob((prev) => ({
-                                                                ...prev,
-                                                                is_paperwork_required: e === "1",
-                                                            }));
-                                                        }}
-                                                    >
-                                                        <Stack direction="row">
-                                                            <Radio value="0">No</Radio>
-                                                            <Radio value="1" pl={6}>
-                                                                Yes
-                                                            </Radio>
-                                                        </Stack>
-                                                    </RadioGroup>
-                                                </Box>
-                                            </SimpleGrid>
-                                        </Box>
+                                    <Flex alignItems="flex-start" justifyContent="flex-end" width="100%" pt={7} gap="40px">
 
                                         {/* ---------- Right: Get A Quote + breakdown card (fixed width) ---------- */}
                                         {(job.job_category_id == 1 || job.job_category_id == 2) &&
                                             (refinedData.pick_up_stateCode === "VIC" ||
                                                 refinedData.pick_up_stateCode === "QLD") && (
                                                 <Box flexShrink={0} w="320px">
-                                                    <Flex justify="center" mb="16px">
+                                                    <Flex justify="flex-end" mb="16px">
+                                                        <Button
+                                                            variant="outline"
+                                                            borderColor="#3b82f6"
+                                                            color="#3b82f6"
+                                                            borderRadius="8px"
+                                                            px={6}
+                                                            py={3}
+                                                            mr={4}
+                                                            fontWeight="500"
+                                                            fontSize="sm"
+                                                            // isDisabled={!quoteCalculationRes || !quoteCalculationRes.total}
+                                                            onClick={() => {
+                                                                downloadQuotePdf();
+                                                            }}
+                                                        >
+                                                            Download Quote
+                                                        </Button>
                                                         <Button
                                                             bg="#3b82f6"
                                                             color="white"
@@ -2447,108 +2561,109 @@ function JobPage() {
                                                             Get A Quote
                                                         </Button>
                                                     </Flex>
+                                                    {quoteCalculationRes && quoteCalculationRes.total > 0 && (
+                                                        <Box
+                                                            bg="white"
+                                                            border="1px solid"
+                                                            borderColor="gray.200"
+                                                            borderRadius="12px"
+                                                            p="20px"
+                                                        >
+                                                            <Stack spacing="10px">
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Freight
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.freight ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                    <Box
-                                                        bg="white"
-                                                        border="1px solid"
-                                                        borderColor="gray.200"
-                                                        borderRadius="12px"
-                                                        p="20px"
-                                                    >
-                                                        <Stack spacing="10px">
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Freight
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.freight ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Fuel Levy
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.fuel ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Fuel Levy
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.fuel ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Hand Unload
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.hand_unload ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Hand Unload
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.hand_unload ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Time Slot
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.time_slot ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Time Slot
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.time_slot ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Tail Lift
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.tail_lift ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Tail Lift
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.tail_lift ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Dangerous Goods
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.dangerous_goods ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Dangerous Goods
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.dangerous_goods ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Stackable
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.stackable ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Stackable
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.stackable ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" color="gray.600">
+                                                                        Toll Levy ({quoteCalculationRes.toll_levy_type ?? "—"})
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="600" color="blue.600">
+                                                                        {quoteCalculationRes.toll_amount ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
 
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" color="gray.600">
-                                                                    Toll Levy ({quoteCalculationRes.toll_levy_type ?? "—"})
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="600" color="blue.600">
-                                                                    {quoteCalculationRes.toll_amount ?? "—"}
-                                                                </Text>
-                                                            </Flex>
+                                                                <Divider my="4px" />
 
-                                                            <Divider my="4px" />
-
-                                                            <Flex justify="space-between">
-                                                                <Text fontSize="sm" fontWeight="700">
-                                                                    Total
-                                                                </Text>
-                                                                <Text fontSize="sm" fontWeight="700" color="blue.600">
-                                                                    {quoteCalculationRes.total ?? "—"}
-                                                                </Text>
-                                                            </Flex>
-                                                        </Stack>
-                                                    </Box>
+                                                                <Flex justify="space-between">
+                                                                    <Text fontSize="sm" fontWeight="700">
+                                                                        Total
+                                                                    </Text>
+                                                                    <Text fontSize="sm" fontWeight="700" color="blue.600">
+                                                                        {quoteCalculationRes.total ?? "—"}
+                                                                    </Text>
+                                                                </Flex>
+                                                            </Stack>
+                                                        </Box>
+                                                    )}
                                                 </Box>
                                             )}
                                     </Flex>
                                 </Box>
                             </Box>
 
-                            <Divider className="mt-12 mb-6" />
+                            <Divider className="mt-3 mb-3" />
 
-                            <Flex alignItems="center" className="mb-6">
+                            <Flex justifyContent="flex-end" className="mb-3">
                                 <Button
                                     variant="primary"
                                     onClick={handleJobCreation}
