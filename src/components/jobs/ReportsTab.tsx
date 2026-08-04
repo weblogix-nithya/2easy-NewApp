@@ -29,32 +29,32 @@ export default function ReportsTab(props: { jobObject: any }) {
   const pickupColumns = useMemo(
     () => [
       {
-        id: 'type',
+        id: "type",
         Header: "TYPE",
         accessor: "type" as const,
       },
       {
-        id: 'address',
+        id: "address",
         Header: "ADDRESS",
         accessor: "address" as const,
       },
       {
-        id: 'date',
+        id: "date",
         Header: "DATE",
         accessor: "date_pick_up" as const,
       },
       {
-        id:'pick_up_name',
+        id: "pick_up_name",
         Header: "HANDOVER PERSON",
         accessor: "pick_up_name" as const,
       },
       {
-        id: 'pick_up_condition',
+        id: "pick_up_condition",
         Header: "CONDITION REPORT",
         accessor: "pick_up_condition" as const,
       },
       {
-        id: 'media',
+        id: "media",
         Header: "PHOTO EVIDENCE",
         accessor: "media" as const,
         isMultipleImage: true,
@@ -70,36 +70,40 @@ export default function ReportsTab(props: { jobObject: any }) {
   const issuesColumns = useMemo(
     () => [
       {
-        id: 'uploaded_by',
+        id: "uploaded_by",
         Header: "SUBMITED BY",
         accessor: "uploaded_by" as const,
       },
       {
-        id: 'date',
+        id: "date",
         Header: "DATE",
         accessor: "date" as const,
       },
       {
-        id: 'type',
+        id: "type",
         Header: "TYPE",
         accessor: "type" as const,
       },
       {
-        id: 'description',
+        id: "description",
         Header: "DESCRIPTION",
         accessor: "name" as const,
       },
       {
-        id: 'status',
+        id: "status",
         Header: "STATUS",
         accessor: "status" as const,
       },
       {
-        id: 'action',
+        id: "action",
         Header: "Actions",
         accessor: "issue_report_status_id" as const,
         changeStatus: true,
         isLinkAction: true,
+        meta: {
+          isLinkAction: true,
+          changeStatus: true,
+        },
       },
     ],
     [],
@@ -185,7 +189,7 @@ export default function ReportsTab(props: { jobObject: any }) {
   const [handleChangeIssueStatus, {}] = useMutation(
     UPDATE_REPORT_ISSUE_MUTATION,
     {
-      onCompleted: (data:any) => {
+      onCompleted: (data: any) => {
         // set new status to previous object
         let _issueReport = data?.updateIssueReport;
         if (_issueReport.sourceable.__typename === "Driver") {
