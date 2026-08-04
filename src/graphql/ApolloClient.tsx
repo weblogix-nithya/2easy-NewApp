@@ -203,7 +203,7 @@ const authLink = new SetContextLink((prevContext) => {
 });
 
 /* -------------------- ERROR HANDLING LINK -------------------- */
-const errorLink =  new ErrorLink(({ error }) => {
+const errorLink = new ErrorLink(({ error }) => {
   // const isUnauth =
   //   networkError?.statusCode === 401 ||
   //   networkError?.message?.includes("401") ||
@@ -246,7 +246,13 @@ const errorLink =  new ErrorLink(({ error }) => {
 function createApolloClient() {
   return new ApolloClient({
     ssrMode: typeof window === "undefined",
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        SelectOption: {
+          keyFields: false,
+        },
+      },
+    }),
     // link: from([
     //   errorLink, // Handle errors first
     //   authLink,  // Attach token per request
@@ -260,7 +266,7 @@ function createApolloClient() {
 }
 
 /* -------------------- INITIALIZE APOLLO -------------------- */
-export function initializeApollo(initialState : NormalizedCacheObject = {}) {
+export function initializeApollo(initialState: NormalizedCacheObject = {}) {
   const _apolloClient = apolloClient ?? createApolloClient();
 
   if (initialState) {
