@@ -695,11 +695,7 @@ export const ItemsCbmCellExport = ({ row }: any) => {
 };
 export const BookedByCell = ({ row }: any) => {
   const name = row?.original?.job?.company?.name || "-";
-  return (
-    <Text minW="160px">
-      {name}
-    </Text>
-  );
+  return <Text minW="160px">{name}</Text>;
 };
 // export const BookedByCellExport = ({ row }: any) => {
 //   const pickupDest = row.original.job_destinations?.find(
@@ -830,7 +826,12 @@ export const PickupAddressCell = ({ row }: any) => {
 };
 
 export const CustomerReferenceCell = ({ row }: any) => {
-  return <Text noOfLines={2} minWidth={"170px"}> {row?.original?.job?.reference_no || "-"}</Text>;
+  return (
+    <Text noOfLines={2} minWidth={"170px"}>
+      {" "}
+      {row?.original?.job?.reference_no || "-"}
+    </Text>
+  );
 };
 
 export const CategoryCell = ({ row }: any) => {
@@ -1252,6 +1253,11 @@ export const getColumns = (
       isView: isCustomer,
       isEdit: isAdmin,
       isTracking: isCustomer,
+      meta: {
+        isView: isCustomer,
+        isEdit: isAdmin,
+        isTracking: isCustomer,
+      },
     },
   ]);
 
@@ -1421,7 +1427,14 @@ export const getBulkAssignColumns = (
         header: "",
         cell: ({}: any) => (
           <div>
-            <Icon mt="auto" mb="auto" as={MdMenu as unknown as React.ElementType} h="16px" w="16px" me="8px" />
+            <Icon
+              mt="auto"
+              mb="auto"
+              as={MdMenu as unknown as React.ElementType}
+              h="16px"
+              w="16px"
+              me="8px"
+            />
           </div>
         ),
       },
@@ -1433,6 +1446,11 @@ export const getBulkAssignColumns = (
         isView: isCustomer,
         isEdit: isAdmin,
         isTracking: isCustomer,
+        meta: {
+          isView: isCustomer,
+          isEdit: isAdmin,
+          isTracking: isCustomer,
+        },
       },
     ];
   }
@@ -1448,7 +1466,12 @@ export const getBulkAssignColumns = (
       header: "",
       cell: ({}: any) => (
         <div>
-          <Icon as={MdMenu as unknown as React.ElementType} h="16px" w="16px" me="8px" />
+          <Icon
+            as={MdMenu as unknown as React.ElementType}
+            h="16px"
+            w="16px"
+            me="8px"
+          />
         </div>
       ),
     },
