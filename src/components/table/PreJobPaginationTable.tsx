@@ -84,83 +84,83 @@ export const getTimeslotBgColor = (time: string | null | undefined) => {
   return "#00ff00"; //green
 };
 
-type PaginationTableProps<T extends object> = {
-  columns: any[]; // accept v7 or v8
-  data: T[];
-  total: number;
-  options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
-  path?: string;
-  showDelete?: boolean;
-  onDelete?: (data: any) => void;
-  showPageSizeSelect?: boolean;
-  showManualPages?: boolean;
-  isChecked?: boolean;
-  onSortingChange?: any;
-  restyleTable?: boolean;
-  // editingDriverId: number | null;
-  // setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
-  freeTextValue?: string;
-  savingDriverId?: number | null;
-  setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
-  setFreeTextValue?: React.Dispatch<React.SetStateAction<string>>;
-  onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
-  onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
-  refetchJobs?: () => void;
-  onAssignClick?: (driver: any) => void;
-} & (
-    | {
-      isServerSide?: false;
-      setQueryPageIndex?: never;
-      setQueryPageSize?: never;
-    }
-    | {
-      isServerSide: true;
-      setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
-      setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
-    }
-  ) &
-  (
-    | {
-      showRowSelection?: false;
-      setSelectedRow?: never;
-      isFilterRowSelected?: never;
-    }
-    | {
-      showRowSelection: true;
-      setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
-      isFilterRowSelected: boolean;
-    }
-  );
+  type PaginationTableProps<T extends object> = {
+    columns: any[]; // accept v7 or v8
+    data: T[];
+    total: number;
+    options?: any; // keep your existing options object (manualPagination, initialState, pageCount, etc.)
+    path?: string;
+    showDelete?: boolean;
+    onDelete?: (data: any) => void;
+    showPageSizeSelect?: boolean;
+    showManualPages?: boolean;
+    isChecked?: boolean;
+    onSortingChange?: any;
+    restyleTable?: boolean;
+    // editingDriverId: number | null;
+    // setEditingDriverId: React.Dispatch<React.SetStateAction<number | null>>;
+    freeTextValue?: string;
+    savingDriverId?: number | null;
+    setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
+    setFreeTextValue?: React.Dispatch<React.SetStateAction<string>>;
+    onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
+    onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
+    refetchJobs?: () => void;
+    onAssignClick?: (driver: any) => void;
+  } & (
+      | {
+        isServerSide?: false;
+        setQueryPageIndex?: never;
+        setQueryPageSize?: never;
+      }
+      | {
+        isServerSide: true;
+        setQueryPageIndex: React.Dispatch<React.SetStateAction<number>>;
+        setQueryPageSize: React.Dispatch<React.SetStateAction<number>>;
+      }
+    ) &
+    (
+      | {
+        showRowSelection?: false;
+        setSelectedRow?: never;
+        isFilterRowSelected?: never;
+      }
+      | {
+        showRowSelection: true;
+        setSelectedRow: React.Dispatch<React.SetStateAction<any[]>>;
+        isFilterRowSelected: boolean;
+      }
+    );
 
-const PaginationTable = <T extends object>({
-  columns,
-  data,
-  total,
-  isServerSide = false,
-  options,
-  path,
-  showPageSizeSelect = false,
-  showRowSelection = false,
-  isFilterRowSelected = false,
-  setSelectedRow,
-  isChecked,
-  onSortingChange,
-  restyleTable = false,
-  onContextMenu,
-  onAssignClick,
-  // editingDriverId,
-  // setEditingDriverId,
-  // setFreeTextValue,
-  savingDriverId,
-  setSavingDriverId,
-  onUpdateDriverFreeText,
-  setQueryPageIndex,
-  setQueryPageSize,
-  onDelete,
-}: PaginationTableProps<T>) => {
-  const router = useRouter();
+  const PaginationTable = <T extends object>({
+    columns,
+    data,
+    total,
+    isServerSide = false,
+    options,
+    path,
+    showPageSizeSelect = false,
+    showRowSelection = false,
+    isFilterRowSelected = false,
+    setSelectedRow,
+    isChecked,
+    onSortingChange,
+    restyleTable = false,
+    onContextMenu,
+    onAssignClick,
+    // editingDriverId,
+    // setEditingDriverId,
+    // setFreeTextValue,
+    savingDriverId,
+    setSavingDriverId,
+    onUpdateDriverFreeText,
+    setQueryPageIndex,
+    setQueryPageSize,
+    onDelete,
+  }: PaginationTableProps<T>) => {
+    const router = useRouter();
 
-  const freeTextRef = useRef<HTMLTextAreaElement>(null);
+    const freeTextRef = useRef<HTMLTextAreaElement>(null);
 
   const pageSizeOptions = [
     { value: 10, label: "10 / page" },

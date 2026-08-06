@@ -35,3 +35,4 @@ package.json
 .vercel
 .env
 /.vscode/
+package-lock.json
