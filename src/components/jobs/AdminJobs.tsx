@@ -100,6 +100,7 @@ const JobContextMenu = React.lazy(() => import("@/components/preJobAllocation/Jo
 // );
 import JobTableSettingsModal from "@/components/jobs/JobTableSettingsModal";
 import JobBulkSortModal from "./JobBulkSortModal";
+import { useSubscriptionService } from "@/hooks/useSubscriptionService";
 
 const adminStatusOptions = [
   {
@@ -503,6 +504,15 @@ export default function JobIndex({ }: // initialLoadOnly = false,
   // );
 
   // Then use stableRefetch in adminColumns useMemo
+
+    useSubscriptionService({
+      jobUpdated: {
+        channel: "jobs",
+        event: ".job.updated",
+        callback: () => refetchGroupedJobs,
+      },
+    });
+
   const adminColumns = useMemo(() => {
     return getColumns(
       AdminUser,
