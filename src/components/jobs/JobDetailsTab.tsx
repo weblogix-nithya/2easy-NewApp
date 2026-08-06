@@ -940,6 +940,7 @@ const JobDetailsTab = ({
           <PaginationTable
             columns={attachmentColumns}
             data={job.media_admin}
+            total={job?.media_admin?.length || 0}
             // showDelete={isAdmin} // Removed in Current ver of table
             onDelete={(mediaId) => {
               handleDeleteMedia({

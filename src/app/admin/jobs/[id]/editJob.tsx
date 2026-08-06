@@ -309,23 +309,27 @@ function JobEdit() {
     () => [
       {
         header: "Document",
-        accessor: "file_name" as const,
+        accessorKey: "file_name" as const,
       },
       {
         header: "uploaded by",
-        accessor: "uploaded_by" as const,
+        accessorKey: "uploaded_by" as const,
       },
       {
         header: "date uploaded",
-        accessor: "created_at" as const,
-        type: "date",
+        accessorKey: "created_at" as const,
+        meta: {
+          type: "date",
+        },
       },
       {
         header: "Actions",
-        accessor: "downloadable_url" as const,
-        isDelete: isAdminUser,
-        isEdit: false,
-        isDownload: true,
+        accessorKey: "downloadable_url" as const,
+        meta: {
+          isDelete: isAdminUser,
+          isEdit: false,
+          isDownload: true,
+        },
       },
     ],
     [isAdmin],
@@ -520,14 +524,16 @@ function JobEdit() {
       //   console.log(error);
     },
   });
-
-  useEffect(() => {
-    if (id) {
-      getJob();
-    }
-  }, [id, getJob]);
+  
+  // Commented in new app - it triggers api call again that cause reload page again
+  // useEffect(() => {
+  //   if (id) {
+  //     getJob();
+  //   }
+  // }, [id, getJob]);
 
   console.log("setJobsetJob",job)
+  console.log("pickUpDestination",pickUpDestination)
 
   // useEffect(() => {
   //   if (routeReady && id) getJob({ id });
@@ -606,12 +612,12 @@ function JobEdit() {
   useEffect(() => {
     if (jobData?.job) {
       // Use 'jobData' instead of 'data'
-      setJob({
-        ...job,
+      setJob((prev) => ({
+        ...prev,
         job_category_id: jobData.job.job_category_id,
         transport_location: jobData.job.transport_location,
         job_type_id: jobData.job.job_type_id,
-      });
+      }));
 
       // Find the selected category name based on job_category_id
       const selectedCategoryName = jobCategories.find(
@@ -641,6 +647,15 @@ function JobEdit() {
         // job_type: matchedJobType?.name || null,
         // job_type_color: matchedJobType?.color || null
       }));
+
+      // Added in new app for Pickup depot prefilled initially
+      setPickUpDestination(
+        jobData.job.pick_up_destination || {
+          ...defaultJobDestination,
+          id: 0,
+          is_new: true,
+        },
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobData, jobCategories, jobTypeOptions, companyRates]); // Use 'jobData' instead of 'data'
@@ -1010,7 +1025,7 @@ function JobEdit() {
         total_weight: totalWeight,
         cbm_auto: totalCBM,
       }));
-      getJob();
+      // getJob(); // Commented in new app - it triggers api call again that cause reload page again
     },
     onError: (error) => {
       // Handle the error and set data to empty
@@ -1221,11 +1236,11 @@ function JobEdit() {
   }, [jobDateAt, readyAt, dropAt]);
   const dateChanged = () => {
     try {
-      setJob({
-        ...job,
+      setJob((prev) => ({
+        ...prev,
         ready_at: formatDateTimeToDB(jobDateAt, readyAt),
         drop_at: formatDateTimeToDB(jobDateAt, dropAt),
-      });
+      }));
     } catch (e) {
       //// console.log(e);
     }

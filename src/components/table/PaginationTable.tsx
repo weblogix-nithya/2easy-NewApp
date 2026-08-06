@@ -353,7 +353,7 @@ const PaginationTable = <T extends object>({
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => {
                     const meta = cell.column.columnDef.meta || {};
-                    const headerLabel = meta.Header;
+                    const headerLabel = cell.column.columnDef.header;
 
                     // selection column
                     if (cell.column.id === "selection") {

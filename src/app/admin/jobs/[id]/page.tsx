@@ -2,8 +2,9 @@
 
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
-import AdminEditJobs from "@/components/jobs/AdminEditJob";
+// import AdminEditJobs from "@/components/jobs/AdminEditJob";
 import CustomerEditJobs from "@/components/jobs/CustomerEditJob";
+import JobEdit from "./editJob";
 
 function page() {
   const { isAdmin, isSubAdmin, isCustomer } = useSelector(
@@ -12,7 +13,8 @@ function page() {
   const isAdminUser = isAdmin || isSubAdmin;
   console.log(isAdmin, isSubAdmin, isCustomer, "admin, subadmin, customer");
 
-  if (isAdminUser) return <AdminEditJobs />;
+  // if (isAdminUser) return <AdminEditJobs />;
+  if (isAdminUser) return <JobEdit />;
   if (isCustomer) return <CustomerEditJobs />;
 
   return <div>No access</div>;
