@@ -82,6 +82,8 @@ const FilterJobsModal = React.lazy(
 const JobBulkAssignModal = React.lazy(
   () => import("@/components/jobs/JobBulkAssignModal"),
 );
+
+const JobContextMenu = React.lazy(() => import("@/components/preJobAllocation/JobContextMenu"));
 // const JobBulkSortModal = React.lazy(
 //   () => import("@/components/jobs/JobBulkSortModal"),
 // );
@@ -151,10 +153,10 @@ const companyStatusOptions = [
 ];
 
 // export default function JobIndex() {
-export default function JobIndex({}: // initialLoadOnly = false,
-{
-  // initialLoadOnly?: boolean;
-}) {
+export default function JobIndex({ }: // initialLoadOnly = false,
+  {
+    // initialLoadOnly?: boolean;
+  }) {
   // const [hasInitialLoadDone, setHasInitialLoadDone] = useState(!initialLoadOnly);
   // const [initialJobsData, setInitialJobsData] = useState<any[]>([]);
   const searchParams = useSearchParams();
@@ -179,6 +181,13 @@ export default function JobIndex({}: // initialLoadOnly = false,
     isCustomer,
     userId,
   } = useSelector((state: RootState) => state.user);
+
+    useEffect(() => {
+    import("./FilterJobsModal");
+    // import("./PreAllocateModal");
+    // import("./AssignJobsModal");
+    import("@/components/preJobAllocation/JobContextMenu");
+  }, []);
 
   const AdminUser = isAdmin || isSubAdmin;
   // Adjusted logic for choosing correct options
@@ -384,6 +393,23 @@ export default function JobIndex({}: // initialLoadOnly = false,
     }
   }, [urlFilter, jobCategories]);
 
+  const [contextMenu, setContextMenu] = React.useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    job: any;
+  }>({ visible: false, x: 0, y: 0, job: null });
+
+  const handleContextMenu = (e: React.MouseEvent, job: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, job });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, job: null });
+  };
+
   const handleToggleWithMedia = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const checked = e.target.checked;
@@ -422,13 +448,13 @@ export default function JobIndex({}: // initialLoadOnly = false,
       job_status_ids: mainJobFilter?.job_status_ids || [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
       ],
-      company_id:  undefined,
-      customer_id:undefined,
+      company_id: undefined,
+      customer_id: undefined,
       between_at: rangeDate?.[0]
         ? {
-            from_at: jobformatDate(rangeDate[0], true),
-            to_at: jobformatDate(rangeDate[1], false),
-          }
+          from_at: jobformatDate(rangeDate[0], true),
+          to_at: jobformatDate(rangeDate[1], false),
+        }
         : undefined,
     };
 
@@ -1004,7 +1030,7 @@ export default function JobIndex({}: // initialLoadOnly = false,
             isChecked={isChecked}
             onSortingChange={handleSortingChange}
             restyleTable
-            // onContextMenu={handleContextMenu}
+            onContextMenu={handleContextMenu}
             freeTextValue={freeTextValue}
             setFreeTextValue={setFreeTextValue}
             editingDriverId={editingDriverId}
@@ -1015,13 +1041,23 @@ export default function JobIndex({}: // initialLoadOnly = false,
               console.log(driver, "driver", value, "value");
               return handleUpdateDriverFreeText(driver, value);
             }}
-            // path=""
+          // path=""
           />
         ) : (
           // 📭 No Data
           <Box textAlign="center" py={4} px={10} color="gray.600">
             No records found.
           </Box>
+        )}
+        {contextMenu.visible && contextMenu.job && (
+          <Suspense fallback={null}>
+            <JobContextMenu
+              job={contextMenu.job}
+              position={{ x: contextMenu.x, y: contextMenu.y }}
+              onClose={closeContextMenu}
+              drivers={driverOptions}
+            />
+          </Suspense>
         )}
       </SimpleGrid>
 

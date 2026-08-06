@@ -100,7 +100,7 @@ type PaginationTableProps<T extends object> = {
   savingDriverId?: number | null;
   setSavingDriverId?: React.Dispatch<React.SetStateAction<number | null>>;
   setFreeTextValue?: React.Dispatch<React.SetStateAction<string>>;
-  // onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
+  onContextMenu?: (event: React.MouseEvent, rowData: any) => void;
   onUpdateDriverFreeText?: (driver: any, value: string) => Promise<void>;
 } & (
   | {
