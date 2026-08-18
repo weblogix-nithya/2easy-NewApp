@@ -39,6 +39,7 @@ export const GET_INVOICES_QUERY = gql`
       data {
         id
         name
+        invoice_no
         job_id
         job {
           name
@@ -130,6 +131,7 @@ export const GET_INVOICE_TOTALS_QUERY = gql`
       data {
         id
         name
+        invoice_no
         job {
           name
           job_category_id
@@ -160,6 +162,7 @@ export const GET_INVOICE_QUERY = gql`
     invoice(id: $id) {
       id
       name
+      invoice_no
       job_id
       rcti_url
       job {

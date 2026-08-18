@@ -1,4 +1,3 @@
-
 @import "./styles/Fonts.css";
 @import "./styles/App.css";
 @import "./styles/Components.css";
@@ -10,5 +9,17 @@
 @import "./styles/DatePickerCalendar.css";
 @import "@fortawesome/fontawesome-free/css/all.min.css";
 
+.bulk-mail {
+    min-height: 82px !important;
+    height: 82px !important;
+    max-height: 82px !important;
+}
 
-
+.bulk-mail .two-easy-select__value-container {
+    height: 80px !important;
+    max-height: 80px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    flex-wrap: wrap !important;
+    align-content: flex-start !important;
+}

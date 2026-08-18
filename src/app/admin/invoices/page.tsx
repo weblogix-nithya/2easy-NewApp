@@ -228,6 +228,11 @@ export default function InvoiceIndex() {
         accessorKey: "name" as const,
       },
       {
+        id: "invoice_no",
+        header: "Invoice ID",
+        accessorKey: "invoice_no" as const,
+      },
+      {
         id: "job",
         header: "job",
         accessorFn: (row: any) => row?.job?.name,   // 👈

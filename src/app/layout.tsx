@@ -1,9 +1,11 @@
+// @ts-ignore: support global CSS import in Next.js app router
 import "./global.css"
 import type { Metadata } from "next";
 // import Providers from "./provider";
 
 
 import { config } from "@fortawesome/fontawesome-svg-core";
+// @ts-ignore: side-effect import for FontAwesome CSS
 import '@fortawesome/fontawesome-svg-core/styles.css'
 config.autoAddCss = false
 
@@ -39,9 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
 
-      <body id="root">
+      <body id="root" suppressHydrationWarning>
         {/* <Providers> */}
-          {children}
+        {children}
         {/* </Providers> */}
       </body>
     </html>

@@ -52,6 +52,94 @@ export const GET_CUSTOMERS_QUERY = gql`
   }
 `;
 
+// Role-based customer list — backend field: customersByRole
+// Note: uses standard Lighthouse @orderBy directive shape ([OrderByClause!]),
+// NOT the flat orderByColumn/orderByOrder pattern used in GET_CUSTOMERS_QUERY.
+export const GET_CUSTOMERS_BY_ROLE_QUERY = gql`
+  query customersByRole(
+    $role: String!
+    $query: String
+    $page: Int!
+    $first: Int!
+    $orderBy: [OrderByClause!]
+    $company_id: ID
+    $is_approved: Boolean
+  ) {
+    customersByRole(
+      role: $role
+      query: $query
+      page: $page
+      first: $first
+      orderBy: $orderBy
+      company_id: $company_id
+      is_approved: $is_approved
+    ) {
+      data {
+        id
+        first_name
+        last_name
+        full_name
+        company_id
+        company_name
+        email
+        is_approved
+      }
+      paginatorInfo {
+        count
+        currentPage
+        firstItem
+        hasMorePages
+        lastItem
+        lastPage
+        perPage
+        total
+      }
+    }
+  }
+`;
+
+export const GET_ALL_CUSTOMERS_QUERY = gql`
+  query AllCustomers(
+    $role: String
+    $orderBy: [OrderByClause!]
+    $query: String
+    $company_id: ID
+    $is_approved: Boolean
+  ) {
+    allCustomers(
+      role: $role
+      orderBy: $orderBy
+      query: $query
+      company_id: $company_id
+      is_approved: $is_approved
+    ) {
+      id
+      full_name
+      email
+    }
+  }
+`;
+
+export const SEND_GROUP_EMAIL_MUTATION = gql`
+  mutation SendGroupEmail(
+    $subject: String!
+    $body: String!
+    $customerIds: [ID!]!
+    $attachments: [Upload!]
+  ) {
+    sendGroupEmail(
+      subject: $subject
+      body: $body
+      customerIds: $customerIds
+      attachments: $attachments
+    ) {
+      success
+      message
+      count
+    }
+  }
+`;
+
 export const GET_CUSTOMER_QUERY = gql`
   query customer($id: ID!) {
     customer(id: $id) {
