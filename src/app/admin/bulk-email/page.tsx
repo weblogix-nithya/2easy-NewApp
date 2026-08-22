@@ -8,7 +8,6 @@ import {
   Checkbox,
   Divider,
   Flex,
-  FormLabel,
   Input,
   SimpleGrid,
   Tag,
@@ -193,7 +192,7 @@ export default function BulkEmailPage() {
   // GET_CUSTOMERS_QUERY
   // GET_CUSTOMERS_BY_ROLE_QUERY
   // --------------------------------------------------
-  const [getAllCustomers, { loading: customersLoading }] = useApolloLazyQueryWithEffect(
+  const [getAllCustomers] = useApolloLazyQueryWithEffect(
     GET_ALL_CUSTOMERS_QUERY,
     {
       onCompleted: (data: any) => {
@@ -765,7 +764,7 @@ export default function BulkEmailPage() {
         </SimpleGrid>
       </Box>
 
-      {/* <PrivateAccessModal isOpen={isOpen} onClose={onClose} /> */}
+      <PrivateAccessModal isOpen={isOpen} onClose={onClose} />
     </>
   );
 }

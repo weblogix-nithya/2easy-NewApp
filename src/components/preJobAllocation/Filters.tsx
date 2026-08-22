@@ -17,9 +17,12 @@ export type SelectedFilter = {
   volume_to?: number;
 };
 
+// ✅ FIX: `quadrant` disabled here — matching live. Kept in the type above
+// so nothing else typechecking against SelectedFilter breaks, but it no
+// longer appears in the filter UI/tag row/query defaults.
 export const filterDisplayNames = {
   states: { label: "States", value: "" },
-  quadrant: { label: "Quadrant", value: "" },
+  // quadrant: { label: "Quadrant", value: "" },
   suburbs: { label: "Suburbs", value: "" },
   address_business_name: { label: "Business Name", value: "" },
   has_company_ids: { label: "Company", value: "" },
@@ -35,7 +38,7 @@ export const filterDisplayNames = {
 
 export const defaultSelectedFilter: SelectedFilter = {
   states: undefined,
-  quadrant: undefined,
+  // quadrant: undefined,
   suburbs: undefined,
   address_business_name: undefined,
   has_company_ids: undefined,
@@ -67,7 +70,7 @@ export type JobFilter = {
 
 export const preDefaultJobFilter: JobFilter = {
   states: [],
-  quadrant: [],
+  // quadrant: [],
   suburbs: [],
   address_business_name: [],
   has_company_ids: [],
@@ -80,4 +83,3 @@ export const preDefaultJobFilter: JobFilter = {
   volume_from: null,
   volume_to: null,
 };
-

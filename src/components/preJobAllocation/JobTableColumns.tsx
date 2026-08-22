@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
   Text,
   Tooltip,
-  useToast,
+  // useToast,
   VStack,
 } from "@chakra-ui/react";
 import {
@@ -29,7 +29,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import IndeterminateCheckbox from "@/components/table/IndeterminateCheckbox";
 import { DynamicTableUser } from "@/graphql/dynamicTableUser";
-import { REMOVE_PRE_ALLOCATE_DRIVER } from "../../graphql/job";
+import { RemoveDriverContext } from "./RemoveDriverContext";
 import {
   formatAddress,
   formatDate,
@@ -39,10 +39,10 @@ import {
 } from "@/lib/helpers/helper";
 import Image from "next/image";
 import EditableFieldPopover from "@/components/jobs/EditableFieldPopover";
-import React from "react";
+import React, { useContext } from "react";
 import { MdMenu } from "react-icons/md";
 import { RootState } from "@/lib/store/store";
-import { useMutation } from "@apollo/client/react";
+// import { useMutation } from "@apollo/client/react";
 import { CloseIcon } from "@chakra-ui/icons";
 
 type JobLabel = {
@@ -371,22 +371,26 @@ export const JobDestinationWithBusinessNamewithoutMediaCell = ({
 
   return (
     <>
-      {filteredDestinations[0]?.updated_at && showDeliveryTime && (
+      {filteredDestinations[0]?.updated_at && (
         <>
-          <Text fontSize="md" color="blue.600" mb={1}>
-            Arrival time:{" "}
-            {formatDate(
-              filteredDestinations[0].arrived_at,
-              "HH:mm, DD/MM/YYYY",
-            )}
-          </Text>
-          <Text fontSize="md" color="red.600" mb={1}>
-            Delivery time:{" "}
-            {formatDate(
-              filteredDestinations[0].updated_at,
-              "HH:mm, DD/MM/YYYY",
-            )}
-          </Text>
+          {filteredDestinations[0].arrived_at && (
+            <Text fontSize="md" color="blue.600" mb={1}>
+              Arrival time:{" "}
+              {formatDate(
+                filteredDestinations[0].arrived_at,
+                "HH:mm, DD/MM/YYYY",
+              )}
+            </Text>
+          )}
+          {showDeliveryTime && (
+            <Text fontSize="md" color="red.600" mb={1}>
+              Delivery time:{" "}
+              {formatDate(
+                filteredDestinations[0].updated_at,
+                "HH:mm, DD/MM/YYYY",
+              )}
+            </Text>
+          )}
         </>
       )}
       <Text fontSize="md">
@@ -785,9 +789,8 @@ export const CategoryCell = ({ row }: any) => {
   );
 };
 
-export const DeliveryCell = ({ row, refetchTable }) => {
+export const DeliveryCell = ({ row }: any) => {
   const job = row?.original?.job;
-  const toast = useToast();
   const labels: JobLabel[] = Array.isArray(job?.meta) ? job.meta : [];
 
   const canRemove = !!job?.preallocation_driver_id;
@@ -827,43 +830,16 @@ export const DeliveryCell = ({ row, refetchTable }) => {
     },
   ];
 
-  const [removeDriver, { loading }] = useMutation(REMOVE_PRE_ALLOCATE_DRIVER, {
-    onCompleted: () => {
-      toast({
-        title: "Removed job from driver",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      refetchTable?.();
-    },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: err.message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    },
-  });
+  // ✅ FIX: was a per-row useMutation(REMOVE_PRE_ALLOCATE_DRIVER) — every
+  // rendered row registered its own Apollo mutation instance (100+ rows =
+  // 100+ hook registrations). Now a single shared mutation lives in
+  // RemoveDriverProvider (wraps the table in AdminPreJobs.tsx) and every
+  // row just calls it via context.
+  const { removeDriver, loadingId } = useContext(RemoveDriverContext);
+  const loading = loadingId === String(job?.id);
 
   const handleRemove = () => {
-    removeDriver({
-      variables: {
-        input: {
-          id: job?.id,
-          customer_id: job.customer?.id,
-          company_id: job.company?.id,
-          job_type_id: job.job_type?.id,
-          name: job.name,
-          preallocation_driver_id: null,
-          driver_id: job.driver_id || null,
-          d_sort_id: job.d_sort_id || null,
-          sort_datetime: job.sort_datetime || null,
-        },
-      },
-    });
+    removeDriver(job);
   };
 
   return (
@@ -937,7 +913,7 @@ export const DeliveryCellBulkAssign = ({ row }: any) => {
   const job = row?.original?.job;
   return (
     <Flex align="center" justify="space-between" maxW="150px">
-      <Text mr="2" noOfLines={1}>
+      <Text fontSize="md" mr="2" noOfLines={1}>
         {job?.name || "-"}
       </Text>
     </Flex>
@@ -1186,6 +1162,9 @@ export const tableColumn = (refetchJobs: () => void) => [
     header: "Pickup Address and Name",
     cell: PickupAddressWithTimewithoutMediaCell,
     CellExport: PickupAddressWithTimeCellExport,
+    // FIX: dropped during v7->v8 TanStack migration - live has this sortable
+    accessorFn: (row) => row?.job?.pick_up_destination?.address_formatted || "",
+    enableSorting: true,
   },
   {
     id: "pick_up_destination.address_business_name",
@@ -1380,119 +1359,11 @@ export const getColumnsPre = (
 };
 
 export const bulkassigntableColumn = [
-  {
-    id: "name",
-    header: "Delivery ID",
-    cell: DeliveryCell,
-  },
-  {
-    id: "job_type.name",
-    header: "Type",
-    cell: JobTypeCell,
-  },
-  {
-    id: "pick_up_destination.address_formatted",
-    header: "Pickup From",
-    cell: PickupAddressCell,
-  },
-  {
-    id: "pick_up_destination.address_formatted,pick_up_destination.address_business_name",
-    header: "Pickup Address and Name",
-    cell: PickupAddressWithTimewithoutMediaCell,
-    CellExport: PickupAddressWithTimeCellExport,
-  },
-  {
-    id: "pick_up_destination.address_business_name",
-    header: "Pickup Company",
-    cell: PickupBusinessNameCell,
-  },
-  {
-    id: "job_destinations.address",
-    header: "Delivery To",
-    cell: JobDestinationsCell,
-    CellExport: JobDestinationsCellExport,
-  },
-  {
-    id: "job_destinations.address_business_name",
-    header: "Del. Company",
-    cell: JobDestinationBusinessNameCell,
-    CellExport: JobDestinationBusinessNameCellExport,
-  },
-  {
-    id: "total_quantity",
-    header: "Pcs/Qty",
-    cell: TotalQuantityCell,
-  },
-  {
-    id: "total_weight",
-    header: "Weight",
-    cell: TotalWeightCell,
-  },
-  {
-    id: "total_volume",
-    header: "CBM",
-    cell: TotalVolumeCell,
-  },
-  {
-    id: "price_summary.charges",
-    header: "Charges",
-    cell: Charges,
-  },
-  {
-    id: "price_summary.sub_total",
-    header: "Total",
-    cell: SubTotal,
-  },
-  {
-    id: "price_summary.tax",
-    header: "Tax",
-    cell: Tax,
-  },
-  {
-    id: "price_summary.total",
-    header: "Total Price",
-    cell: TotalPrice,
-  },
-  {
-    id: "job_destinations.address,job_destinations.address_business_name",
-    header: "Delivery Address and Name",
-    cell: JobDestinationWithBusinessNamewithoutMediaCell,
-    CellExport: JobDestinationWithBusinessNameCellExport,
-  },
-  {
-    id: "reference_no",
-    header: "Customer Ref.",
-    cell: CustomerReferenceCell,
-  },
-  {
-    id: "job_category.name",
-    header: "category",
-    cell: CategoryCell,
-  },
-  {
-    id: "pickup_quad",
-    header: "From Quad",
-    cell: FromQuadCell,
-  },
-  {
-    id: "delivery_quad",
-    header: "To Quad",
-    cell: ToQuadCell,
-  },
+  { id: "name", header: "Delivery ID", cell: DeliveryCellBulkAssign },
   {
     id: "suburb_area,area_color",
     header: "Quad",
     cell: SuburbAreaCell,
-  },
-  {
-    id: "company.name",
-    header: "Company",
-    cell: BookedByCell,
-  },
-  {
-    id: "ready_at",
-    header: "Date",
-    cell: ReadyAtCell,
   },
   {
     id: "job_category.name,ready_at,drop_at",
@@ -1501,14 +1372,16 @@ export const bulkassigntableColumn = [
     CellExport: ReadyDropByCellExport,
   },
   {
-    id: "timeslot",
-    header: "Timeslot",
-    cell: ({ row }: any) => <TimeslotCell row={row} />,
+    id: "pick_up_destination.address_formatted,pick_up_destination.address_business_name",
+    header: "Pickup Address and Name",
+    cell: PickupAddressWithTimewithoutMediaCell,
+    CellExport: PickupAddressWithTimeCellExport,
   },
   {
-    id: "last_free_at",
-    header: "Last Free Day",
-    cell: LastFreeAtCell,
+    id: "job_destinations.address,job_destinations.address_business_name",
+    header: "Delivery Address and Name",
+    cell: JobDestinationWithBusinessNamewithoutMediaCell,
+    CellExport: JobDestinationWithBusinessNameCellExport,
   },
   {
     id: "job_items.dimensions",
@@ -1516,65 +1389,30 @@ export const bulkassigntableColumn = [
     cell: ItemsDimensionCell,
     CellExport: ItemsDimensionCellExport,
   },
-  {
-    id: "customer_notes",
-    header: "Client notes",
-    cell: NotesCell,
-  },
-  {
-    id: "admin_notes",
-    header: "Admin Notes",
-    accessorKey: "admin_notes" as const,
-    cell: AdminNotesCell,
-  },
 ];
 
 export const getBulkAssignColumns = (
-  // isAdmin: boolean,
-  // isCustomer: boolean,
-  dynamicTableUsers?: DynamicTableUser[],
+  _dynamicTableUsers?: DynamicTableUser[],
 ) => {
-  if (dynamicTableUsers === undefined || dynamicTableUsers.length === 0) {
-    return [
-      {
-        id: "order",
-        header: "",
-        cell: ({ }: any) => (
-          <div>
-            <Icon mt="auto" mb="auto" as={MdMenu} h="16px" w="16px" me="8px" />
-          </div>
-        ),
-      },
-      ...bulkassigntableColumn,
-      {
-        // id: "actions",
-        // header: "Actions",
-        // accessorKey: "id" as const,
-        // isView: isCustomer,
-        // isEdit: isAdmin,
-        // isTracking: isCustomer,
-      },
-    ];
-  }
-
-  const dynamicColumns = outputDynamicTable(
-    dynamicTableUsers,
-    bulkassigntableColumn,
-  );
-
-  var columns: any[] = [
+  // ✅ FIX: this modal is for reordering only, not full detail viewing —
+  // fixed at these 6 essential columns for everyone, not user-customizable.
+  // Previously this ran the list through outputDynamicTable(dynamicTableUsers, ...),
+  // which re-applied each user's PREVIOUSLY SAVED column preferences (from
+  // before the reduction, when there were ~28 columns) — so the header row
+  // could keep showing extra old columns regardless of how far
+  // bulkassigntableColumn itself was trimmed. Always returning the fixed
+  // set here guarantees the header matches bulkassigntableColumn exactly,
+  // for every user.
+  return [
     {
       id: "order",
       header: "",
       cell: ({ }: any) => (
         <div>
-          <Icon as={MdMenu} h="16px" w="16px" me="8px" />
+          <Icon mt="auto" mb="auto" as={MdMenu} h="16px" w="16px" me="8px" />
         </div>
       ),
     },
+    ...bulkassigntableColumn,
   ];
-
-  columns.push(...dynamicColumns);
-
-  return columns;
 };

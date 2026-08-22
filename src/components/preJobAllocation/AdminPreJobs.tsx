@@ -1,13 +1,8 @@
 "use client";
-// import { useMutation } from "@apollo/client/react";
 import {
   Box,
-  // Flex,
   SimpleGrid,
   Spinner,
-  // Tag,
-  // TagCloseButton,
-  // TagLabel,
   useDisclosure,
 } from "@chakra-ui/react";
 import ActionBar from "./ActionBar";
@@ -31,13 +26,20 @@ import {
   PRE_ALLOCATION_JOBS_QUERY,
   PreAllocationPaginatedJobsData,
   GroupedPaginatedJobsVars,
-  // CREATE_DRIVER_FREE_TEXT,
-  // UPDATE_DRIVER_FREE_TEXT,
 } from "@/graphql/job";
-// import { getLocalYMD } from "@/lib/helpers/helper";
 import debounce from "lodash.debounce";
 import dynamic from "next/dynamic";
-import { destroyCookie, setCookie } from "nookies";
+import {
+  cleanupLegacyFilterCookies,
+  clearPersistedFilterState,
+  readPersistedFilterState,
+  writeDisplayName,
+  writeIsTicked,
+  writeMainFilter,
+  writeSelectedValues,
+} from "./jobFilterCookies";
+import { RemoveDriverProvider } from "./RemoveDriverContext";
+import { useSearchParams } from "next/navigation";
 import React, {
   Suspense,
   useEffect,
@@ -47,10 +49,10 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  setIsFilterTicked,
-  setJobFilters,
-  setJobMainFilters,
-} from "@/lib/store/jobFilterSlice";
+  setIsPreFilterTicked,
+  setPreJobFilters,
+  setPreJobMainFilters,
+} from "@/lib/store/preJobFilterSlice";
 import { RootState } from "@/lib/store/store";
 import JobHeader from "@/components/preJobAllocation/JobHeader";
 import { useSubscriptionService } from "@/hooks/useSubscriptionService";
@@ -77,6 +79,28 @@ function formatDate(date: Date, isStart: boolean): string {
   return `${year}-${month}-${day} ${time}`;
 }
 
+const PRE_ALLOCATION_PRESETS: Record<string, {
+  states?: string[];
+  has_job_category_ids?: string[];
+}> = {
+  vic: { states: ["Victoria"] },
+  qld: { states: ["Queensland"] },
+  "qld-nsw": { states: ["Queensland", "New South Wales"] },
+  nsw: { states: ["New South Wales"] },
+  road: { has_job_category_ids: ["4"] },
+  fcl: { has_job_category_ids: ["5"] },
+  all: {},
+};
+
+const STATE_LABELS: Record<string, string> = {
+  "Victoria": "VIC",
+  "Queensland": "QLD",
+  "New South Wales": "NSW",
+  "Western Australia": "WA",
+  "South Australia": "SA",
+  "Tasmania": "TAS",
+};
+
 export default function JobIndex({ }: {}) {
   const [queryPageIndex, setQueryPageIndex] = useState(0);
   const [queryPageSize, setQueryPageSize] = useState(100);
@@ -90,10 +114,10 @@ export default function JobIndex({ }: {}) {
     userId,
   } = useSelector((state: RootState) => state.user);
 
-  const { filters, displayName, jobMainFilters, is_filter_ticked } =
-    useSelector((state: RootState) => state.jobFilter);
+  const { is_filter_ticked } = useSelector((state: RootState) => state.preJobFilter);
 
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
   const [withMedia, setWithMedia] = useState(false);
   const [isMediaBusy, setIsMediaBusy] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
@@ -109,9 +133,6 @@ export default function JobIndex({ }: {}) {
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilter>(defaultSelectedFilter);
   const [mainFilterDisplayNames, setMainFilterDisplayNames] =
     useState<typeof filterDisplayNames>(filterDisplayNames);
-  // const [freeTextValue, setFreeTextValue] = React.useState("");
-  // const [editingDriverId, setEditingDriverId] = React.useState<number | null>(null);
-  // const [savingDriverId, setSavingDriverId] = React.useState<number | null>(null);
   const [sorting, setSorting] = useState<any>(null);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignDriver, setAssignDriver] = useState(null);
@@ -128,12 +149,15 @@ export default function JobIndex({ }: {}) {
     job: null,
   });
 
-  // ✅ Preload lazy components on mount — 1st click delay 
   useEffect(() => {
     import("./FilterJobsModal");
     import("./PreAllocateModal");
     import("./AssignJobsModal");
     import("./JobContextMenu");
+  }, []);
+
+  useEffect(() => {
+    cleanupLegacyFilterCookies();
   }, []);
 
   const handleToggleWithMedia = React.useCallback(
@@ -211,17 +235,33 @@ export default function JobIndex({ }: {}) {
     },
   );
 
+  const debouncedRefetch = useMemo(
+    () => debounce(() => refetchGroupedJobs(), 3000 + Math.random() * 2000),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [refetchGroupedJobs],
+  );
+  useEffect(() => () => debouncedRefetch.cancel(), [debouncedRefetch]);
+
   useSubscriptionService({
     jobUpdated: {
       channel: "jobs",
       event: ".job.updated",
-      callback: () => refetchGroupedJobs,
+      callback: () => debouncedRefetch(),
     },
   });
 
+  const refetchGroupedJobsRef = useRef(refetchGroupedJobs);
+  useEffect(() => {
+    refetchGroupedJobsRef.current = refetchGroupedJobs;
+  });
+  const stableRefetchGroupedJobs = React.useCallback(
+    (...args: any[]) => refetchGroupedJobsRef.current(...args),
+    [],
+  );
+
   const adminColumns = useMemo(() => {
-    return getColumnsPre(withMedia, refetchGroupedJobs, dynamicTableUsers);
-  }, [withMedia, refetchGroupedJobs, dynamicTableUsers]);
+    return getColumnsPre(withMedia, stableRefetchGroupedJobs, dynamicTableUsers);
+  }, [withMedia, stableRefetchGroupedJobs, dynamicTableUsers]);
 
   useEffect(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -234,7 +274,10 @@ export default function JobIndex({ }: {}) {
     };
   }, [adminColumns]);
 
-  const bulkAssignColumns = getBulkAssignColumns(dynamicTableUsers);
+  const bulkAssignColumns = useMemo(
+    () => getBulkAssignColumns(dynamicTableUsers),
+    [dynamicTableUsers],
+  );
 
   useEffect(() => {
     const hasPreAllocationJobs = groupedJobs?.preAllocationJobs?.data?.length > 0;
@@ -246,25 +289,32 @@ export default function JobIndex({ }: {}) {
   }, [groupedJobs?.preAllocationJobs?.data?.length]);
 
   useEffect(() => {
-    if (is_filter_ticked == "1") {
-      let _jobFilter = jobFilter;
-      const updatedValues: any = {};
-      for (const key in defaultSelectedFilter) {
-        if (
-          filters[key as keyof SelectedFilter] !== undefined &&
-          filters[key as keyof SelectedFilter] !== "undefined" &&
-          filters[key as keyof SelectedFilter] !== ""
-        ) {
-          updatedValues[key] = filters[key as keyof SelectedFilter];
-        }
+    const persisted = readPersistedFilterState(preDefaultJobFilter);
+    if (persisted.is_filter_ticked !== "1") return;
+
+    const hasPersistedFilterValue =
+      persisted.jobMainFilters &&
+      Object.values(persisted.jobMainFilters).some((v) =>
+        Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== "",
+      );
+    if (!hasPersistedFilterValue) return;
+
+    const updatedValues: any = {};
+    for (const key in defaultSelectedFilter) {
+      if (
+        persisted.filters[key as keyof SelectedFilter] !== undefined &&
+        persisted.filters[key as keyof SelectedFilter] !== "undefined" &&
+        persisted.filters[key as keyof SelectedFilter] !== ""
+      ) {
+        updatedValues[key] = persisted.filters[key as keyof SelectedFilter];
       }
-      setJobFilter(jobMainFilters);
-      _jobFilter = jobMainFilters;
-      if (displayName) setMainFilterDisplayNames(displayName);
-      updateTags(updatedValues, _jobFilter);
     }
+    setJobFilter(persisted.jobMainFilters);
+    if (persisted.displayName) setMainFilterDisplayNames(persisted.displayName);
+    dispatch(setIsPreFilterTicked("1"));
+    updateTags(updatedValues, persisted.jobMainFilters, persisted.displayName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [is_filter_ticked]);
+  }, []);
 
   const handleResetAll = () => {
     updateTags({ ...defaultSelectedFilter }, preDefaultJobFilter);
@@ -284,19 +334,11 @@ export default function JobIndex({ }: {}) {
       ) {
         delete updatedJobFilter[key as keyof SelectedFilter];
       }
-      setCookie(
-        null,
-        `jobFilters_${key}`,
-        JSON.stringify(updatedValues[key as keyof SelectedFilter]),
-        { maxAge: 30 * 24 * 60 * 60, path: "*" },
-      );
-      dispatch(setJobFilters({ key: key, value: updatedValues[key as keyof SelectedFilter] }));
+      dispatch(setPreJobFilters({ key: key, value: updatedValues[key as keyof SelectedFilter] }));
     }
-    setCookie(null, `jobMainFilters`, JSON.stringify(updatedJobFilter), {
-      maxAge: 24 * 60 * 60,
-      path: "*",
-    });
-    dispatch(setJobMainFilters(updatedJobFilter));
+    writeSelectedValues(updatedValues);
+    writeMainFilter(updatedJobFilter);
+    dispatch(setPreJobMainFilters(updatedJobFilter));
     setJobFilter(updatedJobFilter);
     setMainJobFilter(updatedJobFilter);
     setSelectedFilters(updatedValues);
@@ -311,6 +353,40 @@ export default function JobIndex({ }: {}) {
     onOpen: onOpenFilter,
     onClose: onCloseFilter,
   } = useDisclosure();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id) return;
+    const preset = PRE_ALLOCATION_PRESETS[id];
+    if (!preset) return;
+
+    if (!preset.states && !preset.has_job_category_ids) {
+      handleResetAll();
+      writeIsTicked(false);
+      dispatch(setIsPreFilterTicked("0"));
+      return;
+    }
+
+    const updatedValues: any = { ...defaultSelectedFilter };
+    const jobFilterUpdate: any = { ...preDefaultJobFilter };
+
+    if (preset.states) {
+      updatedValues.states = preset.states.map((s) => ({ value: s, label: STATE_LABELS[s] ?? s }));
+      jobFilterUpdate.states = preset.states;
+    }
+    if (preset.has_job_category_ids) {
+      updatedValues.has_job_category_ids = preset.has_job_category_ids.map((c) => ({
+        value: c,
+        label: c,
+      }));
+      jobFilterUpdate.has_job_category_ids = preset.has_job_category_ids;
+    }
+
+    updateTags(updatedValues, jobFilterUpdate);
+    writeIsTicked(true);
+    dispatch(setIsPreFilterTicked("1"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     getAvailableDrivers();
@@ -392,51 +468,10 @@ export default function JobIndex({ }: {}) {
   const openAssignModal = (driver: any) => {
     if (!driver) return;
     setAssignDriver(driver);
-    const jobs = groupedJobs?.preAllocationJobs?.data || [];
-    const driverJobs = jobs
-      .filter((item: any) => {
-        const preallocId = Number(item?.job?.preallocation_driver_id);
-        const driverId = Number(driver?.id);
-        return preallocId === driverId && !item?.job?.driver;
-      })
-      .map((item: any) => ({
-        id: item.job.id,
-        original: { job: item.job },
-      }));
-    setSelectedJobs(driverJobs);
     setIsAssignOpen(true);
   };
 
-  // const handleUpdateDriverFreeText = async (driver: any, value: string) => {
-  //   try {
-  //     if (driver?.today_free_text?.id) {
-  //       await updateDriverFreeText({
-  //         variables: {
-  //           input: {
-  //             id: Number(driver?.today_free_text?.id),
-  //             text: value,
-  //           },
-  //         },
-  //       });
-  //     } else {
-  //       await createDriverFreeText({
-  //         variables: {
-  //           input: {
-  //             driver_id: Number(driver.id),
-  //             date: getLocalYMD(),
-  //             text: value,
-  //           },
-  //         },
-  //       });
-  //     }
-  //     await refetchGroupedJobs();
-  //   } catch (err) {
-  //     console.error("Failed to save driver note", err);
-  //   }
-  // };
 
-  // const [createDriverFreeText] = useMutation(CREATE_DRIVER_FREE_TEXT);
-  // const [updateDriverFreeText] = useMutation(UPDATE_DRIVER_FREE_TEXT);
 
   const handleContextMenu = (e: React.MouseEvent, job: any) => {
     e.preventDefault();
@@ -465,15 +500,15 @@ export default function JobIndex({ }: {}) {
           debouncedSearch={debouncedSearch}
           onToggleFilterCheckbox={(checked) => {
             if (!checked) {
-              destroyCookie(null, "jobMainFilters", { path: "*" });
-              destroyCookie(null, "displayName", { path: "*" });
-              handleResetAll();
+              clearPersistedFilterState();
+              setMainJobFilter(null);
+              setJobFilter(preDefaultJobFilter);
+              setMainFilters({ ...defaultSelectedFilter });
+              setSelectedFilters({ ...defaultSelectedFilter });
+              setMainFilterDisplayNames(filterDisplayNames);
             }
-            setCookie(null, "is_filter_ticked", checked ? "1" : "0", {
-              maxAge: 30 * 24 * 60 * 60,
-              path: "*",
-            });
-            dispatch(setIsFilterTicked(checked ? "1" : "0"));
+            writeIsTicked(checked);
+            dispatch(setIsPreFilterTicked(checked ? "1" : "0"));
           }}
         />
 
@@ -536,37 +571,37 @@ export default function JobIndex({ }: {}) {
             Loading <Spinner size="sm" ml={2} />
           </Box>
         ) : groupedJobs?.preAllocationJobs?.data?.length > 0 ? (
-          <JobPaginationTable
-            columns={adminColumns}
-            data={groupedJobs?.preAllocationJobs?.data}
-            total={groupedJobs?.preAllocationJobs?.total}
-            options={{
-              manualSortBy: true,
-              initialState: {
-                pageIndex: queryPageIndex,
-                pageSize: queryPageSize,
-                sortBy: [{ id: sorting?.id, desc: sorting?.direction === "DESC" }],
-              },
-              manualPagination: true,
-              pageCount: groupedJobs?.preAllocationJobs?.last_page ?? 0,
-            }}
-            setQueryPageIndex={setQueryPageIndex}
-            setQueryPageSize={setQueryPageSize}
-            isServerSide
-            showPageSizeSelect
-            showRowSelection
-            setSelectedRow={setSelectedJobs}
-            isFilterRowSelected={isShowSelectedOnly}
-            isChecked={isChecked}
-            showManualPages
-            onSortingChange={handleSortingChange}
-            // editingDriverId={editingDriverId}
-            // setEditingDriverId={setEditingDriverId}
-            onAssignClick={openAssignModal}
-            restyleTable
-            refetchJobs={refetchGroupedJobs}
-            onContextMenu={handleContextMenu}
-          />
+          <RemoveDriverProvider refetch={refetchGroupedJobs}>
+            <JobPaginationTable
+              columns={adminColumns}
+              data={groupedJobs?.preAllocationJobs?.data}
+              total={groupedJobs?.preAllocationJobs?.total}
+              options={{
+                manualSortBy: true,
+                initialState: {
+                  pageIndex: queryPageIndex,
+                  pageSize: queryPageSize,
+                  sortBy: [{ id: sorting?.id, desc: sorting?.direction === "DESC" }],
+                },
+                manualPagination: true,
+                pageCount: groupedJobs?.preAllocationJobs?.last_page ?? 0,
+              }}
+              setQueryPageIndex={setQueryPageIndex}
+              setQueryPageSize={setQueryPageSize}
+              isServerSide
+              showPageSizeSelect
+              showRowSelection
+              setSelectedRow={setSelectedJobs}
+              isFilterRowSelected={isShowSelectedOnly}
+              isChecked={isChecked}
+              showManualPages
+              onSortingChange={handleSortingChange}
+              onAssignClick={openAssignModal}
+              restyleTable
+              refetchJobs={refetchGroupedJobs}
+              onContextMenu={handleContextMenu}
+            />
+          </RemoveDriverProvider>
         ) : (
           <Box textAlign="center" py={4} px={10} color="gray.600">
             No records found.
@@ -617,10 +652,9 @@ export default function JobIndex({ }: {}) {
             onFilterApply={(selectedFilters, filterDisplayName) => {
               updateTags(selectedFilters, jobFilter);
               setMainFilterDisplayNames(filterDisplayName);
-              setCookie(null, "displayName", JSON.stringify(filterDisplayName), {
-                maxAge: 30 * 24 * 60 * 60,
-                path: "*",
-              });
+              writeDisplayName(filterDisplayName);
+              writeIsTicked(true);
+              dispatch(setIsPreFilterTicked("1"));
             }}
             selectedFilters={selectedFilters}
             setSelectedFilters={setSelectedFilters}
@@ -663,7 +697,7 @@ export default function JobIndex({ }: {}) {
             }}
             driver={assignDriver}
             columns={bulkAssignColumns}
-            selectedJobs={selectedJobs}
+            rangeDate={rangeDate}
             setSelectedJobs={setSelectedJobs}
             setIsChecked={setIsChecked}
           />

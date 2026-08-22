@@ -1,28 +1,44 @@
-import { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { defaultJobFilter } from "@/components/jobs/Filters";
+import { parseCookies } from "nookies";
 
-// create a slice
+// ─── Cookie rehydration helpers ───────────────────────────────────────────────
+// Runs ONCE at module load time — reads current cookie values for initial state
+
+function readCookieJSON(key: string, fallback: any = undefined) {
+  try {
+    const cookies = parseCookies();
+    const raw = cookies[key];
+    if (!raw || raw === "undefined" || raw === "null") return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+// Read all individual job filter cookies
+function readJobFiltersFromCookies() {
+  const keys = [
+    "states", "suburbs", "address_business_name",
+    "has_company_ids", "has_job_category_ids", "job_date_at",
+    "job_status_id", "is_tailgate_required",
+    "weight_from", "weight_to", "volume_from", "volume_to",
+  ];
+  const result: Record<string, any> = {};
+  keys.forEach((key) => {
+    result[key] = readCookieJSON(`jobFilters_${key}`, undefined);
+  });
+  return result;
+}
+
+// ─── jobFilterSlice ───────────────────────────────────────────────────────────
 export const jobFilterSlice = createSlice({
   name: "jobFilter",
   initialState: {
-    filters: {
-      states: undefined,
-      suburbs: undefined,
-      address_business_name: undefined,
-      has_company_ids: undefined,
-      has_job_category_ids: undefined,
-      job_date_at: undefined,
-      job_status_id: undefined,
-      is_tailgate_required: undefined,
-      weight_from: undefined,
-      weight_to: undefined,
-      volume_from: undefined,
-      volume_to: undefined,
-    },
-    displayName: undefined,
-    jobMainFilters: defaultJobFilter,
-    is_filter_ticked: "0",
+    filters: readJobFiltersFromCookies(),
+    displayName: readCookieJSON("displayName", undefined),
+    jobMainFilters: readCookieJSON("jobMainFilters", defaultJobFilter),
+    is_filter_ticked: readCookieJSON("is_filter_ticked", "0") || "0",
   },
   reducers: {
     setJobFilters: (state: any, action: PayloadAction<any>) => {
@@ -47,4 +63,4 @@ export const {
   setIsFilterTicked,
 } = jobFilterSlice.actions;
 
-export default jobFilterSlice.reducer;
+export const jobFilterReducer = jobFilterSlice.reducer;

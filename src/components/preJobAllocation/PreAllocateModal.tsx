@@ -1,3 +1,4 @@
+"use client";
 import { useMutation } from "@apollo/client/react";
 import {
   Box,
@@ -11,25 +12,24 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Table,
-  Tbody,
+  Spinner,
   Text,
-  Th,
-  Thead,
-  Tr,
   UseDisclosureProps,
   useToast,
   VStack,
 } from "@chakra-ui/react";
-import { DndContext, UniqueIdentifier } from "@dnd-kit/core";
-import { SortableContext } from "@dnd-kit/sortable";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
 import { PREALLOCATE_JOBS_MUTATION } from "@/graphql/job";
-import { reorderArray } from "@/lib/helpers/helper";
 import moment from "moment";
-import { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { JobBulkAssignRow } from "@/components/jobs/JobBulkAssignRow";
+import { JobBulkAssignRow } from "@/components/preJobAllocation/PreJobBulkAssignRow";
+import PreJobDragList from "@/components/preJobAllocation/PreJobDragList";
+
+const GRID_TEMPLATE_COLUMNS =
+  "40px 130px 90px 140px minmax(220px, 1.6fr) minmax(220px, 1.6fr) 110px";
+
+const LIST_MAX_HEIGHT = "50vh";
 
 interface FilterJobsModalProps extends UseDisclosureProps {
   selectedDriver: any;
@@ -39,167 +39,213 @@ interface FilterJobsModalProps extends UseDisclosureProps {
   setSelectedJobs: React.Dispatch<React.SetStateAction<any>>;
   setIsChecked: React.Dispatch<React.SetStateAction<any>>;
 }
-export default function PreAllocateModal({
+
+function PreAllocateModalBase({
   columns,
   isOpen,
   onClose,
   selectedJobs,
   refreshPage,
-  setSelectedJobs,
-  // setIsChecked,
   selectedDriver,
 }: FilterJobsModalProps) {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [localJobs, setLocalJobs] = useState<any[]>([]);
+  const localJobsRef = useRef<any[]>([]);
+  const initializedRef = useRef(false);
 
-  const getIndex = (id: UniqueIdentifier) =>
-    selectedJobs?.findIndex(
-      (dynamicTableUser: any) => dynamicTableUser?.id == id,
-    );
-  // console.log(selectedJobs, "sssss");
-  const activeIndex = activeId ? getIndex(activeId) : -1;
+  localJobsRef.current = localJobs;
 
-  const sortedBulkAssignJobs = selectedJobs.map((item, index) => {
-    if (!selectedDriver?.id) return null; // skip if no driver
-    // console.log(item, "te");
-    return {
-      id: item?.original?.job?.id,
-      customer_id: item?.original?.job?.customer?.id,
-      company_id: item?.original?.job?.company?.id,
-      preallocation_driver_id: selectedDriver?.id,
-      name: item?.original?.job?.name,
-      d_sort_id: Number(index + 1),
-      sort_datetime: moment().format("YYYY-MM-DD HH:mm:ss"), // ⬅️ NEW
-      job_type_id: item?.original?.job?.job_type?.id,
-    };
-  });
-  // console.log(sortedBulkAssignJobs,'sortedBulkAssignJobs')
-  const [handleBulkAssignJobs, { }] = useMutation(PREALLOCATE_JOBS_MUTATION, {
-    variables: {
-      input: sortedBulkAssignJobs,
-    },
+  useEffect(() => {
+    if (!isOpen) {
+      initializedRef.current = false;
+      setLocalJobs([]);
+      return;
+    }
+    if (initializedRef.current) return;
+    setLocalJobs(selectedJobs.map((job: any) => job));
+    initializedRef.current = true;
+  }, [isOpen, selectedJobs]);
+
+  const buildPayload = useCallback(() => {
+    const driverId = Number(selectedDriver?.id);
+    if (!driverId) return [];
+
+    const now = moment().format("YYYY-MM-DD HH:mm:ss");
+
+    return localJobsRef.current.map((item, index) => {
+      const job = item?.original?.job;
+      return {
+        id: job?.id,
+        customer_id: job?.customer?.id,
+        company_id: job?.company?.id,
+        preallocation_driver_id: driverId,
+        name: job?.name,
+        d_sort_id: index + 1,
+        sort_datetime: now,
+        job_type_id: job?.job_type?.id ?? job?.job_type_id,
+      };
+    });
+  }, [selectedDriver?.id]);
+
+  const [handleBulkAssignJobs] = useMutation(PREALLOCATE_JOBS_MUTATION, {
     onCompleted: () => {
-      // console.log(data);
       toast({
         title: "Jobs pre-allocated successfully",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
+      setIsSaving(false);
       refreshPage();
-      // setIsChecked(false);
-      // setSelectedJobs([]);
-      // setIsSaving(false);
       onClose();
     },
     onError: (error) => {
-      console.log(error);
+      // eslint-disable-next-line no-console
+      console.error("Pre-allocation error:", error);
+      setIsSaving(false);
       showGraphQLErrorToast(error);
     },
   });
-  // useEffect(() => {
-  //   setSelectedDriver(defaultDriver);
-  // }, [isOpen]);
+
+  const handleSave = useCallback(() => {
+    if (isSaving) return;
+
+    const driverId = Number(selectedDriver?.id);
+    if (!driverId) {
+      toast({
+        title: "Please select a driver",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!localJobsRef.current.length) {
+      toast({
+        title: "No jobs selected",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    handleBulkAssignJobs({ variables: { input: buildPayload() } });
+  }, [isSaving, selectedDriver?.id, handleBulkAssignJobs, buildPayload, toast]);
+
   return (
-    <Modal id="bulk-assign-modal" isCentered isOpen={isOpen} onClose={onClose}>
+    <Modal
+      id="bulk-assign-modal"
+      isCentered
+      isOpen={isOpen}
+      onClose={onClose}
+      size="6xl"
+    >
       <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(1px)" />
-      <ModalContent maxWidth={"85%"}>
+
+      <ModalContent maxWidth="85%">
         <ModalHeader>
           <Text m="4">
-            Pre-Allocation Jobs{" "}
+            Pre-Allocation Jobs
             {selectedDriver?.full_name ? ` - ${selectedDriver.full_name}` : ""}
           </Text>
-
           <Divider />
         </ModalHeader>
+
         <ModalCloseButton />
+
         <ModalBody p="4">
-          <VStack
-            overflowX="auto"
-            spacing={4}
-            w="full"
-            align="start"
-            p={4}
-            mb={4}
-          >
-            <Table size="sm">
-              <Thead>
-                <Tr>
-                  {columns.map((column) => (
-                    <Th key={`row-header-bulk-assign-${column?.id}`}>
-                      {column.header}
-                    </Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                <DndContext
-                  onDragStart={({ active }) => {
-                    if (!active) {
-                      return;
-                    }
-                    setActiveId(active?.id);
-                  }}
-                  onDragEnd={({ over }) => {
-                    setActiveId(null);
-                    if (over) {
-                      const overIndex = getIndex(over.id);
-                      if (activeIndex !== overIndex) {
-                        let newArray = reorderArray(
-                          selectedJobs,
-                          activeIndex,
-                          overIndex,
-                        );
-                        setSelectedJobs(newArray);
-                      }
-                    }
-                  }}
-                  onDragCancel={() => setActiveId(null)}
-                >
-                  <SortableContext items={selectedJobs}>
-                    <div style={{ display: "contents" }}>
-                      {selectedJobs.map((item) => {
-                        return (
-                          <JobBulkAssignRow
-                            key={item?.original?.job?.id}
-                            columns={columns}
-                            item={item}
-                          />
-                        );
-                      })}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </Tbody>
-            </Table>
-          </VStack>
-        </ModalBody>
-        <ModalFooter justifyContent={"center"}>
-          <Box w={"full"}>
-            <Flex justifyContent={"space-between"}>
-              <Button
-                variant="outline"
-                onClick={() => onClose()}
-                className="mr-2"
-              >
-                Cancel
-              </Button>
-              <Button
-                isDisabled={isSaving}
-                variant="primary"
-                onClick={() => {
-                  setIsSaving(true);
-                  handleBulkAssignJobs();
+          {localJobs.length === 0 ? (
+            <Box textAlign="center" py={10} color="gray.500">
+              No jobs selected.
+            </Box>
+          ) : (
+            <VStack overflowX="auto" spacing={0} w="full" align="start" p={4} mb={4}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: GRID_TEMPLATE_COLUMNS,
+                  width: "100%",
+                  minWidth: "900px",
+                  borderBottom: "2px solid #E2E8F0",
                 }}
-                className="ml-2"
               >
-                Pre-Allocate Jobs
-              </Button>
-            </Flex>
-          </Box>
+                {columns.map((column, index) => (
+                  <div
+                    key={`bulk-header-${column?.id}`}
+                    style={{
+                      padding: "8px",
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color: "#718096",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      position: index === 0 ? "sticky" : undefined,
+                      left: index === 0 ? 0 : undefined,
+                      zIndex: index === 0 ? 4 : undefined,
+                      background: index === 0 ? "white" : undefined,
+                      boxShadow:
+                        index === 0
+                          ? "2px 0 4px -2px rgba(0,0,0,0.15)"
+                          : undefined,
+                    }}
+                  >
+                    {column?.header}
+                  </div>
+                ))}
+              </div>
+
+              <PreJobDragList
+                items={localJobs}
+                onReorder={setLocalJobs}
+                maxHeight={LIST_MAX_HEIGHT}
+                getItemKey={(item) => item?.original?.job?.id ?? item?.id}
+                renderRow={(item, isDragging) => (
+                  <JobBulkAssignRow
+                    columns={columns}
+                    item={item}
+                    gridTemplateColumns={GRID_TEMPLATE_COLUMNS}
+                    isDragging={isDragging}
+                  />
+                )}
+              />
+            </VStack>
+          )}
+        </ModalBody>
+
+        <ModalFooter>
+          <Flex w="full" justifyContent="space-between">
+            <Button variant="outline" onClick={onClose} isDisabled={isSaving}>
+              Cancel
+            </Button>
+
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              isDisabled={isSaving || localJobs.length === 0}
+            >
+              {isSaving && <Spinner size="sm" mr={2} />}
+              Pre-Allocate Jobs ({localJobs.length})
+            </Button>
+          </Flex>
         </ModalFooter>
       </ModalContent>
     </Modal>
   );
 }
+
+function areEqual(prev: FilterJobsModalProps, next: FilterJobsModalProps) {
+  return (
+    prev.isOpen === next.isOpen &&
+    prev.selectedJobs === next.selectedJobs &&
+    prev.selectedDriver?.id === next.selectedDriver?.id &&
+    prev.columns === next.columns
+  );
+}
+
+const PreAllocateModal = React.memo(PreAllocateModalBase, areEqual);
+
+export default PreAllocateModal;

@@ -1,3 +1,4 @@
+"use client";
 import { useMutation } from "@apollo/client/react";
 import {
   Box,
@@ -11,78 +12,139 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Table,
-  Tbody,
+  Spinner,
   Text,
-  Th,
-  Thead,
-  Tr,
   UseDisclosureProps,
   useToast,
   VStack,
 } from "@chakra-ui/react";
-import { DndContext, UniqueIdentifier } from "@dnd-kit/core";
-import { SortableContext } from "@dnd-kit/sortable";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
-import { BULK_UPDATE_JOB_MUTATION } from "@/graphql/job";
-import { reorderArray } from "@/lib/helpers/helper";
+import {
+  BULK_UPDATE_JOB_MUTATION,
+  GET_PREALLOCATED_JOBS_BY_DRIVER_QUERY,
+} from "@/graphql/job";
 import moment from "moment";
-import { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
-import { JobBulkAssignRow } from "@/components/jobs/JobBulkAssignRow";
+import { JobBulkAssignRow } from "@/components/preJobAllocation/PreJobBulkAssignRow";
+import PreJobDragList from "@/components/preJobAllocation/PreJobDragList";
+
+const GRID_TEMPLATE_COLUMNS =
+  "40px 130px 90px 140px minmax(220px, 1.6fr) minmax(220px, 1.6fr) 110px";
+
+const LIST_MAX_HEIGHT = "50vh";
+
+function formatDate(date: Date, isStart: boolean): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day} ${isStart ? "00:00:00" : "23:59:59"}`;
+}
 
 interface FilterJobsModalProps extends UseDisclosureProps {
   driver: any;
   isOpen: boolean;
   onClose: () => void;
-  selectedJobs: any[];
   columns: any[];
-  // refreshPage: any;
   setSelectedJobs: React.Dispatch<React.SetStateAction<any>>;
   setIsChecked: React.Dispatch<React.SetStateAction<any>>;
+  rangeDate?: [Date, Date];
 }
 
-export default function AssignJobsModal({
+function AssignJobsModalBase({
   columns,
   isOpen,
   onClose,
-  selectedJobs,
-  // refreshPage,
   setSelectedJobs,
   setIsChecked,
   driver,
+  rangeDate,
 }: FilterJobsModalProps) {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [localJobs, setLocalJobs] = useState<any[]>([]);
+  const localJobsRef = useRef<any[]>([]);
 
-  const getIndex = (id: UniqueIdentifier) =>
-    selectedJobs?.findIndex(
-      (dynamicTableUser: any) => dynamicTableUser.id == id,
-    );
-  // console.log(selectedJobs, "sssss");
-  const activeIndex = activeId ? getIndex(activeId) : -1;
+  localJobsRef.current = localJobs;
 
-  const sortedBulkAssignJobs = selectedJobs.map((item, index) => {
-    if (!driver?.id) return null; // skip if no driver
-    // console.log(item, "te");
-    return {
-      id: item.original.job.id,
-      customer_id: item.original.job.customer.id,
-      company_id: item.original.job.company.id,
-      driver_id: driver.id,
-      preallocation_driver_id: null,
-      name: item.original.job.name,
-      d_sort_id: Number(index + 1),
-      sort_datetime: moment().format("YYYY-MM-DD HH:mm:ss"), // ⬅️ NEW
-      job_type_id: item.original.job.job_type.id,
-    };
-  });
-  // console.log(sortedBulkAssignJobs,'sortedBulkAssignJobs')
-  const [handleBulkAssignJobs, { }] = useMutation(BULK_UPDATE_JOB_MUTATION, {
-    variables: {
-      input: sortedBulkAssignJobs,
+  const driverIdForQuery = parseInt(String(driver?.value ?? driver?.id), 10);
+
+  const { refetch: fetchDriverJobs, loading } = useApolloQueryWithEffect(
+    GET_PREALLOCATED_JOBS_BY_DRIVER_QUERY,
+    {
+      fetchPolicy: "network-only",
+      skip: !isOpen || !driverIdForQuery,
+      variables: {
+        preallocation_driver_id: driverIdForQuery || undefined,
+        first: 20,
+        page: 1,
+        orderBy: [{ column: "d_sort_id", order: "ASC" }],
+      },
+      onCompleted: (data: any) => {
+        const jobs = data?.jobs?.data ?? [];
+        setLocalJobs(
+          jobs.map((job: any) => ({
+            id: String(job.id),
+            original: { job },
+          })),
+        );
+      },
+      onError: (error: any) => {
+        showGraphQLErrorToast(error);
+      },
     },
+  );
+
+  useEffect(() => {
+    if (!isOpen || !driver) {
+      if (!isOpen) setLocalJobs([]);
+      return;
+    }
+
+    const driverId = parseInt(String(driver?.value ?? driver?.id), 10);
+    if (!driverId) return;
+
+    fetchDriverJobs({
+      variables: {
+        preallocation_driver_id: driverId,
+        between_at: rangeDate?.[0]
+          ? {
+            from_at: formatDate(rangeDate[0], true),
+            to_at: formatDate(rangeDate[1], false),
+          }
+          : undefined,
+        orderBy: [{ column: "d_sort_id", order: "ASC" }],
+        first: 20,
+        page: 1,
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, driver?.id, driver?.value, rangeDate?.[0], rangeDate?.[1]]);
+
+  const buildPayload = useCallback(() => {
+    const driverId = parseInt(String(driver?.value ?? driver?.id), 10);
+    if (!driverId) return [];
+
+    const sortDatetime = moment().format("YYYY-MM-DD HH:mm:ss");
+
+    return localJobsRef.current.map((item, index) => {
+      const job = item?.original?.job;
+      return {
+        id: job?.id,
+        customer_id: job?.customer?.id,
+        company_id: job?.company?.id,
+        driver_id: driverId,
+        preallocation_driver_id: null,
+        name: job?.name,
+        d_sort_id: index + 1,
+        sort_datetime: sortDatetime,
+        job_type_id: job?.job_type_id ?? job?.job_type?.id,
+      };
+    });
+  }, [driver?.id, driver?.value]);
+
+  const [handleBulkAssignJobs] = useMutation(BULK_UPDATE_JOB_MUTATION, {
     onCompleted: () => {
       toast({
         title: "Jobs assigned successfully",
@@ -90,114 +152,134 @@ export default function AssignJobsModal({
         duration: 3000,
         isClosable: true,
       });
-      // refreshPage();
       setIsChecked(false);
       setSelectedJobs([]);
+      setLocalJobs([]);
       setIsSaving(false);
       onClose();
     },
     onError: (error) => {
       showGraphQLErrorToast(error);
+      setIsSaving(false);
     },
   });
-  // useEffect(() => {
-  //   setSelectedDriver(defaultDriver);
-  // }, [isOpen]);
+
+  const handleSave = useCallback(() => {
+    if (isSaving) return;
+    if (!localJobsRef.current.length) return;
+    setIsSaving(true);
+    handleBulkAssignJobs({ variables: { input: buildPayload() } });
+  }, [isSaving, handleBulkAssignJobs, buildPayload]);
+
   return (
-    <Modal id="bulk-assign-modal" isCentered isOpen={isOpen} onClose={onClose}>
+    <Modal id="bulk-assign-modal" isCentered isOpen={isOpen} onClose={onClose} size="6xl">
       <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(1px)" />
-      <ModalContent maxWidth={"85%"}>
 
+      <ModalContent maxWidth="85%">
         <ModalHeader>
-
           <Text m="4">
-            Pre-Allocated Jobs assigned to {driver?.full_name ? ` - ${driver.full_name}` : ""}
+            Pre-Allocated Jobs{driver?.label ? ` - ${driver.label}` : ""}
           </Text>
-
-
           <Divider />
         </ModalHeader>
+
         <ModalCloseButton />
+
         <ModalBody p="4">
-
-
-          <VStack overflowX="auto" spacing={4} w="full" align="start" p={4} mb={4}>
-
-            <Table size="sm">
-              <Thead>
-                <Tr>
-                  {columns.map((column) => (
-                    <Th key={`row-header-bulk-assign-${column.id}`}>
-                      {column.header}
-                    </Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                <DndContext
-                  onDragStart={({ active }) => {
-                    if (!active) {
-                      return;
-                    }
-                    setActiveId(active.id);
-                  }}
-                  onDragEnd={({ over }) => {
-                    setActiveId(null);
-                    if (over) {
-                      const overIndex = getIndex(over.id);
-                      if (activeIndex !== overIndex) {
-                        let newArray = reorderArray(
-                          selectedJobs,
-                          activeIndex,
-                          overIndex,
-                        );
-                        setSelectedJobs(newArray);
-                      }
-                    }
-                  }}
-                  onDragCancel={() => setActiveId(null)}
-                >
-                  <SortableContext items={selectedJobs}>
-                    {selectedJobs.map((item) => {
-                      return (
-                        <JobBulkAssignRow
-                          key={item.original.job.id}
-                          columns={columns}
-                          item={item}
-                        />
-                      );
-                    })}
-                  </SortableContext>
-                </DndContext>
-              </Tbody>
-            </Table>
-          </VStack>
-        </ModalBody>
-        <ModalFooter justifyContent={"center"}>
-          <Box w={"full"}>
-            <Flex justifyContent={"space-between"}>
-              <Button
-                variant="outline"
-                onClick={() => onClose()}
-                className="mr-2"
-              >
-                Cancel
-              </Button>
-              <Button
-                isDisabled={isSaving}
-                variant="primary"
-                onClick={() => {
-                  setIsSaving(true);
-                  handleBulkAssignJobs();
+          {loading ? (
+            <Box textAlign="center" py={10}>
+              <Spinner size="lg" />
+            </Box>
+          ) : localJobs.length === 0 ? (
+            <Box textAlign="center" py={10} color="gray.500">
+              No jobs assigned to this driver.
+            </Box>
+          ) : (
+            <VStack overflowX="auto" spacing={0} w="full" align="start" p={4} mb={4}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: GRID_TEMPLATE_COLUMNS,
+                  width: "100%",
+                  minWidth: "900px",
+                  borderBottom: "2px solid #E2E8F0",
                 }}
-                className="ml-2"
               >
-                Confirm to assign Jobs
-              </Button>
-            </Flex>
-          </Box>
+                {columns.map((column, index) => (
+                  <div
+                    key={`bulk-header-${column?.id}`}
+                    style={{
+                      padding: "8px",
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color: "#718096",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      position: index === 0 ? "sticky" : undefined,
+                      left: index === 0 ? 0 : undefined,
+                      zIndex: index === 0 ? 4 : undefined,
+                      background: index === 0 ? "white" : undefined,
+                      boxShadow:
+                        index === 0
+                          ? "2px 0 4px -2px rgba(0,0,0,0.15)"
+                          : undefined,
+                    }}
+                  >
+                    {column?.header}
+                  </div>
+                ))}
+              </div>
+
+              <PreJobDragList
+                items={localJobs}
+                onReorder={setLocalJobs}
+                maxHeight={LIST_MAX_HEIGHT}
+                getItemKey={(item) => item?.original?.job?.id ?? item?.id}
+                renderRow={(item, isDragging) => (
+                  <JobBulkAssignRow
+                    columns={columns}
+                    item={item}
+                    gridTemplateColumns={GRID_TEMPLATE_COLUMNS}
+                    isDragging={isDragging}
+                  />
+                )}
+              />
+            </VStack>
+          )}
+        </ModalBody>
+
+        <ModalFooter>
+          <Flex w="full" justifyContent="space-between">
+            <Button variant="outline" onClick={onClose} isDisabled={isSaving}>
+              Cancel
+            </Button>
+
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              isDisabled={isSaving || localJobs.length === 0}
+            >
+              {isSaving && <Spinner size="sm" mr={2} />}
+              Save Order ({localJobs.length})
+            </Button>
+          </Flex>
         </ModalFooter>
       </ModalContent>
     </Modal>
   );
 }
+
+function areEqual(prev: FilterJobsModalProps, next: FilterJobsModalProps) {
+  return (
+    prev.isOpen === next.isOpen &&
+    prev.driver?.id === next.driver?.id &&
+    prev.driver?.value === next.driver?.value &&
+    prev.rangeDate?.[0] === next.rangeDate?.[0] &&
+    prev.rangeDate?.[1] === next.rangeDate?.[1] &&
+    prev.columns === next.columns
+  );
+}
+
+const AssignJobsModal = React.memo(AssignJobsModalBase, areEqual);
+
+export default AssignJobsModal;

@@ -1587,6 +1587,207 @@ export interface PreAllocationPaginatedJobsData {
   };
 }
 
+export const GET_PREALLOCATED_JOBS_BY_DRIVER_QUERY = gql`
+  query GetPreallocatedJobsByDriver(
+    $preallocation_driver_id: ID
+    $between_at: JobBetweenInput
+    $first: Int!
+    $page: Int!
+    $orderBy: [OrderByClause!]
+  ) {
+    jobs(
+      preallocation_driver_id: $preallocation_driver_id
+      between_at: $between_at
+      first: $first
+      page: $page
+      orderBy: $orderBy 
+    ) {
+      data {
+        id
+        name
+        pick_up_state
+        total_quantity
+        total_weight
+        total_volume
+        pick_up_lng
+        pick_up_lat
+        pick_up_address
+        pick_up_notes
+        pick_up_name
+        pick_up_report
+        delivery_name
+        delivery_report
+        driver_id
+
+        driver {
+          full_name
+          media_url
+          is_tailgated
+          registration_no
+          no_max_capacity
+          no_max_pallets
+          no_max_volume
+          phone_no
+        }
+
+        job_category_id
+        job_category {
+          name
+        }
+
+        job_status_id
+        job_status {
+          name
+        }
+
+        job_type_id
+        job_type {
+          name
+        }
+
+        customer_id
+        customer {
+          id
+          full_name
+        }
+
+        company_id
+        company {
+          id
+          name
+        }
+
+        ready_at
+        drop_at
+        start_at
+        created_at
+        timeslot
+        last_free_at
+        pick_up_notes
+        base_notes
+        reference_no
+        booked_by
+        customer_notes
+        decline_notes
+        admin_notes
+
+        is_inbound_connect
+        is_hand_unloading
+        is_stackable_required
+        is_dangerous_goods
+        is_tailgate_required
+        is_paperwork_required
+
+        job_pickup_cities
+        job_destination_cities
+
+        job_destinations {
+          id
+          name
+          label
+          address
+          address_business_name
+          address_line_1
+          address_line_2
+          address_postal_code
+          address_state
+          address_country
+          address_city
+          is_pickup
+          pickup_at
+          notes
+          pick_up_name
+          pick_up_notes
+          estimated_at
+          arrived_at
+          job_id
+          lat
+          lng
+          updated_at
+
+          media {
+            id
+            name
+            downloadable_url
+            collection_name
+          }
+
+          job_destination_status_id
+
+          route_point {
+            id
+            route_id
+          }
+
+          address_formatted
+        }
+
+        pick_up_destination {
+          id
+          name
+          label
+          address
+          address_business_name
+          address_line_1
+          address_line_2
+          address_postal_code
+          address_state
+          address_country
+          address_city
+          address_formatted
+          is_pickup
+          pickup_at
+          notes
+          pick_up_name
+          pick_up_notes
+          estimated_at
+          arrived_at
+          job_id
+          lat
+          lng
+          updated_at
+        }
+
+        meta {
+          id
+          type
+          name
+          color
+        }
+
+        job_items {
+          id
+
+          item_type {
+            name
+          }
+
+          dimension_height
+          dimension_width
+          dimension_depth
+          quantity
+          weight
+          volume
+        }
+
+        created_at
+        extras
+      }
+
+      paginatorInfo {
+        count
+        currentPage
+        firstItem
+        hasMorePages
+        lastItem
+        lastPage
+        perPage
+        total
+      }
+    }
+  }
+`;
+
 export interface GroupedPaginatedJobsVars {
   query?: string;
   page: number;
