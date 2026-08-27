@@ -62,6 +62,7 @@ export interface CreateQuoteItemInput {
 
 export type QuoteItem = {
   id: number | null;
+  name: String;
   quote_id: number;
   quantity: number;
   volume: number;
@@ -80,6 +81,7 @@ export type QuoteItem = {
 
 export const defaultQuoteItem: QuoteItem = {
   id: null,
+  name: "",
   quote_id: null,
   quantity: 0,
   volume: 0,

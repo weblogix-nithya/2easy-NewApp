@@ -7,6 +7,7 @@ export const GET_JOB_PRICE_CALCULATION_DETAIL_QUERY = gql`
     jobPriceCalculationDetail(job_id: $job_id) {
       id
       job_id
+      quote_id
       customer_id
       cbm_auto
       total_weight
@@ -46,6 +47,7 @@ export const GET_JOB_PRICE_CALCULATION_DETAILS_QUERY = gql`
       data {
         id
         job_id
+        quote_id
         customer_id
         cbm_auto
         total_weight
@@ -116,6 +118,7 @@ export const UPDATE_JOB_PRICE_CALCULATION_DETAIL_MUTATION = gql`
     updateJobPriceCalculationDetailByJobId(job_id: $job_id, input: $input) {
       id
       job_id
+      quoe_id
       customer_id
       cbm_auto
       total_weight
@@ -173,6 +176,7 @@ export const CALCULATE_SEA_FREIGHT_QUERY = gql`
 export interface JobPriceCalculationDetail {
   id: string | null;
   job_id: number | null; // Changed from string to number
+  quote_id: number | null;
   customer_id: number | null;
   cbm_auto: number | null;
   total_weight: number | null;
@@ -197,7 +201,8 @@ export interface JobPriceCalculationDetail {
 
 
 export interface CreateJobPriceCalculationDetailInput {
-  job_id: number | null;
+  job_id?: number | null;
+  quote_id?: number | null;
   customer_id: number;
   cbm_auto: number;
   total_weight: number;
@@ -246,6 +251,7 @@ export interface UpdateJobPriceCalculationDetailInput {
 export const defaultJobPriceCalculationDetail: JobPriceCalculationDetail = {
   id: null,
   job_id: null,
+  quote_id: null,
   customer_id: null,
   cbm_auto: null,
   total_weight: null,
@@ -267,3 +273,4 @@ export const defaultJobPriceCalculationDetail: JobPriceCalculationDetail = {
   toll_levy_amount: null,
   toll_levy_type: null,
 };
+  

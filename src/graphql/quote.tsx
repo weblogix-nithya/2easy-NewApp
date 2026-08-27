@@ -337,3 +337,7 @@ export const defaultQuote: Quote = {
   quote_line_items: undefined,
   quoted_price: null,
 };
+
+export interface CreateQuoteResult {
+  createQuote: { id: string | number };
+}

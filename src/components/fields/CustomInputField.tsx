@@ -127,6 +127,19 @@ export default function Default(props: {
             <Input
               ref={inputRef}
               {...rest}
+              onWheel={(e) => {
+                if (type === "number") {
+                  e.currentTarget.blur();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (
+                  type === "number" &&
+                  (e.key === "ArrowUp" || e.key === "ArrowDown")
+                ) {
+                  e.preventDefault();
+                }
+              }}
               isDisabled={isDisabled}
               type={type ? type : "text"}
               id={(id ? id : name) + randomIdSection}

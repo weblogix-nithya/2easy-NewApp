@@ -226,7 +226,7 @@ export default function UserEdit() {
                     <Box maxWidth={"50%"}>
                       <Select
                         placeholder="Select State"
-                        defaultValue={australianState}
+                        value={australianState}
                         options={australianStates}
                         onChange={(e) =>
                           setUser({ ...user, ["state"]: e.value })
@@ -238,7 +238,7 @@ export default function UserEdit() {
                 </Flex>
 
                 {/* Hidden */}
-                {false && (
+                {/* {user.media_url && (
                   <>
                     <FormLabel
                       display="flex"
@@ -260,7 +260,7 @@ export default function UserEdit() {
                       media_url={user.media_url}
                     ></FileInput>
                   </>
-                )}
+                )} */}
               </FormControl>
             )}
           </Grid>

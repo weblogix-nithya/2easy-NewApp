@@ -39,9 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
 
-      <body id="root">
+      {/* <body id="root"> */}
+      <body id="root" suppressHydrationWarning>
         {/* <Providers> */}
-          {children}
+        {children}
         {/* </Providers> */}
       </body>
     </html>

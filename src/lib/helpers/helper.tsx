@@ -396,6 +396,12 @@ export const roleOptions = [
     label: "Super Admin",
   },
   {
+    id: "2",
+    value: 2,
+    name: "Organisation Admin",
+    label: "Sub Admin",
+  },
+  {
     id: "7",
     value: 7,
     name: "Company Admin",

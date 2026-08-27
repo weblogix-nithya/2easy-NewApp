@@ -134,7 +134,7 @@ export default function Default(props: {
               _placeholder={{ fontWeight: "400", color: "secondaryGray.600" }}
               isRequired={true}
               name={name}
-              value={value}
+              value={value ?? ""}
               defaultValue={defaultValue}
               onChange={onChange}
               min={min}
