@@ -1,4 +1,3 @@
-"use client"
 import {
   Box,
   Button,
@@ -11,15 +10,17 @@ import {
 } from "@chakra-ui/react";
 import React, { useState } from "react";
 
+
+
 type ActionBarProps = {
   selectedDriver: any;
   selectedJobs: any[];
   onSwitch: (state: boolean) => void;
-  onSaveChanges: () => void;
+  onSaveChanges?: () => void;     // ✅ callback for Save button
   // onClickBulkSort: () => void;
 };
 
-const ActionBar = <_P extends object>({
+const ActionBar = ({
   selectedDriver,
   selectedJobs,
   onSwitch,
@@ -28,13 +29,17 @@ const ActionBar = <_P extends object>({
 }: ActionBarProps) => {
   const [isSwitched, setIsSwitched] = useState<boolean>(false);
 
-  // const totals = selectedJobs.reduce(
-  //   (acc, job) => {
-  //     acc.totalWeights += job?.original?.job?.total_weight ?? 0;
-  //     acc.totalCBM += job?.original?.job?.total_volume ?? 0;
-  //     return acc;
-  //   },
-  //   { totalWeights: 0, totalCBM: 0 },
+  // const totals = useMemo(
+  //   () =>
+  //     selectedJobs.reduce(
+  //       (acc, job) => {
+  //         acc.totalWeights += job?.original?.job?.total_weight ?? 0;
+  //         acc.totalCBM += job?.original?.job?.total_volume ?? 0;
+  //         return acc;
+  //       },
+  //       { totalWeights: 0, totalCBM: 0 },
+  //     ),
+  //   [selectedJobs],
   // );
   const toast = useToast();
 
@@ -57,7 +62,7 @@ const ActionBar = <_P extends object>({
       zIndex={100}
     >
       {/* Switch */}
-      <Box w="65%" fontWeight="500">
+      <Box w="75%" fontWeight="500">
         <Flex align="center" borderRadius="16px">
           <Switch
             id="show-selected"
@@ -130,12 +135,10 @@ const ActionBar = <_P extends object>({
         </Button>{" "*/}
       </Box>
       {/* Totals */}
-      {/* <Box>
-        <Text fontWeight="bold">
+      {/* <Box> <Text fontWeight="bold">
           Total Selected: {totals.totalWeights} kg,{" "}
           {totals.totalCBM.toFixed(2)} cbm
-        </Text>
-      </Box> */}
+        </Text> </Box> */}
 
       {/* ✅ Save Changes Button */}
       {/* {hasChanges && (
@@ -154,4 +157,4 @@ const ActionBar = <_P extends object>({
   );
 };
 
-export default ActionBar;
+export default React.memo(ActionBar);

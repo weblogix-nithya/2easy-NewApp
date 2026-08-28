@@ -5,7 +5,6 @@ import { GET_INVOICE_STATUSES_QUERY } from "@/graphql/invoiceStatus";
 import { GET_JOB_LOGS_QUERY } from "@/graphql/job";
 import { GET_JOB_STATUSES_QUERY } from "@/graphql/jobStatus";
 import moment from "moment";
-// import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 
 import { JsonTreeViewer } from "./JobTableColumns";
@@ -14,8 +13,6 @@ export default function AuditLogTab(props: {
   activeTab: any;
 }) {
   const { jobObjectId, activeTab } = props;
-  // console.log(jobObjectId, activeTab, "jobObjectId,t");
-  // const router = useRouter();
   const [_queryPageIndex, setQueryPageIndex] = useState(0);
   const [_queryPageSize, setQueryPageSize] = useState(100);
   const [jobStatuses, setJobStatuses] = useState<Record<number, string>>({});
@@ -25,20 +22,30 @@ export default function AuditLogTab(props: {
 
   const columns = useMemo(
     () => [
-      { header: "User", accessor: "user.name" },
-      { header: "User Role", accessor: "user.roles[0].name" },
-      { header: "Action", accessor: "action" },
-      { header: "Field", accessor: "field" },
+      {
+        id: "user_name",
+        header: "User",
+        accessorFn: (row: any) => row?.user?.name,
+      },
+      {
+        id: "user_role",
+        header: "User Role",
+        accessorFn: (row: any) => row?.user?.roles?.[0]?.name,
+      },
+      { id: "action", header: "Action", accessorKey: "action" as const },
+      { id: "field", header: "Field", accessorKey: "field" as const },
 
       {
+        id: "old_value",
         header: "Old Value",
-        accessor: "old_value",
+        accessorKey: "old_value" as const,
         cell: ({ row }: any) =>
           formatValue(row.original.field, row.original.old_value),
       },
       {
+        id: "new_value",
         header: "New Value",
-        accessor: "new_value",
+        accessorKey: "new_value" as const,
         cell: ({ row }: any) =>
           row.original.field?.includes("status_id") ? (
             formatValue(row.original.field, row.original.new_value)
@@ -48,16 +55,16 @@ export default function AuditLogTab(props: {
       },
 
       {
+        id: "mail_sent",
         header: "Mail Sent",
-        accessor: "mail_sent",
-        type: "boolean",
-        trueLabel: "Yes",
-        falseLabel: "No",
+        accessorKey: "mail_sent" as const,
+        meta: { type: "boolean", trueLabel: "Yes", falseLabel: "No" },
       },
 
       {
+        id: "created_at",
         header: "Date",
-        accessor: "created_at",
+        accessorKey: "created_at" as const,
         cell: ({ value }: any) => {
           if (!value) return "-";
 
@@ -137,13 +144,11 @@ export default function AuditLogTab(props: {
         job_id: Number(jobObjectId),
         first: Number(50),
       },
-      // skip: !router.isReady || !jobObjectId || activeTab !== "audit", // Commented in new app Router
-      skip: !jobObjectId || activeTab !== "audit", // ✅ ONLY runs for Invoice tab
+      skip: !jobObjectId || activeTab !== "audit",
       fetchPolicy: "network-only",
     },
   );
 
-  // const logs = jobLogsData?.jobLogs?.data || [];
   return (
     <Box mt={5}>
       <SimpleGrid
@@ -154,7 +159,6 @@ export default function AuditLogTab(props: {
         {!jobLogsLoading && jobLogsData?.jobLogs?.data.length >= 0 && (
           <PaginationTable
             columns={columns}
-            // showDelete={true} // Removed in Current ver of table
             data={jobLogsData?.jobLogs?.data}
             setQueryPageIndex={setQueryPageIndex}
             setQueryPageSize={setQueryPageSize}

@@ -8,8 +8,7 @@ import {
     useColorModeValue,
 } from "@chakra-ui/react";
 import { Select } from "chakra-react-select";
-import { useState } from "react";
-// Custom components
+import { useId } from "react";
 
 export default function Default(props: {
     id?: string;
@@ -68,24 +67,20 @@ export default function Default(props: {
         autoComplete,
         ...rest
     } = props;
-    // Chakra Color Mode
     const textColorPrimary = useColorModeValue("navy.700", "white");
     const textColorSecodary = useColorModeValue("#888888", "#888888");
-    // RandomId
-    const [randomIdSection, _setRandomIdSection] = useState(
-        (id ? id : name) + Math.random().toString(36).substring(7),
-    );
+    const generatedId = useId();
+    const randomIdSection = generatedId;
 
     return (
-        // Vertical layout: label on top, field below, full width.
-        <Box mb={mb ? mb : "16px"} w="full">
+        <Box mb={mb ? mb : "10px"} w="full">
             {showLabel && (
                 <FormLabel
                     display="flex"
                     alignItems="baseline"
-                    mb="8px"
+                    mb="2px"
                     fontSize="sm"
-                    fontWeight="500"
+                    fontWeight="600"
                     htmlFor={(id ? id : name) + randomIdSection}
                     color={textColorPrimary}
                     _hover={{ cursor: "pointer" }}
@@ -134,8 +129,7 @@ export default function Default(props: {
                         _placeholder={{ fontWeight: "400", color: "secondaryGray.600" }}
                         isRequired={true}
                         name={name}
-                        value={value}
-                        defaultValue={defaultValue}
+                        value={value ?? ""}
                         onChange={onChange}
                         min={min}
                         onClick={

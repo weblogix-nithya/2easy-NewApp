@@ -20,7 +20,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { formatCurrency } from "@/lib/helpers/helper";
-// import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
@@ -30,15 +29,12 @@ export default function InvoiceTab(props: { jobObject: any }) {
   const toast = useToast();
 
   const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
-  // const isCompany = useSelector((state: RootState) => state.user.isCompany);
   const isCustomer = useSelector((state: RootState) => state.user.isCustomer);
   const isSubAdmin = useSelector((state: RootState) => state.user.isSubAdmin);
   const isAdminUser = isAdmin || isSubAdmin;
   const textColor = useColorModeValue("navy.700", "white");
-  // let menuBg = useColorModeValue("white", "navy.800");
   const textColorSecodary = useColorModeValue("#888888", "#888888");
   const [job, setJob] = React.useState<any>(jobObject);
-  // const router = useRouter();
   const job_collection = jobObject.job_destinations?.find(
     (dest: any) => dest.is_pickup,
   )?.address_city;
@@ -82,7 +78,6 @@ export default function InvoiceTab(props: { jobObject: any }) {
 
   return (
     <Box mt={5}>
-      {/* Invoice */}
       <Box mb={10} mt={10} width="">
         <Flex mb={1} align="flex-start">
           <Box>
@@ -145,7 +140,6 @@ export default function InvoiceTab(props: { jobObject: any }) {
             </Thead>
             <Tbody>
               {!job?.customer_invoice?.invoice_line_items ? (
-                // Show spinner while data is not loaded
                 <Tr>
                   <Td colSpan={5}>
                     <Center py={4}>
@@ -172,37 +166,30 @@ export default function InvoiceTab(props: { jobObject: any }) {
         </Flex>
 
         <Flex className="w-full mt-4 gap-6" justifyContent="space-between">
-          {/* Left Column: Total Weight and CBM */}
-          <Box className="w-1/2 max-w-[400px]">
-            <Flex flexDirection="column">
-              <Flex justifyContent="space-between" className="py-4 ">
-                <p className="text-sm ">
-                  <span className="text-sm !font-bold px-1">
-                    Total Weight:{" "}
-                  </span>
-                  {job?.job_items
-                    ?.reduce(
-                      (total: number, item: { weight: number }) =>
-                        total + (item.weight || 0),
-                      0,
-                    )
-                    .toFixed(2)}
-                </p>
-              </Flex>
+          <Box className="w-1/2 max-w-[400px] space-y-2 py-2">
+            <p className="text-md">
+              <span className="text-sm !font-bold px-1">
+                Total Weight:{" "}
+              </span>
+              {job?.job_items
+                ?.reduce(
+                  (total: number, item: { weight: number }) =>
+                    total + (item.weight || 0),
+                  0,
+                )
+                .toFixed(2)}
+            </p>
 
-              <Flex justifyContent="space-between" className="py-2">
-                <p className="text-sm text-left">
-                  <span className="text-sm !font-bold px-1">CBM: </span>
-                  {job?.job_items
-                    ?.reduce(
-                      (total: number, item: { volume: number }) =>
-                        total + (item.volume || 0),
-                      0,
-                    )
-                    .toFixed(2)}
-                </p>
-              </Flex>
-            </Flex>
+            <p className="text-md">
+              <span className="text-sm !font-bold px-1">CBM: </span>
+              {job?.job_items
+                ?.reduce(
+                  (total: number, item: { volume: number }) =>
+                    total + (item.volume || 0),
+                  0,
+                )
+                .toFixed(2)}
+            </p>
           </Box>
           <Box className="w-1/2 mt-4">
             <Box className="max-w-[400px] ml-auto">
@@ -218,9 +205,9 @@ export default function InvoiceTab(props: { jobObject: any }) {
                     <p className="text-sm text-right">
                       {job?.customer_invoice?.sub_total
                         ? formatCurrency(
-                            job.customer_invoice?.sub_total,
-                            job.customer_invoice?.currency,
-                          )
+                          job.customer_invoice?.sub_total,
+                          job.customer_invoice?.currency,
+                        )
                         : "$0"}
                     </p>
                   </Skeleton>
@@ -236,9 +223,9 @@ export default function InvoiceTab(props: { jobObject: any }) {
                     <p className="text-sm text-right">
                       {job.customer_invoice?.total_tax
                         ? formatCurrency(
-                            job.customer_invoice?.total_tax,
-                            job.customer_invoice?.currency,
-                          )
+                          job.customer_invoice?.total_tax,
+                          job.customer_invoice?.currency,
+                        )
                         : "$0"}
                     </p>
                   </Skeleton>
@@ -254,9 +241,9 @@ export default function InvoiceTab(props: { jobObject: any }) {
                     <p className="text-sm text-right">
                       {job.customer_invoice?.total
                         ? formatCurrency(
-                            job.customer_invoice?.total,
-                            job.customer_invoice?.currency,
-                          )
+                          job.customer_invoice?.total,
+                          job.customer_invoice?.currency,
+                        )
                         : "$0"}
                     </p>
                   </Skeleton>
@@ -272,9 +259,9 @@ export default function InvoiceTab(props: { jobObject: any }) {
                     <p className="text-base !font-bold text-right">
                       {job.customer_invoice?.total
                         ? formatCurrency(
-                            job.customer_invoice?.total,
-                            job.customer_invoice?.currency,
-                          )
+                          job.customer_invoice?.total,
+                          job.customer_invoice?.currency,
+                        )
                         : "$0"}
                     </p>
                   </Skeleton>
@@ -302,6 +289,7 @@ export default function InvoiceTab(props: { jobObject: any }) {
 
               <Flex justifyContent="space-between" className="mt-8">
                 <Button
+                  mr={2}
                   hidden={isCustomer}
                   variant="primary"
                   className="w-[49%]"
@@ -315,6 +303,7 @@ export default function InvoiceTab(props: { jobObject: any }) {
                   Approve Invoice
                 </Button>
                 <Button
+                  mr={2}
                   hidden={true}
                   variant="primary"
                   className="w-[49%]"
@@ -329,7 +318,7 @@ export default function InvoiceTab(props: { jobObject: any }) {
                 </Button>
 
                 {job.invoice_url != null && (
-                  <Link href={job.invoice_url} isExternal className="w-[49%]">
+                  <Link href={job.invoice_url} mr={2} isExternal className="w-[49%]">
                     <Button variant="secondary" className="w-[100%]">
                       Download Invoice
                     </Button>

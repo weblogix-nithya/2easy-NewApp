@@ -228,12 +228,39 @@ export default function JobIndex({ }: {}) {
     PRE_ALLOCATION_JOBS_QUERY,
     {
       variables: groupedVars,
-      fetchPolicy: "network-only",
-      onCompleted: (data) => {
-        console.log("groupedjob oncompleted res", data);
-      },
+      fetchPolicy: "cache-and-network",
     },
   );
+
+  const _jobs = groupedJobs?.preAllocationJobs;
+  const hasData = (_jobs?.data?.length ?? 0) > 0;
+  const isFirstLoad = loadingGroupedJobs && !hasData;
+
+  const rawRows = useMemo(() => _jobs?.data || [], [_jobs?.data]);
+  const stableRowsRef = useRef<any[]>(rawRows);
+  const stableRows = useMemo(() => {
+    const prev = stableRowsRef.current;
+    const sig = (arr: any[]) =>
+      arr
+        .map((r: any) => {
+          const j = r?.job ?? {};
+          return [
+            j.id,
+            j.updated_at ?? "",
+            j.job_status_id ?? j.job_status?.id ?? "",
+            j.driver_id ?? r?.driver?.id ?? "",
+            j.preallocation_driver_id ?? "",
+            j.d_sort_id ?? "",
+            j.sort_datetime ?? "",
+          ].join(":");
+        })
+        .join("|");
+    if (prev.length === rawRows.length && sig(prev) === sig(rawRows)) {
+      return prev;
+    }
+    stableRowsRef.current = rawRows;
+    return rawRows;
+  }, [rawRows]);
 
   const debouncedRefetch = useMemo(
     () => debounce(() => refetchGroupedJobs(), 3000 + Math.random() * 2000),
@@ -566,15 +593,15 @@ export default function JobIndex({ }: {}) {
           isMediaBusy={isMediaBusy}
         />
 
-        {loadingGroupedJobs ? (
+        {isFirstLoad ? (
           <Box textAlign="center" py={4} px={10}>
             Loading <Spinner size="sm" ml={2} />
           </Box>
-        ) : groupedJobs?.preAllocationJobs?.data?.length > 0 ? (
+        ) : hasData ? (
           <RemoveDriverProvider refetch={refetchGroupedJobs}>
             <JobPaginationTable
               columns={adminColumns}
-              data={groupedJobs?.preAllocationJobs?.data}
+              data={stableRows}
               total={groupedJobs?.preAllocationJobs?.total}
               options={{
                 manualSortBy: true,
@@ -622,7 +649,7 @@ export default function JobIndex({ }: {}) {
       </SimpleGrid>
 
       {/* ✅ ActionBar - normal import, NO Suspense needed */}
-      {isAdmin && !loadingGroupedJobs && (
+      {isAdmin && !isFirstLoad && (
         <ActionBar
           {...({
             selectedDriver: selectedDriver,

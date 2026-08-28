@@ -251,6 +251,9 @@ function createApolloClient() {
         SelectOption: {
           keyFields: false,
         },
+        DynamicTable: {
+          keyFields: false,
+        },
       },
     }),
     // link: from([

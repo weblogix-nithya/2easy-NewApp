@@ -7,7 +7,6 @@ import {
   Flex,
   Link,
   Spinner,
-  // useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
@@ -24,45 +23,51 @@ export default function ReportsTab(props: { jobObject: any }) {
   const [jobDestinationsConfirmed, setJobDestinationsConfirmed] = useState([]);
   const [driverIssues, setDriverIssues] = useState([]);
   const [customerIssues, setCustomerIssues] = useState([]);
-  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true); // <-- Add loading state
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true);
 
   const pickupColumns = useMemo(
     () => [
       {
-        id: 'type',
-        Header: "TYPE",
-        accessor: "type" as const,
+        id: "type",
+        header: "TYPE",
+        accessorKey: "type",
+        meta: { Header: "TYPE" },
       },
       {
-        id: 'address',
-        Header: "ADDRESS",
-        accessor: "address" as const,
+        id: "address",
+        header: "ADDRESS",
+        accessorKey: "address",
+        meta: { Header: "ADDRESS" },
       },
       {
-        id: 'date',
-        Header: "DATE",
-        accessor: "date_pick_up" as const,
+        id: "date",
+        header: "DATE",
+        accessorKey: "date_pick_up",
+        meta: { Header: "DATE" },
       },
       {
-        id:'pick_up_name',
-        Header: "HANDOVER PERSON",
-        accessor: "pick_up_name" as const,
+        id: "pick_up_name",
+        header: "HANDOVER PERSON",
+        accessorKey: "pick_up_name",
+        meta: { Header: "HANDOVER PERSON" },
       },
       {
-        id: 'pick_up_condition',
-        Header: "CONDITION REPORT",
-        accessor: "pick_up_condition" as const,
+        id: "pick_up_condition",
+        header: "CONDITION REPORT",
+        accessorKey: "pick_up_condition",
+        meta: { Header: "CONDITION REPORT" },
       },
       {
-        id: 'media',
-        Header: "PHOTO EVIDENCE",
-        accessor: "media" as const,
-        isMultipleImage: true,
+        id: "media",
+        header: "PHOTO EVIDENCE",
+        accessorKey: "media",
+        meta: { Header: "PHOTO EVIDENCE", isMultipleImage: true },
       },
       {
-        Header: "Handout Signature",
-        accessor: "signature" as const,
-        isMultipleImage: true,
+        id: "signature",
+        header: "Handout Signature",
+        accessorKey: "signature",
+        meta: { Header: "Handout Signature", isMultipleImage: true },
       },
     ],
     [],
@@ -70,47 +75,47 @@ export default function ReportsTab(props: { jobObject: any }) {
   const issuesColumns = useMemo(
     () => [
       {
-        id: 'uploaded_by',
-        Header: "SUBMITED BY",
-        accessor: "uploaded_by" as const,
+        id: "uploaded_by",
+        header: "SUBMITED BY",
+        accessorKey: "uploaded_by",
+        meta: { Header: "SUBMITED BY" },
       },
       {
-        id: 'date',
-        Header: "DATE",
-        accessor: "date" as const,
+        id: "date",
+        header: "DATE",
+        accessorKey: "date",
+        meta: { Header: "DATE" },
       },
       {
-        id: 'type',
-        Header: "TYPE",
-        accessor: "type" as const,
+        id: "type",
+        header: "TYPE",
+        accessorKey: "type",
+        meta: { Header: "TYPE" },
       },
       {
-        id: 'description',
-        Header: "DESCRIPTION",
-        accessor: "name" as const,
+        id: "description",
+        header: "DESCRIPTION",
+        accessorKey: "name",
+        meta: { Header: "DESCRIPTION" },
       },
       {
-        id: 'status',
-        Header: "STATUS",
-        accessor: "status" as const,
+        id: "status",
+        header: "STATUS",
+        accessorKey: "status",
+        meta: { Header: "STATUS" },
       },
       {
-        id: 'action',
-        Header: "Actions",
-        accessor: "issue_report_status_id" as const,
-        changeStatus: true,
-        isLinkAction: true,
+        id: "action",
+        header: "Actions",
+        accessorKey: "issue_report_status_id",
+        meta: { Header: "Actions", isLinkAction: true },
       },
     ],
     [],
   );
 
-  // const handleDownloadPod = () => {
-  //   console.log("download pod"); //TODO: download pod
-  // };
   useEffect(() => {
-    // if (!jobObject) return;
-    setIsLoadingDestinations(true); // Start loading
+    setIsLoadingDestinations(true);
 
     setJob(jobObject);
     let _driverIssues: any[] = [];
@@ -118,7 +123,6 @@ export default function ReportsTab(props: { jobObject: any }) {
     let _jobDestinationsConfirmed = jobObject?.job_destinations?.filter(
       (jobDestination: any) => jobDestination?.job_destination_status_id === 3,
     );
-    // change is_pickup to pickup or delivery
     _jobDestinationsConfirmed = _jobDestinationsConfirmed?.map(
       (jobDestination: any) => {
         if (jobDestination.is_pickup) {
@@ -136,7 +140,6 @@ export default function ReportsTab(props: { jobObject: any }) {
         };
         if (jobDestination?.issue_reports.length > 0) {
           jobDestination.issue_reports?.map((issueReport: any) => {
-            // if sourceable_type = App\\Models\\Driver
             let _issue = {
               ...issueReport,
               date: formatDate(issueReport.updated_at, "HH:MM, DD/MM/YYYY"),
@@ -150,15 +153,12 @@ export default function ReportsTab(props: { jobObject: any }) {
               _customerIssues.push(_issue);
             }
           });
-
-          //_driverIssues = _driverIssues.concat(jobDestination.issue_reports);
         }
         return jobDestination;
       },
     );
     _jobDestinationsConfirmed = _jobDestinationsConfirmed?.map(
       (destination: any) => {
-        // Filter media array for items with collection_name equal to "signatures"
         const signatureMedia = destination?.media?.filter(
           (item: any) => item.collection_name === "signatures",
         );
@@ -167,7 +167,6 @@ export default function ReportsTab(props: { jobObject: any }) {
           (item: any) => item?.collection_name !== "signatures",
         );
 
-        // Assign the handoutSignatures array to the handout_signature property of the destination object
         return {
           ...destination,
           signature: signatureMedia,
@@ -179,14 +178,13 @@ export default function ReportsTab(props: { jobObject: any }) {
     setJobDestinationsConfirmed(_jobDestinationsConfirmed);
     setDriverIssues(_driverIssues);
     setCustomerIssues(_customerIssues);
-    setIsLoadingDestinations(false); // Done loading
+    setIsLoadingDestinations(false);
   }, [jobObject]);
-  //handleChangeIssueStatus
-  const [handleChangeIssueStatus, {}] = useMutation(
+
+  const [handleChangeIssueStatus, { }] = useMutation(
     UPDATE_REPORT_ISSUE_MUTATION,
     {
-      onCompleted: (data:any) => {
-        // set new status to previous object
+      onCompleted: (data: any) => {
         let _issueReport = data?.updateIssueReport;
         if (_issueReport.sourceable.__typename === "Driver") {
           setDriverIssues([]);
@@ -228,7 +226,6 @@ export default function ReportsTab(props: { jobObject: any }) {
   );
   return (
     <Box className="mt-6">
-      {/* Reports */}
       <Box>
         <Flex justify="space-between" align="center" className="mb-7">
           <h3 className="">Pickup & Delivery Confirmation</h3>
@@ -258,7 +255,6 @@ export default function ReportsTab(props: { jobObject: any }) {
 
       <Divider className="my-12" />
 
-      {/* Driver Issues */}
       <Box>
         <Flex justify="space-between" align="center">
           <h3>Driver Issues</h3>
@@ -284,7 +280,6 @@ export default function ReportsTab(props: { jobObject: any }) {
 
       <Divider className="my-12" />
 
-      {/* Customer Issues */}
       <Box>
         <Flex justify="space-between" align="center">
           <h3>Customer Issues</h3>

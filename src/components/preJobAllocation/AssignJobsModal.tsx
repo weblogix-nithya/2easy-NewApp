@@ -1,4 +1,3 @@
-"use client";
 import { useMutation } from "@apollo/client/react";
 import {
   Box,
@@ -19,6 +18,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { showGraphQLErrorToast } from "@/components/toast/ToastError";
+import { Reorder } from "framer-motion";
 import {
   BULK_UPDATE_JOB_MUTATION,
   GET_PREALLOCATED_JOBS_BY_DRIVER_QUERY,
@@ -27,13 +27,9 @@ import moment from "moment";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useApolloQueryWithEffect } from "@/hooks/useApolloQueryWithEffect";
 
-import { JobBulkAssignRow } from "@/components/preJobAllocation/PreJobBulkAssignRow";
-import PreJobDragList from "@/components/preJobAllocation/PreJobDragList";
+import { JobBulkAssignRow } from "./PreJobBulkAssignRow";
 
-const GRID_TEMPLATE_COLUMNS =
-  "40px 130px 90px 140px minmax(220px, 1.6fr) minmax(220px, 1.6fr) 110px";
-
-const LIST_MAX_HEIGHT = "50vh";
+const GRID_TEMPLATE_COLUMNS = "40px 120px 90px 170px 380px 380px 110px";
 
 function formatDate(date: Date, isStart: boolean): string {
   const year = date.getFullYear();
@@ -96,6 +92,7 @@ function AssignJobsModalBase({
     },
   );
 
+  // Fetch only when the modal opens or driver/date changes.
   useEffect(() => {
     if (!isOpen || !driver) {
       if (!isOpen) setLocalJobs([]);
@@ -119,8 +116,7 @@ function AssignJobsModalBase({
         page: 1,
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, driver?.id, driver?.value, rangeDate?.[0], rangeDate?.[1]]);
+  }, [isOpen, driver?.id, driver?.value, fetchDriverJobs, driver, rangeDate]);
 
   const buildPayload = useCallback(() => {
     const driverId = parseInt(String(driver?.value ?? driver?.id), 10);
@@ -195,55 +191,78 @@ function AssignJobsModalBase({
               No jobs assigned to this driver.
             </Box>
           ) : (
-            <VStack overflowX="auto" spacing={0} w="full" align="start" p={4} mb={4}>
-              <div
+            <VStack spacing={0} w="full" align="start" p={2} mb={2}>
+              <Box
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: GRID_TEMPLATE_COLUMNS,
                   width: "100%",
-                  minWidth: "900px",
-                  borderBottom: "2px solid #E2E8F0",
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  position: "relative",
                 }}
               >
-                {columns.map((column, index) => (
-                  <div
-                    key={`bulk-header-${column?.id}`}
-                    style={{
-                      padding: "8px",
-                      fontSize: "0.7rem",
-                      fontWeight: 600,
-                      color: "#718096",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      position: index === 0 ? "sticky" : undefined,
-                      left: index === 0 ? 0 : undefined,
-                      zIndex: index === 0 ? 4 : undefined,
-                      background: index === 0 ? "white" : undefined,
-                      boxShadow:
-                        index === 0
-                          ? "2px 0 4px -2px rgba(0,0,0,0.15)"
-                          : undefined,
-                    }}
-                  >
-                    {column?.header}
-                  </div>
-                ))}
-              </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: GRID_TEMPLATE_COLUMNS,
+                    width: "max-content",
+                    minWidth: "100%",
+                    borderBottom: "2px solid #E2E8F0",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 5,
+                    background: "white",
+                  }}
+                >
+                  {columns.map((column, index) => (
+                    <div
+                      key={`bulk-header-${column?.id}`}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        color: "#718096",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        position: index === 0 ? "sticky" : undefined,
+                        left: index === 0 ? 0 : undefined,
+                        zIndex: index === 0 ? 6 : undefined,
+                        background: index === 0 ? "white" : undefined,
+                        boxShadow:
+                          index === 0
+                            ? "2px 0 4px -2px rgba(0,0,0,0.15)"
+                            : undefined,
+                      }}
+                    >
+                      {column?.Header}
+                    </div>
+                  ))}
+                </div>
 
-              <PreJobDragList
-                items={localJobs}
-                onReorder={setLocalJobs}
-                maxHeight={LIST_MAX_HEIGHT}
-                getItemKey={(item) => item?.original?.job?.id ?? item?.id}
-                renderRow={(item, isDragging) => (
-                  <JobBulkAssignRow
-                    columns={columns}
-                    item={item}
-                    gridTemplateColumns={GRID_TEMPLATE_COLUMNS}
-                    isDragging={isDragging}
-                  />
-                )}
-              />
+                <Reorder.Group
+                  as="div"
+                  axis="y"
+                  layoutScroll
+                  values={localJobs}
+                  onReorder={setLocalJobs}
+                  style={{
+                    width: "max-content",
+                    minWidth: "100%",
+                    maxHeight: "55vh",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {localJobs.map((item) => (
+                    <JobBulkAssignRow
+                      key={item?.original?.job?.id ?? item?.id}
+                      columns={columns}
+                      item={item}
+                      gridTemplateColumns={GRID_TEMPLATE_COLUMNS}
+                    />
+                  ))}
+                </Reorder.Group>
+              </Box>
             </VStack>
           )}
         </ModalBody>

@@ -403,6 +403,18 @@ const DataRow = memo(function DataRow({
       })}
     </Tr>
   );
+}, (prev, next) => {
+  return (
+    prev.row.id === next.row.id &&
+    prev.row.original === next.row.original &&
+    prev.isSelected === next.isSelected &&
+    prev.showRowSelection === next.showRowSelection &&
+    prev.restyleTable === next.restyleTable &&
+    prev.path === next.path &&
+    prev.onContextMenu === next.onContextMenu &&
+    prev.onToggle === next.onToggle &&
+    prev.onDelete === next.onDelete
+  );
 });
 DataRow.displayName = "DataRow";
 
@@ -519,33 +531,52 @@ const PaginationTable = <T extends object>({
   });
 
   const v8Columns = React.useMemo(() =>
-    columns.map((col: any) => ({
-      ...col,
-      header: col.header ?? (
-        typeof col.Header === "string"
-          ? col.Header
-          : col.Header
-            ? (props: any) => col.Header(props)
-            : col.id
-      ),
-      cell: col.cell ?? (
-        col.Cell
-          ? (props: any) => col.Cell({ row: props.row, getValue: props.getValue })
-          : undefined
-      ),
-      accessorFn: col.accessorFn ?? (
-        typeof col.accessor === "function"
+    columns.map((col: any) => {
+      const {
+        accessorKey: _accessorKey,
+        accessor: _accessor,
+        ...rest
+      } = col;
+
+      const realAccessorFn =
+        col.accessorFn ??
+        (typeof col.accessor === "function"
           ? col.accessor
-          : col.accessor
-            ? (row: any) => row[col.accessor]
+          : typeof col.accessor === "string" &&
+            !col.accessor.includes(".") &&
+            !col.accessor.includes(",")
+            ? (row: any) => row?.[col.accessor]
+            : () => null);
+
+      return {
+        ...rest,
+        header: col.header ?? (
+          typeof col.Header === "string"
+            ? col.Header
+            : col.Header
+              ? (props: any) => col.Header(props)
+              : col.id
+        ),
+        cell: col.cell ?? (
+          col.Cell
+            ? (props: any) => col.Cell({ row: props.row, getValue: props.getValue })
             : undefined
-      ),
-    }))
+        ),
+        // Always supply an explicit accessorFn and strip any accessorKey /
+        // accessor above. Column ids here are often compound, display-only
+        // keys like "job_category.name,ready_at,drop_at" — if TanStack sees
+        // a dotted accessorKey (or falls back to the id), it parses it as a
+        // nested key path and logs "deeply nested key returned undefined".
+        // These columns render via a custom `cell`, so a no-op accessor
+        // returning null is correct and silences the warnings.
+        accessorFn: realAccessorFn,
+      };
+    })
     , [columns]);
 
   const table = useReactTable({
     data,
-    columns,
+    columns: v8Columns,
     state: {
       sorting,
       rowSelection,
@@ -587,29 +618,31 @@ const PaginationTable = <T extends object>({
 
   const optimisticSelRef = React.useRef<Map<string, boolean>>(new Map());
   const [, force] = React.useState(0);
-  const forceUpdate = () => force((x) => x + 1);
+  const forceUpdate = useCallback(() => force((x) => x + 1), []);
 
   const selectedRows = table.getSelectedRowModel().rows;
 
   useEffect(() => {
-    if (optimisticSelRef.current.size) {
-      optimisticSelRef.current.clear();
-    }
-  }, [selectedRows.length]);
+    const selectedIds = new Set(selectedRows.map((r: any) => r.id));
+    optimisticSelRef.current.forEach((val, key) => {
+      if (val === selectedIds.has(key)) {
+        optimisticSelRef.current.delete(key);
+      }
+    });
+  }, [selectedRows]);
 
-  function getOptimisticSelected(row: any) {
+  const getOptimisticSelected = useCallback((row: any) => {
     const v = optimisticSelRef.current.get(row.id);
     return typeof v === "boolean" ? v : row.getIsSelected();
-  }
+  }, []);
 
   const toggleOptimisticRow = useCallback((row: any) => {
-    const next = !getOptimisticSelected(row);
+    const current = optimisticSelRef.current.get(row.id);
+    const next = typeof current === "boolean" ? !current : !row.getIsSelected();
     optimisticSelRef.current.set(row.id, next);
     forceUpdate();
-    requestAnimationFrame(() => {
-      row.toggleSelected(next);
-    });
-  }, []);
+    row.toggleSelected(next);
+  }, [forceUpdate]);
 
   useEffect(() => {
     if (isServerSide && setQueryPageIndex && setQueryPageSize) {

@@ -25,6 +25,7 @@ export const GET_DYNAMIC_TABLE_USERS_QUERY = gql`
         name
         dynamic_table_id
         dynamic_table {
+          id
           name
           column_name
           column_description
@@ -56,6 +57,7 @@ export const GET_DYNAMIC_TABLE_USER_QUERY = gql`
         name
         dynamic_table_id
         dynamic_table {
+          id
             name
             column_description
         }
@@ -73,6 +75,7 @@ export const CREATE_DYNAMIC_TABLE_USER_MUTATION = gql`
         name
         dynamic_table_id
         dynamic_table {
+          id
             name
             column_description
         }
@@ -90,6 +93,7 @@ export const UPDATE_DYNAMIC_TABLE_USER_MUTATION = gql`
         name
         dynamic_table_id
         dynamic_table {
+          id
             name
             column_description
         }
@@ -116,6 +120,7 @@ export const BULK_UPDATE_DYNAMIC_TABLE_USERS_MUTATION = gql`
         name
         dynamic_table_id
         dynamic_table {
+          id
             name
             column_description
         }

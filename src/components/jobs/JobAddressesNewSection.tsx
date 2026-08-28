@@ -28,9 +28,6 @@ import {
 } from "@/utils/autocomplete";
 import React, { useEffect, useRef, useState } from "react";
 
-// Chakra's Collapse has a TS type-definition gap where `children` isn't
-// declared on CollapseProps even though it's supported at runtime.
-// Casting sidesteps the compile error without affecting behavior.
 const CollapseFix = Collapse as unknown as React.FC<{
   in: boolean;
   animateOpacity?: boolean;
@@ -73,8 +70,6 @@ export default function JobAddressesTab(props: {
     Math.random().toString(36).substring(7),
   );
 
-  // Collapse/expand for the fields section only. The header row (chevron +
-  // "Save Address" button) stays visible at all times regardless of this.
   const [isOpen, setIsOpen] = useState(!defaultJobDestination?.address);
 
   const [query, setQuery] = useState("");
@@ -153,7 +148,7 @@ export default function JobAddressesTab(props: {
     setSavedAddressSelectedId(null);
     handleSetRandomIdKey();
     setJobDestination(updated);
-    setIsOpen(false); // address selected via search — auto-collapse
+    setIsOpen(false);
   };
 
   const handleFieldChange = (name: string, value: string) => {
@@ -239,16 +234,30 @@ export default function JobAddressesTab(props: {
     },
   );
 
+  const isSyncingFromPropsRef = useRef(true);
+
   useEffect(() => {
+    if (isSyncingFromPropsRef.current) {
+      isSyncingFromPropsRef.current = false;
+      return;
+    }
     jobDestinationChanged({ ...jobDestination, customer_id: undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobDestination]);
 
   useEffect(() => {
-    if (jobDestination.id != defaultJobDestination.id) {
+    if (
+      defaultJobDestination &&
+      (jobDestination.id != defaultJobDestination.id ||
+        jobDestination.address !== defaultJobDestination.address)
+    ) {
+      isSyncingFromPropsRef.current = true;
       setJobDestination(defaultJobDestination);
       setQuery(defaultJobDestination?.address || "");
       selectedLabelRef.current = defaultJobDestination?.address || "";
+      if (!jobDestination?.address && defaultJobDestination?.address) {
+        setIsOpen(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultJobDestination]);
@@ -296,14 +305,11 @@ export default function JobAddressesTab(props: {
           setJobDestination(updated);
           setQuery(updated.address || "");
           selectedLabelRef.current = updated.address || "";
-          setIsOpen(false); // saved address selected — auto-collapse
+          setIsOpen(false);
         }}
       />
 
-      {/* ---------- Persistent header row ----------
-          Address summary + chevron toggle, and the "Save Address" button —
-          both always visible, regardless of whether the fields below are
-          expanded or collapsed. Only the fields collapse. */}
+      { }
       <Flex
         justifyContent="space-between"
         alignItems="center"
@@ -428,7 +434,7 @@ export default function JobAddressesTab(props: {
             )}
           </Box>
 
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing="10px">
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacingX="20px" spacingY="0px">
             <CustomInputField
               label="Address"
               name="address"

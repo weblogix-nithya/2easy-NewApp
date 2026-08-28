@@ -1149,11 +1149,13 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "job_type.name",
+    accessorKey: () => "Type",
     header: "Type",
     cell: JobTypeCell,
   },
   {
     id: "pick_up_destination.address_formatted",
+    accessorKey: () => "Pickup From",
     header: "Pickup From",
     cell: PickupAddressCell,
   },
@@ -1168,17 +1170,20 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "pick_up_destination.address_business_name",
+    accessorKey: () => "Pickup Company",
     header: "Pickup Company",
     cell: PickupBusinessNameCell,
   },
   {
     id: "job_destinations.address",
+    accessorKey: () => "Delivery To",
     header: "Delivery To",
     cell: JobDestinationsCell,
     CellExport: JobDestinationsCellExport,
   },
   {
     id: "job_destinations.address_business_name",
+    accessorKey: () => "DelCompany",
     header: "Del. Company",
     cell: JobDestinationBusinessNameCell,
     CellExport: JobDestinationBusinessNameCellExport,
@@ -1200,26 +1205,31 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "price_summary.charges",
+    accessorKey: () => "price_summary.charges",
     header: "Charges",
     cell: Charges,
   },
   {
     id: "price_summary.sub_total",
+    accessorKey: () => "price_summary.sub_total",
     header: "Total",
     cell: SubTotal,
   },
   {
     id: "price_summary.tax",
+    accessorKey: () => "price_summary.tax",
     header: "Tax",
     cell: Tax,
   },
   {
     id: "price_summary.total",
+    accessorKey: () => "price_summary.total",
     header: "Total Price",
     cell: TotalPrice,
   },
   {
     id: "job_destinations.address,job_destinations.address_business_name",
+    accessorKey: () => "job_destinations.address,job_destinations.address_business_name",
     header: "Delivery Address and Name",
     cell: JobDestinationWithBusinessNamewithoutMediaCell,
     CellExport: JobDestinationWithBusinessNameCellExport,
@@ -1231,11 +1241,13 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "job_category.name",
+    accessorKey: () => "job_category.name",
     header: "category",
     cell: CategoryCell,
   },
   {
     id: "company.name",
+    accessorKey: () => "company.name",
     header: "Company",
     cell: BookedByCell,
   },
@@ -1246,6 +1258,7 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "job_category.name,ready_at,drop_at",
+    accessorKey: () => "job_category.name,ready_at,drop_at",
     header: "Ready By / Drop by",
     cell: ReadyDropByCell,
     CellExport: ReadyDropByCellExport,
@@ -1262,6 +1275,7 @@ export const tableColumn = (refetchJobs: () => void) => [
   },
   {
     id: "job_items.dimensions",
+    accessorKey: () => "job_items.dimensions",
     header: "Dimensions",
     cell: ItemsDimensionCell,
     CellExport: ItemsDimensionCellExport,
@@ -1358,8 +1372,84 @@ export const getColumnsPre = (
   return columns;
 };
 
+const BULK_TEXT_STYLE: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  fontSize: "0.8rem",
+  maxWidth: "100%",
+};
+
+export const BulkDeliveryCell = ({ row }: any) => {
+  const job = row?.original?.job;
+  return (
+    <div style={BULK_TEXT_STYLE} title={job?.name || "-"}>
+      {job?.name || "-"}
+    </div>
+  );
+};
+
+export const BulkPickupAddressCell = ({ row }: any) => {
+  const d = row?.original?.job?.job_destinations?.find(
+    (x: any) => x.is_pickup === true,
+  );
+  const name = d?.address_business_name || "";
+  const addr = d
+    ? `${d.address_line_1}, ${d.address_city}, ${d.address_postal_code}`
+    : "-";
+  const full = name ? `${name} — ${addr}` : addr;
+  return (
+    <div style={BULK_TEXT_STYLE} title={full}>
+      {full}
+    </div>
+  );
+};
+
+export const BulkDeliveryAddressCell = ({ row }: any) => {
+  const list = (row?.original?.job?.job_destinations || []).filter(
+    (x: any) => x?.is_pickup === false,
+  );
+  const d = list[0];
+  const name = d?.address_business_name || "";
+  const addr = d
+    ? `${d.address_line_1}, ${d.address_city}, ${d.address_postal_code}`
+    : "-";
+  const full = name ? `${name} — ${addr}` : addr;
+  return (
+    <div style={BULK_TEXT_STYLE} title={full}>
+      {full}
+    </div>
+  );
+};
+
+export const BulkDimensionCell = ({ row }: any) => {
+  const items = row?.original?.job?.job_items || [];
+  const text =
+    items
+      .map(
+        (it: any) =>
+          `${it.quantity} x ${it.weight} x ${(it.dimension_height * 100).toFixed(0)}x${(it.dimension_width * 100).toFixed(0)}x${(it.dimension_depth * 100).toFixed(0)}`,
+      )
+      .join(", ") || "-";
+  return (
+    <div style={BULK_TEXT_STYLE} title={text}>
+      {text}
+    </div>
+  );
+};
+
+export const BulkReadyDropByCell = ({ row }: any) => {
+  const job = row?.original?.job;
+  const text = `${job?.job_category?.name ?? "-"} · R:${formatTime(job?.ready_at)} D:${formatTime(job?.drop_at)}`;
+  return (
+    <div style={BULK_TEXT_STYLE} title={text}>
+      {text}
+    </div>
+  );
+};
+
 export const bulkassigntableColumn = [
-  { id: "name", header: "Delivery ID", cell: DeliveryCellBulkAssign },
+  { id: "name", header: "Delivery ID", cell: BulkDeliveryCell },
   {
     id: "suburb_area,area_color",
     header: "Quad",
@@ -1368,25 +1458,25 @@ export const bulkassigntableColumn = [
   {
     id: "job_category.name,ready_at,drop_at",
     header: "Ready By / Drop by",
-    cell: ReadyDropByCell,
+    cell: BulkReadyDropByCell,
     CellExport: ReadyDropByCellExport,
   },
   {
     id: "pick_up_destination.address_formatted,pick_up_destination.address_business_name",
     header: "Pickup Address and Name",
-    cell: PickupAddressWithTimewithoutMediaCell,
+    cell: BulkPickupAddressCell,
     CellExport: PickupAddressWithTimeCellExport,
   },
   {
     id: "job_destinations.address,job_destinations.address_business_name",
     header: "Delivery Address and Name",
-    cell: JobDestinationWithBusinessNamewithoutMediaCell,
+    cell: BulkDeliveryAddressCell,
     CellExport: JobDestinationWithBusinessNameCellExport,
   },
   {
     id: "job_items.dimensions",
     header: "Dimensions",
-    cell: ItemsDimensionCell,
+    cell: BulkDimensionCell,
     CellExport: ItemsDimensionCellExport,
   },
 ];
@@ -1394,15 +1484,6 @@ export const bulkassigntableColumn = [
 export const getBulkAssignColumns = (
   _dynamicTableUsers?: DynamicTableUser[],
 ) => {
-  // ✅ FIX: this modal is for reordering only, not full detail viewing —
-  // fixed at these 6 essential columns for everyone, not user-customizable.
-  // Previously this ran the list through outputDynamicTable(dynamicTableUsers, ...),
-  // which re-applied each user's PREVIOUSLY SAVED column preferences (from
-  // before the reduction, when there were ~28 columns) — so the header row
-  // could keep showing extra old columns regardless of how far
-  // bulkassigntableColumn itself was trimmed. Always returning the fixed
-  // set here guarantees the header matches bulkassigntableColumn exactly,
-  // for every user.
   return [
     {
       id: "order",

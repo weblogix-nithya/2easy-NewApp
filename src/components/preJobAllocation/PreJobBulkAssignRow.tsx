@@ -1,71 +1,90 @@
+import { Reorder, useDragControls } from "framer-motion";
 import { formatDate } from "@/lib/helpers/helper";
 import React, { memo } from "react";
-import { MdDragIndicator } from "react-icons/md";
 
 interface JobBulkAssignRowProps {
   columns: any[];
   item: any;
   gridTemplateColumns: string;
-  isDragging?: boolean;
 }
 
-export const ROW_HEIGHT_PX = 74;
-const ROW_HEIGHT = `${ROW_HEIGHT_PX}px`;
+const ROW_HEIGHT = "36px";
 
 const CELL_BASE_STYLE: React.CSSProperties = {
-  padding: "4px 8px",
+  padding: "2px 8px",
   fontSize: "0.75rem",
   borderBottom: "1px solid #EDF2F7",
   textAlign: "left",
   height: ROW_HEIGHT,
   maxHeight: ROW_HEIGHT,
+  minHeight: ROW_HEIGHT,
   overflow: "hidden",
   display: "flex",
   alignItems: "center",
   minWidth: 0,
   width: "100%",
+  boxSizing: "border-box",
 };
 
 const CELL_CONTENT_WRAPPER_STYLE: React.CSSProperties = {
   minWidth: 0,
   width: "100%",
   overflow: "hidden",
-  whiteSpace: "normal",
-  wordBreak: "break-word",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 };
 
 function renderCell(column: any, item: any): React.ReactNode {
-  const CellComponent = column?.cell;
+  const CellComponent = column?.Cell;
   if (CellComponent) return <CellComponent row={item} />;
-  const key = column?.accessor ?? column?.id;
   if (column?.type === "date") {
-    const value = item?.original?.job?.[key];
+    const value = item?.original?.job?.[column?.accessor];
     return value ? formatDate(value, "DD/MM/YYYY") : "-";
   }
-  return item?.original?.job?.[key] ?? "-";
+  return item?.original?.job?.[column?.accessor] ?? "-";
 }
 
 export const JobBulkAssignRow = memo(function JobBulkAssignRow({
   columns,
   item,
   gridTemplateColumns,
-  isDragging,
 }: JobBulkAssignRowProps) {
+  const dragControls = useDragControls();
+
   const firstColumn = columns[0];
   const restColumns = columns.slice(1);
 
   return (
-    <div
+    <Reorder.Item
+      as="div"
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      layout
+      transition={{ duration: 0.18, ease: "easeOut" }}
       style={{
         display: "grid",
         gridTemplateColumns,
         background: "white",
+        position: "relative",
+        height: ROW_HEIGHT,
+        minHeight: ROW_HEIGHT,
+        maxHeight: ROW_HEIGHT,
+        boxSizing: "border-box",
+        willChange: "transform",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+      }}
+      whileDrag={{
+        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+        backgroundColor: "#EBF8FF",
+        zIndex: 10,
       }}
     >
       <div
         style={{
           ...CELL_BASE_STYLE,
-          position: isDragging ? "relative" : "sticky",
+          position: "sticky",
           left: 0,
           background: "white",
           zIndex: 2,
@@ -73,11 +92,15 @@ export const JobBulkAssignRow = memo(function JobBulkAssignRow({
         }}
       >
         <div
-          data-drag-handle="true"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            dragControls.start(e);
+          }}
           style={{
-            cursor: isDragging ? "grabbing" : "grab",
+            cursor: "grab",
             touchAction: "none",
             userSelect: "none",
+            WebkitUserSelect: "none",
             display: "flex",
             alignItems: "center",
             gap: "6px",
@@ -85,9 +108,6 @@ export const JobBulkAssignRow = memo(function JobBulkAssignRow({
             width: "100%",
           }}
         >
-          <MdDragIndicator
-            style={{ color: "#999", fontSize: "18px", flexShrink: 0 }}
-          />
           {renderCell(firstColumn, item)}
         </div>
       </div>
@@ -99,7 +119,7 @@ export const JobBulkAssignRow = memo(function JobBulkAssignRow({
           </div>
         </div>
       ))}
-    </div>
+    </Reorder.Item>
   );
 });
 

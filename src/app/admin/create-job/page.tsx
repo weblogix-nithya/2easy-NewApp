@@ -1762,7 +1762,7 @@ function JobPage() {
                                 p="20px"
                                 mb="20px"
                             >
-                                <SimpleGrid columns={{ base: 1, md: 3 }} spacingX="20px" spacingY="0px">
+                                <SimpleGrid columns={{ base: 1, md: 4 }} spacingX="20px" spacingY="0px">
                                     <CustomInputField
                                         isSelect={true}
                                         optionsArray={jobCategories}
@@ -1858,14 +1858,28 @@ function JobPage() {
                                             />
 
                                             <Box>
+                                                <Flex align="baseline" mb="4px">
+                                                    <FormLabel
+                                                        mb="0"
+                                                        fontSize="sm"
+                                                        fontWeight="500"
+                                                    >
+                                                        Location
+                                                    </FormLabel>
+
+                                                    <Text color="red.500" fontSize="xs" ml="8px">
+                                                        (Note: For LCL and Airfreight Only)
+                                                    </Text>
+                                                </Flex>
+
                                                 <CustomInputField
                                                     key="locationKey"
                                                     isSelect={true}
+                                                    showLabel={false}
                                                     optionsArray={[
                                                         { value: "VIC", label: "Victoria" },
                                                         { value: "QLD", label: "Queensland" },
                                                     ]}
-                                                    label="State"
                                                     name="transport_location"
                                                     value={[
                                                         { value: "VIC", label: "Victoria" },
@@ -1873,7 +1887,11 @@ function JobPage() {
                                                     ].find((_e) => _e.value === job.transport_location)}
                                                     placeholder=""
                                                     onChange={(e) => {
-                                                        setJob((prev) => ({ ...prev, transport_location: e.value }));
+                                                        setJob((prev) => ({
+                                                            ...prev,
+                                                            transport_location: e.value,
+                                                        }));
+
                                                         setRefinedData((prev) => ({
                                                             ...prev,
                                                             state_code: e.value,
@@ -1881,9 +1899,6 @@ function JobPage() {
                                                         }));
                                                     }}
                                                 />
-                                                <Text color="red.500" fontSize="xs" mt="4px">
-                                                    Note: For LCL and Airfreight Only
-                                                </Text>
                                             </Box>
                                         </>
                                     )}
@@ -1950,7 +1965,7 @@ function JobPage() {
                                     />
 
                                     <Box>
-                                        <FormLabel fontSize="sm" fontWeight="500" mb="8px">
+                                        <FormLabel fontSize="sm" fontWeight="500" mb="4px">
                                             Additional email notification to
                                         </FormLabel>
                                         <TagsInput
@@ -2032,7 +2047,7 @@ function JobPage() {
                                     />
 
                                     <Box>
-                                        <FormLabel fontSize="sm" fontWeight="500" mb="8px">
+                                        <FormLabel fontSize="sm" fontWeight="600" mb="2px">
                                             Timeslot
                                         </FormLabel>
                                         <Time12HourPicker
@@ -2064,6 +2079,7 @@ function JobPage() {
                                             setJob((prev) => ({ ...prev, [e.target.name]: e.target.value }))
                                         }
                                     />
+
                                     <CustomInputField
                                         label="B Type Reference"
                                         placeholder=""
@@ -2098,7 +2114,7 @@ function JobPage() {
 
                             <Box flex="1">
                                 <Flex justifyContent="space-between" alignItems="flex-start" mb="12px" gap="16px">
-                                    <Text fontSize="sm" fontWeight="600" color="gray.600">
+                                    <Text fontSize="md" fontWeight="600" color="gray.600">
                                         Job Requirements
                                     </Text>
 
@@ -2216,7 +2232,7 @@ function JobPage() {
                                     />
                                 </Flex>
                             </Box>
-
+                            <Divider my="4" />
                             <Box mb="16px">
                                 <h3 className="mb-5 mt-3"> Addresses </h3>
 

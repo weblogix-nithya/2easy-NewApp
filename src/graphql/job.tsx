@@ -125,6 +125,7 @@ export const GET_JOBS_QUERY = gql`
         pick_up_notes
         base_notes
         reference_no
+        b_reference_no
         booked_by
         customer_notes
         decline_notes
@@ -642,6 +643,7 @@ export const GET_JOB_QUERY = gql`
       pick_up_notes
       base_notes
       reference_no
+      b_reference_no
       booked_by
       total_quantity
       total_weight
@@ -909,6 +911,7 @@ export const UPDATE_JOB_MUTATION = gql`
       id
       name
       reference_no
+      b_reference_no
       booked_by
       notes
       job_category_id
@@ -1096,6 +1099,7 @@ export interface UpdateJobInput {
   booked_by?: string;
   company_area: string;
   reference_no?: string;
+  b_reference_no?: string;
   customer_id?: string;
   company_id?: number;
   transport_type?: string;
@@ -1120,6 +1124,7 @@ export interface UpdateJobInput {
 export interface CreateJobInput {
   name?: string;
   reference_no?: string;
+  b_reference_no?: string;
   booked_by?: string;
   job_category_id?: number;
   job_status_id?: number;
@@ -1151,6 +1156,7 @@ export type Job = {
   id: number | null;
   //name: string;
   reference_no: string;
+  b_reference_no: string;
   booked_by: string;
   //notes: string;
   job_category_id: number;
@@ -1206,6 +1212,7 @@ export const defaultJob: Job = {
   id: null,
   name: "",
   reference_no: "",
+  b_reference_no: "",
   booked_by: "",
   //notes: "",
   job_category_id: 1,

@@ -95,35 +95,35 @@ export function outputDynamicTable(
       const outputValue = {
         id: dynamicTableUser.dynamic_table.column_name,
         header: dynamicTableUser.dynamic_table.name,
-        accessorKey: dynamicTableUser.dynamic_table.column_name,
+        accessorFn: () => null,
         ...(tableColumnItem?.enableSorting
           ? { enableSorting: tableColumnItem.enableSorting }
           : { enableSorting: false }),
         ...(tableColumnItem?.type !== undefined
           ? { type: tableColumnItem?.type }
           : {
-              cell: ({ row }: any) => {
-                if (tableColumnItem && tableColumnItem.cell) {
-                  return tableColumnItem.cell({ row });
-                }
-                return (
-                  <>
-                    {columnNames.map((columnName) => {
-                      return (
-                        <Text
-                          key={columnName}
-                          mb="2"
-                          w={tableColumnItem?.width ?? "fit-content"}
-                          flexWrap={"nowrap"}
-                        >
-                          {getValueFromRow(row.original, columnName) || "-"}
-                        </Text>
-                      );
-                    })}
-                  </>
-                );
-              },
-            }),
+            cell: ({ row }: any) => {
+              if (tableColumnItem && tableColumnItem.cell) {
+                return tableColumnItem.cell({ row });
+              }
+              return (
+                <>
+                  {columnNames.map((columnName) => {
+                    return (
+                      <Text
+                        key={columnName}
+                        mb="2"
+                        w={tableColumnItem?.width ?? "fit-content"}
+                        flexWrap={"nowrap"}
+                      >
+                        {getValueFromRow(row.original, columnName) || "-"}
+                      </Text>
+                    );
+                  })}
+                </>
+              );
+            },
+          }),
       };
       return outputValue;
     });
@@ -165,9 +165,9 @@ export function outputDynamicTableBody(
         const outputValue = columnNames.map((columnName) => {
           return tableColumnItem?.type == "date"
             ? formatDate(
-                getValueFromRow(row.original, columnName),
-                "DD/MM/YYYY",
-              )
+              getValueFromRow(row.original, columnName),
+              "DD/MM/YYYY",
+            )
             : getValueFromRow(row.original, columnName) || "-";
         });
         return outputValue.toString();
@@ -444,8 +444,7 @@ export function isSameDay(jobDate: string, timeZone: string): boolean {
 // Get job destination timezone based on the latitude and longitude using Google Maps API
 export async function getTimezone(lat: number, lng: number) {
   const response = await fetch(
-    `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${moment().unix()}&key=${
-      process.env.GOOGLE_API_KEY
+    `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${moment().unix()}&key=${process.env.GOOGLE_API_KEY
     }`,
   );
 
